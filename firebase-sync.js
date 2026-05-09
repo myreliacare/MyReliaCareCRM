@@ -72,6 +72,14 @@ COLLECTIONS.forEach(c => {
     } catch { _state[c.stateKey] = []; }
 });
 
+// CRITICAL: capture pre-migration cache snapshot at module load.
+// Listeners CAN overwrite localStorage; this snapshot CANNOT be overwritten.
+// Migration uses this to find local-only records to push up.
+const _preMigrationCache = {};
+COLLECTIONS.forEach(c => {
+    _preMigrationCache[c.stateKey] = JSON.parse(JSON.stringify(_state[c.stateKey] || []));
+});
+
 // --- Firestore listeners ---
 let _listenersAttached = false;
 const _unsubscribers = [];
@@ -240,28 +248,30 @@ window.checkLoginState = function() {
 
 /* =============================================================
    MIGRATION (one-time, on first login per device)
+   Uses _preMigrationCache (snapshot from module load) — never
+   reads localStorage at this point because the listener may have
+   already overwritten it.
 ============================================================= */
 async function _maybeMigrate() {
     if (localStorage.getItem('myreliacare_migrated') === 'yes') return;
 
-    // Wait briefly for first listener fire so _state reflects Firestore
-    await new Promise(r => setTimeout(r, 1500));
-
     const ops = [];
     let totalToMigrate = 0;
     for (const c of COLLECTIONS) {
-        let localArr = [];
-        try {
-            const raw = localStorage.getItem(c.storageKey);
-            // Be careful: localStorage may have been overwritten by listener already.
-            // The pre-migration original cache is what we want — but if listener fired,
-            // _state already mirrors Firestore and localStorage is too. So compare what
-            // we have in localStorage against what's in Firestore (_state).
-            localArr = raw ? JSON.parse(raw) : [];
-        } catch { localArr = []; }
+        const localArr = _preMigrationCache[c.stateKey] || [];
         if (localArr.length === 0) continue;
 
-        const firestoreIds = new Set(_state[c.stateKey].map(x => x.id));
+        // Pull current Firestore IDs at migration time (one read per collection,
+        // but accurate even if listener hasn't fired yet)
+        let firestoreIds = new Set();
+        try {
+            const snap = await db.collection(c.name).get();
+            snap.docs.forEach(d => firestoreIds.add(d.id));
+        } catch (e) {
+            console.error(`[sync] migration: could not read ${c.name}:`, e);
+            return; // bail without setting flag — try again next login
+        }
+
         for (const item of localArr) {
             if (item.id && !firestoreIds.has(item.id)) {
                 const { id, ...data } = item;
@@ -281,6 +291,8 @@ async function _maybeMigrate() {
             console.error('[sync] migration error:', e);
             return; // don't mark as migrated if it failed
         }
+    } else {
+        console.log('[sync] no local-only records to migrate');
     }
     localStorage.setItem('myreliacare_migrated', 'yes');
 }
@@ -288,7 +300,7 @@ async function _maybeMigrate() {
 /* =============================================================
    AUTH STATE → UI
 ============================================================= */
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
     const passwordScreen = document.getElementById('passwordScreen');
     const mainContent = document.getElementById('mainContent');
 
@@ -296,9 +308,14 @@ auth.onAuthStateChanged(user => {
         // Logged in
         if (passwordScreen) passwordScreen.style.display = 'none';
         if (mainContent) mainContent.style.display = 'block';
+
+        // CRITICAL ORDER:
+        // 1) Run migration (uses _preMigrationCache; safe even before listeners)
+        // 2) Then attach listeners (which can safely overwrite localStorage now)
+        // 3) Then render the app
+        try { await _maybeMigrate(); } catch (e) { console.error('[sync] migrate error:', e); }
         attachListeners();
-        _maybeMigrate();
-        // Each page defines initApp() — run it once
+
         if (typeof window.initApp === 'function' && !window._initialized) {
             window._initialized = true;
             try { window.initApp(); } catch (e) { console.error('[sync] initApp error:', e); }
