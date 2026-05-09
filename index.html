@@ -1,0 +1,3276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyReliaCare CRM - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@300;400;500;600;700&family=Cormorant+Unicase:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* === RESET & BASE === */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #1A1614;
+            --bg-card: #2A2220;
+            --bg-card-light: #3A3530;
+            --bg-input: #2F2825;
+            --accent: #B59197;
+            --accent-dark: #A47F85;
+            --accent-light: #D4C5C9;
+            --text: #F5E8EB;
+            --text-dim: #D4C5C9;
+            --text-faint: #8B7378;
+            --border: #4A413E;
+            --danger: #ff6b6b;
+            --success: #7FB069;
+            --warn: #E0B176;
+            --personal: #6B8FA8;
+            --charlie: #8AA89C;
+            --visit-meetgreet: #8B7378;
+            --visit-30min: #B59197;
+            --visit-60min: #D4A5AC;
+        }
+
+        body {
+            font-family: 'Cormorant', serif;
+            background: var(--bg-deep);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text);
+            line-height: 1.6;
+            font-size: 18px;
+        }
+
+        h1, h2, h3 { font-family: 'Cormorant Unicase', serif; font-weight: 600; }
+
+        /* === LOGIN SCREEN === */
+        #passwordScreen {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, var(--bg-deep) 0%, #2A2220 100%);
+            z-index: 9999;
+        }
+        .password-container {
+            background: var(--bg-card);
+            padding: 50px 40px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            max-width: 420px;
+            width: 90%;
+            border: 1px solid var(--border);
+        }
+        .password-container h1 {
+            color: var(--accent);
+            margin-bottom: 8px;
+            font-size: 2.4em;
+            letter-spacing: 1px;
+        }
+        .password-container p {
+            color: var(--text-dim);
+            margin-bottom: 24px;
+            font-size: 1.05em;
+        }
+        .password-input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1.1em;
+            font-family: 'Cormorant', serif;
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .password-input:focus { outline: none; border-color: var(--accent); }
+        .password-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-family: 'Cormorant', serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .password-btn:hover { background: var(--accent-dark); }
+        .password-error {
+            color: var(--danger);
+            margin-top: 12px;
+            display: none;
+            font-size: 0.95em;
+        }
+
+        /* === MAIN LAYOUT === */
+        #mainContent { display: none; }
+        .container { max-width: 1180px; margin: 0 auto; }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to bottom, #3A3530, var(--bg-card));
+            padding: 20px 30px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header-logo-container {
+            position: relative;
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+        }
+        .header-logo {
+            width: 100%; height: 100%; object-fit: cover; display: none;
+        }
+        .header-logo.loaded { display: block; }
+        .header-logo-placeholder {
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            color: var(--text-faint);
+            text-align: center;
+            padding: 4px;
+        }
+        .header-logo.loaded + .header-logo-placeholder { display: none; }
+        .header-title h1 {
+            color: var(--accent);
+            font-size: 1.8em;
+            line-height: 1;
+            letter-spacing: 0.5px;
+        }
+        .header-title .tagline {
+            font-size: 0.95em;
+            color: var(--text-dim);
+            font-style: italic;
+            margin-top: 2px;
+        }
+        .nav {
+            display: flex;
+            gap: 14px;
+            flex-wrap: nowrap;
+            align-items: center;
+        }
+        .nav a {
+            padding: 8px 18px;
+            color: var(--text-dim);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 1.05em;
+            white-space: nowrap;
+        }
+        .nav a:hover { background: var(--bg-input); color: var(--text); }
+        .nav a.active {
+            background: var(--accent);
+            color: white;
+        }
+        .logout-btn {
+            background: transparent;
+            color: var(--text-faint);
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Cormorant', serif;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+        .logout-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+        /* === STATS ROW === */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            padding: 20px 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+        }
+        .stat-label {
+            color: var(--text-faint);
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .stat-value {
+            color: var(--accent);
+            font-size: 2em;
+            font-weight: 600;
+            margin-top: 4px;
+            font-family: 'Cormorant Unicase', serif;
+        }
+
+        /* === MAIN GRID === */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 1000px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+        .card-title {
+            color: var(--accent);
+            font-size: 1.4em;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* === ACTION BUTTONS === */
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 22px;
+            font-family: 'Cormorant', serif;
+            font-size: 1.05em;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-dark); }
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+        .btn-secondary:hover { background: var(--accent); color: white; }
+        .btn-personal {
+            background: transparent;
+            color: var(--personal);
+            border: 1px solid var(--personal);
+        }
+        .btn-personal:hover { background: var(--personal); color: white; }
+        .btn-note {
+            background: transparent;
+            color: var(--warn);
+            border: 1px solid var(--warn);
+        }
+        .btn-note:hover { background: var(--warn); color: var(--bg-deep); }
+
+        /* Quick notes list */
+        .qnote {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.15s;
+        }
+        .qnote.done { opacity: 0.55; }
+        .qnote.done .qnote-text { text-decoration: line-through; color: var(--text-faint); }
+        .qnote-check {
+            width: 22px; height: 22px;
+            border: 2px solid var(--border);
+            border-radius: 5px;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9em;
+            color: transparent;
+            transition: all 0.15s;
+        }
+        .qnote.done .qnote-check { background: var(--success); border-color: var(--success); color: white; }
+        .qnote-text { flex: 1; color: var(--text); font-size: 1.02em; word-break: break-word; }
+        .qnote-time { color: var(--text-faint); font-size: 0.85em; white-space: nowrap; }
+        .qnote-del { background: transparent; border: none; color: var(--text-faint); cursor: pointer; font-size: 1.2em; padding: 4px 8px; line-height: 1; }
+        .qnote-del:hover { color: var(--danger); }
+        .qnotes-empty { text-align: center; padding: 20px; color: var(--text-faint); font-style: italic; }
+
+        /* Weekly snapshot */
+        .weekly-summary {
+            display: flex;
+            justify-content: space-around;
+            gap: 16px;
+            padding: 14px;
+            background: var(--bg-input);
+            border-radius: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            text-align: center;
+        }
+        .weekly-summary-item .weekly-label { color: var(--text-faint); font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; }
+        .weekly-summary-item .weekly-value { color: var(--accent); font-size: 1.6em; font-weight: 600; font-family: 'Cormorant Unicase', serif; }
+        .weekly-day-row {
+            display: grid;
+            grid-template-columns: 60px 1fr 70px;
+            gap: 12px;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .weekly-day-row:last-child { border-bottom: none; }
+        .weekly-day-row.today .weekly-day-name { color: var(--accent); font-weight: 600; }
+        .weekly-day-name { color: var(--text-dim); font-size: 0.95em; }
+        .weekly-day-bar {
+            height: 18px;
+            background: var(--bg-input);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        .weekly-day-bar-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--accent), var(--accent-light));
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .weekly-day-bar-empty { color: var(--text-faint); font-size: 0.85em; padding: 0 8px; line-height: 18px; font-style: italic; }
+        .weekly-day-amount { color: var(--text-dim); font-size: 0.9em; text-align: right; }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        .btn-danger:hover { background: var(--danger); color: white; }
+        .btn-ghost {
+            background: var(--bg-input);
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+        .btn-sm { padding: 6px 14px; font-size: 0.95em; }
+
+        /* === CALENDAR === */
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .calendar-nav {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .calendar-nav button {
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 14px;
+            cursor: pointer;
+            font-family: 'Cormorant', serif;
+            font-size: 1em;
+        }
+        .calendar-nav button:hover { border-color: var(--accent); color: var(--accent); }
+        .calendar-month {
+            color: var(--accent);
+            font-size: 1.5em;
+            min-width: 160px;
+            text-align: center;
+            font-family: 'Cormorant Unicase', serif;
+            padding: 0 4px;
+        }
+        .view-toggle { display: flex; gap: 0; background: var(--bg-input); border-radius: 6px; padding: 3px; border: 1px solid var(--border); }
+        .view-btn { background: transparent; border: none; color: var(--text-faint); padding: 5px 14px; border-radius: 4px; font-family: 'Cormorant', serif; font-size: 0.95em; cursor: pointer; transition: all 0.15s; }
+        .view-btn:hover { color: var(--text); }
+        .view-btn.active { background: var(--accent); color: white; }
+
+        /* Month view (Google-style) */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .calendar-grid.calendar-week { display: flex; flex-direction: column; gap: 0; }
+        .calendar-day-name {
+            text-align: center;
+            color: var(--text-faint);
+            font-size: 0.78em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 10px 0;
+            font-weight: 600;
+            background: var(--bg-card);
+        }
+        .calendar-day {
+            background: var(--bg-input);
+            min-height: 130px;
+            padding: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            position: relative;
+        }
+        .calendar-day:hover { background: var(--bg-card-light); }
+        .calendar-day.empty { background: var(--bg-card); cursor: default; }
+        .calendar-day.empty:hover { background: var(--bg-card); }
+        .calendar-day.other-month { opacity: 0.45; }
+        .day-num {
+            font-size: 0.85em;
+            color: var(--text-dim);
+            font-weight: 500;
+            width: 26px; height: 26px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            margin: 2px 0 4px 2px;
+            flex-shrink: 0;
+        }
+        .calendar-day.today .day-num {
+            background: var(--accent);
+            color: white;
+            font-weight: 700;
+        }
+
+        /* Event pills (month view) */
+        .event-pill {
+            font-size: 0.78em;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: var(--visit-30min);
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.4;
+            border-left: 3px solid rgba(0,0,0,0.18);
+        }
+        .event-pill.meet-greet { background: var(--visit-meetgreet); }
+        .event-pill.min30 { background: var(--visit-30min); }
+        .event-pill.min60 { background: var(--visit-60min); color: #2A2220; border-left-color: rgba(0,0,0,0.25); }
+        .event-pill.personal { background: var(--personal); }
+        .event-pill.completed { opacity: 0.55; text-decoration: line-through; }
+        .event-more {
+            font-size: 0.75em;
+            color: var(--accent);
+            padding: 2px 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .event-more:hover { text-decoration: underline; }
+
+        /* Week view */
+        .week-header-row, .week-allday-row, .week-body-row {
+            display: grid;
+            grid-template-columns: 60px repeat(7, 1fr);
+            gap: 1px;
+            background: var(--border);
+        }
+        .week-corner { background: var(--bg-card); }
+        .week-day-header {
+            background: var(--bg-card);
+            padding: 8px 6px;
+            text-align: center;
+            border-bottom: 2px solid var(--border);
+        }
+        .week-day-header.today { background: rgba(181, 145, 151, 0.12); }
+        .week-day-name { color: var(--text-faint); font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; }
+        .week-day-num { color: var(--text); font-size: 1.4em; font-weight: 600; margin-top: 2px; }
+        .week-day-header.today .week-day-num {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            line-height: 36px;
+            text-align: center;
+        }
+        .week-allday-label {
+            background: var(--bg-card);
+            color: var(--text-faint);
+            font-size: 0.72em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: right;
+            padding: 8px 8px 8px 0;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .week-allday-cell {
+            background: var(--bg-input);
+            padding: 4px;
+            min-height: 30px;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .week-allday-cell.today { background: rgba(181, 145, 151, 0.08); }
+        .week-time-axis { background: var(--bg-card); display: flex; flex-direction: column; }
+        .week-time-label {
+            height: 50px;
+            color: var(--text-faint);
+            font-size: 0.78em;
+            text-align: right;
+            padding: 2px 8px 0 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .week-day-column {
+            background: var(--bg-input);
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+        .week-day-column.today { background: rgba(181, 145, 151, 0.05); }
+        .week-day-column .hour-line {
+            position: absolute;
+            left: 0; right: 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .week-event {
+            position: absolute;
+            left: 2px; right: 2px;
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 0.78em;
+            line-height: 1.25;
+            overflow: hidden;
+            cursor: pointer;
+            z-index: 2;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            border-left: 3px solid rgba(0,0,0,0.2);
+            color: white;
+            background: var(--visit-30min);
+        }
+        .week-event:hover { filter: brightness(1.1); z-index: 3; }
+        .week-event.meet-greet { background: var(--visit-meetgreet); }
+        .week-event.min30 { background: var(--visit-30min); }
+        .week-event.min60 { background: var(--visit-60min); color: #2A2220; }
+        .week-event.personal { background: var(--personal); }
+        .week-event.completed { opacity: 0.55; text-decoration: line-through; }
+        .week-event-time { font-size: 0.85em; opacity: 0.85; }
+        .week-event-title { font-weight: 500; }
+        .week-now-line {
+            position: absolute;
+            left: 0; right: 0;
+            height: 2px;
+            background: var(--danger);
+            z-index: 4;
+            pointer-events: none;
+        }
+        .week-now-line::before {
+            content: '';
+            position: absolute;
+            left: -5px; top: -4px;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+        @media (max-width: 700px) {
+            .calendar-day { min-height: 80px; padding: 2px; }
+            .day-num { width: 22px; height: 22px; font-size: 0.8em; }
+            .event-pill { font-size: 0.7em; padding: 1px 4px; }
+            .week-allday-label { font-size: 0.65em; }
+            .week-day-name { font-size: 0.65em; }
+            .week-day-num { font-size: 1.1em; }
+            .week-time-label { font-size: 0.7em; }
+        }
+
+        /* === SIDEBAR LIST === */
+        .schedule-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .schedule-item {
+            background: var(--bg-input);
+            padding: 14px 16px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .schedule-item:hover { background: var(--bg-card-light); }
+        .schedule-item.personal { border-left-color: var(--personal); }
+        .schedule-item.completed { opacity: 0.55; }
+        .schedule-time {
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 1em;
+        }
+        .schedule-item.personal .schedule-time { color: var(--personal); }
+        .schedule-title {
+            color: var(--text);
+            font-size: 1.1em;
+            margin: 2px 0;
+        }
+        .schedule-meta {
+            color: var(--text-faint);
+            font-size: 0.9em;
+        }
+        .schedule-pets { color: var(--text-faint); font-size: 0.95em; font-style: italic; }
+        .schedule-item { position: relative; }
+        .schedule-item .schedule-title,
+        .schedule-item .schedule-meta { padding-right: 70px; }
+        .assignee-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 0.78em;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            font-family: 'Cormorant', serif;
+        }
+        .assignee-badge.kasey   { background: rgba(181, 145, 151, 0.2); color: var(--accent); border: 1px solid var(--accent); }
+        .assignee-badge.charlie { background: rgba(138, 168, 156, 0.2); color: var(--charlie); border: 1px solid var(--charlie); }
+        .assignee-badge.both    { background: rgba(212, 197, 201, 0.15); color: var(--accent-light); border: 1px solid var(--accent-light); }
+
+        .map-links { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .map-link {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 14px;
+            font-size: 0.85em;
+            background: var(--bg-input);
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .map-link:hover { color: var(--accent); border-color: var(--accent); }
+        .empty-state {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-faint);
+            font-style: italic;
+        }
+
+        /* === MODAL === */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: flex-start;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 40px 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            max-width: 720px;
+            width: 100%;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+            margin: auto 0;
+        }
+        .modal-header {
+            padding: 20px 28px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 {
+            color: var(--accent);
+            font-size: 1.5em;
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-faint);
+            font-size: 1.6em;
+            cursor: pointer;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        .modal-close:hover { color: var(--danger); }
+        .modal-body { padding: 24px 28px; }
+        .modal-footer {
+            padding: 20px 28px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        /* === FORM === */
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            font-size: 1em;
+            font-weight: 500;
+        }
+        .form-group label .required { color: var(--accent); }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-family: 'Cormorant', serif;
+            font-size: 1.05em;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 600px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+
+        /* === VISIT LINES === */
+        .visits-section {
+            background: var(--bg-input);
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border: 1px solid var(--border);
+        }
+        .visits-header {
+            color: var(--accent-light);
+            font-size: 1.05em;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .visit-row {
+            display: grid;
+            grid-template-columns: 1.2fr 0.9fr 1.1fr 0.8fr auto;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 6px;
+            background: var(--bg-card);
+            border-radius: 6px;
+        }
+        @media (max-width: 700px) {
+            .visit-row {
+                grid-template-columns: 1fr 1fr;
+            }
+            .visit-row > .visit-remove { grid-column: 2; justify-self: end; }
+        }
+        .visit-row input,
+        .visit-row select {
+            padding: 6px 10px;
+            font-size: 0.95em;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-family: 'Cormorant', serif;
+            width: 100%;
+        }
+        .visit-remove {
+            background: transparent;
+            color: var(--text-faint);
+            border: none;
+            cursor: pointer;
+            font-size: 1.3em;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+        .visit-remove:hover { color: var(--danger); }
+        .visit-add-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* === RECURRING === */
+        .recurring-section {
+            margin: 16px 0;
+        }
+        .recurring-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+            color: var(--text);
+            font-size: 1.05em;
+        }
+        .recurring-toggle input { width: auto; }
+        .recurring-options {
+            display: none;
+            background: var(--bg-input);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            border: 1px solid var(--border);
+        }
+        .recurring-options.active { display: block; }
+        .day-checkboxes {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .day-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--bg-card);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            user-select: none;
+        }
+        .day-checkbox input { width: auto; cursor: pointer; }
+        .day-checkbox.checked {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .recurring-note {
+            color: var(--text-faint);
+            font-size: 0.9em;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        /* === RANGE BUILDER MINI MODAL === */
+        .range-builder {
+            background: var(--bg-card-light);
+            border: 1px solid var(--accent);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .range-builder h4 {
+            color: var(--accent);
+            margin-bottom: 12px;
+            font-family: 'Cormorant Unicase', serif;
+        }
+        .range-builder-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .times-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .time-line {
+            display: grid;
+            grid-template-columns: 1fr 1.1fr 0.8fr auto;
+            gap: 6px;
+            align-items: center;
+        }
+
+        /* === CLIENT AUTOCOMPLETE === */
+        .autocomplete-wrapper {
+            position: relative;
+        }
+        .autocomplete-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-family: 'Cormorant', serif;
+            font-size: 1.05em;
+        }
+        .autocomplete-input:focus { outline: none; border-color: var(--accent); }
+        .autocomplete-input.has-selection {
+            background: rgba(181, 145, 151, 0.15);
+            border-color: var(--accent);
+        }
+        .autocomplete-clear {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--text-faint);
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 4px 8px;
+            display: none;
+            line-height: 1;
+        }
+        .autocomplete-input.has-selection ~ .autocomplete-clear { display: block; }
+        .autocomplete-clear:hover { color: var(--danger); }
+        .autocomplete-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--bg-card-light);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+        .autocomplete-dropdown.active { display: block; }
+        .autocomplete-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            font-size: 1em;
+        }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:hover,
+        .autocomplete-item.highlighted {
+            background: var(--accent);
+            color: white;
+        }
+        .autocomplete-item.add-new {
+            color: var(--accent-light);
+            font-style: italic;
+        }
+        .autocomplete-item.add-new strong {
+            color: var(--accent);
+            font-style: normal;
+            font-weight: 700;
+        }
+        .autocomplete-item.add-new:hover {
+            background: var(--accent);
+            color: white;
+        }
+        .autocomplete-item.add-new:hover strong { color: white; }
+        .autocomplete-empty {
+            padding: 12px 14px;
+            color: var(--text-faint);
+            font-style: italic;
+            font-size: 0.95em;
+        }
+
+        /* === ASSIGNMENT & PAID BADGES === */
+        .assignee-badge {
+            display: inline-block;
+            font-size: 0.7em;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-left: 4px;
+            font-family: 'Cormorant Unicase', serif;
+            letter-spacing: 0.5px;
+            vertical-align: middle;
+        }
+        .assignee-badge.kasey { background: #B59197; color: white; }
+        .assignee-badge.charlie { background: #8AA89C; color: white; }
+        .assignee-badge.both { background: linear-gradient(90deg, #B59197 50%, #8AA89C 50%); color: white; }
+
+        .assign-toggle { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+        .assign-option {
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-card);
+            cursor: pointer;
+            user-select: none;
+            color: var(--text-dim);
+            font-size: 0.95em;
+        }
+        .assign-option input { display: none; }
+        .assign-option.checked { border-color: var(--accent); background: var(--accent); color: white; }
+        .assign-option.checked.charlie { background: #8AA89C; border-color: #8AA89C; }
+        .assign-option.checked.both { background: linear-gradient(90deg, #B59197 50%, #8AA89C 50%); border-color: var(--accent); }
+
+        .paid-badge {
+            display: inline-block;
+            font-size: 0.78em;
+            padding: 1px 7px;
+            border-radius: 10px;
+            background: var(--success);
+            color: white;
+            margin-left: 4px;
+            font-weight: 600;
+        }
+        .paid-badge.unpaid { background: var(--warn); }
+
+        /* === WINDOW HINT (shown on visit row when client picked) === */
+        .window-hint {
+            font-size: 0.85em;
+            color: var(--accent-light);
+            background: rgba(181, 145, 151, 0.1);
+            padding: 4px 10px;
+            border-radius: 4px;
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            grid-column: 1 / -1;
+        }
+        .window-hint.no-window { color: var(--text-faint); background: transparent; font-style: italic; }
+        .window-hint button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-family: 'Cormorant', serif;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        .window-hint button:hover { background: var(--accent-dark); }
+
+        /* === PLAN DAY VIEW === */
+        .plan-day-stop {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 14px;
+            background: var(--bg-input);
+            padding: 14px 18px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+            margin-bottom: 10px;
+            align-items: start;
+        }
+        .plan-day-stop.cluster { border-left-color: var(--success); }
+        .plan-day-stop.completed { opacity: 0.55; }
+        .plan-day-num {
+            background: var(--accent);
+            color: white;
+            font-family: 'Cormorant Unicase', serif;
+            font-size: 1.1em;
+            font-weight: 700;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .plan-day-time { color: var(--accent); font-weight: 600; font-size: 1.05em; }
+        .plan-day-name { color: var(--text); font-size: 1.1em; }
+        .plan-day-addr { color: var(--text-faint); font-size: 0.9em; margin-top: 2px; }
+        .plan-day-window-hit { color: var(--success); font-size: 0.85em; margin-top: 2px; }
+        .plan-day-window-miss { color: var(--warn); font-size: 0.85em; margin-top: 2px; }
+        .plan-day-gap { text-align: center; color: var(--text-faint); font-size: 0.85em; padding: 4px 0; font-style: italic; }
+        .plan-day-link { color: var(--accent); text-decoration: none; font-size: 0.9em; }
+        .plan-day-link:hover { color: var(--accent-light); text-decoration: underline; }
+        .plan-day-summary { background: var(--bg-card-light); padding: 12px 16px; border-radius: 8px; margin-bottom: 14px; color: var(--text-dim); font-size: 0.95em; }
+
+        /* === EVENT DETAIL === */
+            display: flex;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .event-detail-label {
+            color: var(--text-faint);
+            min-width: 130px;
+            font-size: 0.95em;
+        }
+        .event-detail-value {
+            color: var(--text);
+            flex: 1;
+        }
+        .event-status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            background: var(--accent);
+            color: white;
+        }
+        .event-status-badge.completed { background: var(--success); }
+        .event-status-badge.cancelled { background: var(--text-faint); }
+
+        /* === TOAST === */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            color: var(--text);
+            padding: 14px 22px;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            z-index: 2000;
+            display: none;
+            font-size: 1.05em;
+            max-width: 320px;
+        }
+        #toast.error { border-color: var(--danger); }
+        #toast.success { border-color: var(--success); }
+
+        /* Color legend */
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            font-size: 0.85em;
+            justify-content: flex-end;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-dot {
+            width: 12px; height: 12px; border-radius: 3px;
+        }
+
+        /* Hide file input */
+        #logoUpload { display: none; }
+
+        /* === THEMED FORM CONTROLS (date/time/select) === */
+        input[type="date"],
+        input[type="time"],
+        input[type="datetime-local"],
+        input[type="month"],
+        select { color-scheme: dark; }
+
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0 L10 0 L5 6 Z' fill='%23B59197'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px !important;
+            cursor: pointer;
+        }
+        select:focus { border-color: var(--accent) !important; outline: none; }
+
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.7) sepia(0.3) saturate(1.5) hue-rotate(310deg);
+            cursor: pointer;
+            opacity: 0.85;
+            transition: opacity 0.15s;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover,
+        input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    </style>
+</head>
+<body>
+
+<!-- ========= LOGIN SCREEN ========= -->
+<div id="passwordScreen">
+    <div class="password-container">
+        <h1>MyReliaCare</h1>
+        <p>Enter password to access CRM</p>
+        <input type="password" id="passwordInput" class="password-input" placeholder="Password" autocomplete="off"
+               onkeydown="if(event.key==='Enter') checkPassword()">
+        <button onclick="checkPassword()" class="password-btn">Access CRM</button>
+        <p class="password-error" id="passwordError">Incorrect password. Please try again.</p>
+    </div>
+</div>
+
+<!-- ========= MAIN APP ========= -->
+<div id="mainContent">
+    <div class="container">
+
+        <!-- Header -->
+        <div class="header">
+            <div class="header-brand">
+                <div class="header-logo-container" onclick="document.getElementById('logoUpload').click()" title="Click to change logo">
+                    <img id="headerLogo" class="header-logo" alt="MyReliaCare Logo">
+                    <div id="logoPlaceholder" class="header-logo-placeholder">+ Logo</div>
+                    <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo(event)">
+                </div>
+                <div class="header-title">
+                    <h1>MyReliaCare</h1>
+                    <div class="tagline">Pet care, with intention.</div>
+                </div>
+            </div>
+            <nav class="nav">
+                <a href="index.html" class="active">Dashboard</a>
+                <a href="clients.html">Clients & Pets</a>
+                <a href="invoices.html">Invoices</a>
+                <button class="logout-btn" onclick="logout()">Sign Out</button>
+            </nav>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <button class="btn btn-primary" onclick="openScheduleModal()">+ Schedule Visit</button>
+            <button class="btn btn-personal" onclick="openPersonalEventModal()">+ Personal Event</button>
+            <button class="btn btn-note" onclick="openQuickNotes()">+ Quick Notes</button>
+        </div>
+
+        <!-- Today's Schedule -->
+        <div class="card">
+            <h2 class="card-title">Today's Schedule</h2>
+            <div id="todayList" class="schedule-list"></div>
+        </div>
+
+        <!-- Calendar -->
+        <div class="card">
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button onclick="changeCalendar(-1)">‹</button>
+                    <div class="calendar-month" id="calendarMonth"></div>
+                    <button onclick="changeCalendar(1)">›</button>
+                    <button onclick="goToToday()" class="btn-sm" style="margin-left: 4px;">Today</button>
+                </div>
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="month" onclick="setCalendarView('month')">Month</button>
+                    <button class="view-btn" data-view="week" onclick="setCalendarView('week')">Week</button>
+                </div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="legend">
+                <div class="legend-item"><span class="legend-dot" style="background: var(--visit-meetgreet);"></span>Meet & Greet</div>
+                <div class="legend-item"><span class="legend-dot" style="background: var(--visit-30min);"></span>30 min</div>
+                <div class="legend-item"><span class="legend-dot" style="background: var(--visit-60min);"></span>1 hour</div>
+                <div class="legend-item"><span class="legend-dot" style="background: var(--personal);"></span>Personal</div>
+            </div>
+        </div>
+
+        <!-- Weekly Snapshot -->
+        <div class="card">
+            <h2 class="card-title" id="weeklyTitle" style="display: block; text-align: center;">This Week</h2>
+            <div id="weeklySnapshot"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ========= SCHEDULE VISIT MODAL ========= -->
+<div class="modal-overlay" id="scheduleModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="scheduleModalTitle">Schedule Visit</h2>
+            <button class="modal-close" onclick="closeModal('scheduleModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Client <span class="required">*</span></label>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="visitClientInput" class="autocomplete-input"
+                           placeholder="Type a client name…" autocomplete="off"
+                           oninput="handleClientInput()" onfocus="handleClientInput()"
+                           onblur="hideClientDropdown()" onkeydown="handleClientKeydown(event)">
+                    <button type="button" class="autocomplete-clear" onclick="clearClientSelection()" title="Clear">×</button>
+                    <div id="clientDropdown" class="autocomplete-dropdown"></div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Address</label>
+                    <input type="text" id="visitAddress" placeholder="Auto-fills from client">
+                </div>
+                <div class="form-group">
+                    <label>Access Instructions</label>
+                    <input type="text" id="visitAccess" placeholder="e.g. Lockbox 1234">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Assigned to</label>
+                <div class="assign-toggle" id="assignToggle">
+                    <label class="assign-option"><input type="radio" name="assignedTo" value="kasey">Kasey</label>
+                    <label class="assign-option charlie"><input type="radio" name="assignedTo" value="charlie">Charlie</label>
+                    <label class="assign-option both checked"><input type="radio" name="assignedTo" value="both" checked>Both</label>
+                </div>
+            </div>
+
+            <div class="visits-section" id="visitsSection">
+                <div class="visits-header">Visits</div>
+                <div id="rangeBuilder"></div>
+                <div id="visitRows"></div>
+                <div class="visit-add-buttons">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="addVisitRow()">+ Add visit</button>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="showRangeBuilder()">+ Add date range</button>
+                </div>
+            </div>
+
+            <div class="recurring-section">
+                <label class="recurring-toggle">
+                    <input type="checkbox" id="recurringToggle" onchange="toggleRecurring()">
+                    <span>Make this a recurring schedule</span>
+                </label>
+                <div class="recurring-options" id="recurringOptions">
+                    <div class="form-group">
+                        <label>Repeat on these days</label>
+                        <div class="day-checkboxes" id="dayCheckboxes"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Start date <span class="required">*</span></label>
+                            <input type="date" id="recurringStart">
+                        </div>
+                        <div class="form-group">
+                            <label>End date <span class="required">*</span></label>
+                            <input type="date" id="recurringEnd">
+                        </div>
+                    </div>
+                    <p class="recurring-note">
+                        When recurring is on, the visit lines above act as a template — each row's TIME, TYPE, and PRICE will be repeated on every selected day of the week between start and end (max 6 months).
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <textarea id="visitNotes" placeholder="Anything specific about this booking..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('scheduleModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveSchedule()" id="saveScheduleBtn">Schedule</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= PERSONAL EVENT MODAL ========= -->
+<div class="modal-overlay" id="personalModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="personalModalTitle">Personal Event</h2>
+            <button class="modal-close" onclick="closeModal('personalModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Title <span class="required">*</span></label>
+                <input type="text" id="personalTitle" placeholder="e.g. Dentist appointment">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date <span class="required">*</span></label>
+                    <input type="date" id="personalDate">
+                </div>
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="personalTime">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <textarea id="personalNotes"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('personalModal')">Cancel</button>
+            <button class="btn btn-personal" onclick="savePersonalEvent()" id="savePersonalBtn">Save Event</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= EVENT DETAIL MODAL ========= -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="detailTitle">Event Details</h2>
+            <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+        </div>
+        <div class="modal-body" id="detailBody"></div>
+        <div class="modal-footer" id="detailFooter"></div>
+    </div>
+</div>
+
+<!-- ========= DAY EVENTS MODAL ========= -->
+<div class="modal-overlay" id="dayModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="dayModalTitle">Events</h2>
+            <button class="modal-close" onclick="closeModal('dayModal')">×</button>
+        </div>
+        <div class="modal-body" id="dayModalBody"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('dayModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= QUICK NOTES MODAL ========= -->
+<div class="modal-overlay" id="quickNotesModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Quick Notes & To-Dos</h2>
+            <button class="modal-close" onclick="closeModal('quickNotesModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <input type="text" id="quickNoteInput" placeholder="Type a note or to-do, hit Enter…"
+                       onkeydown="if(event.key==='Enter') addQuickNote()"
+                       style="flex: 1; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em;">
+                <button class="btn btn-primary btn-sm" onclick="addQuickNote()">Add</button>
+            </div>
+            <div id="quickNotesList"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('quickNotesModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= RECURRING DELETE MODAL ========= -->
+<div class="modal-overlay" id="recurringDeleteModal">
+    <div class="modal" style="max-width: 460px;">
+        <div class="modal-header">
+            <h2>Delete recurring visit?</h2>
+            <button class="modal-close" onclick="closeRecurringDeleteModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="color: var(--text-dim); margin-bottom: 16px; line-height: 1.5;">
+                This visit is part of a recurring series. What would you like to delete?
+            </p>
+            <p style="color: var(--text-faint); font-size: 0.9em; margin-bottom: 18px; font-style: italic;">
+                Past visits in the series are never touched.
+            </p>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-ghost" onclick="closeRecurringDeleteModal()">Cancel</button>
+            <button class="btn btn-secondary" onclick="confirmRecurringDelete('one')">Just this visit</button>
+            <button class="btn btn-danger" onclick="confirmRecurringDelete('future')">This + future visits</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Firebase Cloud Sync -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="firebase-sync.js"></script>
+
+<script>
+/* ============================================================
+   CONSTANTS
+   (STORAGE_KEYS and Store are defined in firebase-sync.js)
+   ============================================================ */
+
+const VISIT_TYPES = {
+    'meet-greet': { label: 'Meet & Greet', defaultPrice: 0, cssClass: 'meet-greet' },
+    '30min':      { label: '30 min Visit',  defaultPrice: 0, cssClass: 'min30' },
+    '60min':      { label: '1 hour Visit',  defaultPrice: 0, cssClass: 'min60' }
+};
+
+const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function generateId(prefix) {
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/* ============================================================
+   APP STATE
+   ============================================================ */
+let currentDate = new Date();
+let currentView = { year: currentDate.getFullYear(), month: currentDate.getMonth() };
+let currentCalendarView = 'month'; // 'month' | 'week'
+const HOUR_HEIGHT = 50;            // px per hour in week view
+const WEEK_START_HOUR = 6;         // 6am
+const WEEK_END_HOUR = 22;          // 10pm
+let editingEventId = null;       // for editing existing events
+let editingEventType = null;     // 'visit' | 'personal'
+
+/* ============================================================
+   AUTH (handled by firebase-sync.js — checkPassword/logout are global)
+   ============================================================ */
+
+/* ============================================================
+   LOGO
+   ============================================================ */
+function uploadLogo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        localStorage.setItem(STORAGE_KEYS.logo, e.target.result);
+        renderLogo();
+    };
+    reader.readAsDataURL(file);
+}
+function renderLogo() {
+    const saved = localStorage.getItem(STORAGE_KEYS.logo);
+    if (saved) {
+        const img = document.getElementById('headerLogo');
+        img.src = saved;
+        img.classList.add('loaded');
+    }
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = type;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+/* ============================================================
+   DATE HELPERS
+   ============================================================ */
+function ymd(date) {
+    if (typeof date === 'string') return date;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+function parseYmd(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+function formatDateLong(str) {
+    const d = parseYmd(str);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+function formatTime12(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+function todayYmd() {
+    return ymd(new Date());
+}
+function addDays(date, n) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + n);
+    return d;
+}
+function monthsBetween(d1, d2) {
+    const a = parseYmd(typeof d1 === 'string' ? d1 : ymd(d1));
+    const b = parseYmd(typeof d2 === 'string' ? d2 : ymd(d2));
+    return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+}
+
+/* ============================================================
+   MODAL HELPERS
+   ============================================================ */
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+// click outside to close
+document.addEventListener('click', (e) => {
+    if (e.target.classList && e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
+    }
+});
+// escape to close
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+    }
+});
+
+/* ============================================================
+   SCHEDULE VISIT MODAL
+   ============================================================ */
+function openScheduleModal(prefilledDate = null) {
+    editingEventId = null;
+    editingEventType = null;
+    document.getElementById('scheduleModalTitle').textContent = 'Schedule Visit';
+    document.getElementById('saveScheduleBtn').textContent = 'Schedule';
+
+    // reset client autocomplete
+    clearClientSelection();
+
+    document.getElementById('visitAddress').value = '';
+    document.getElementById('visitAccess').value = '';
+    document.getElementById('visitNotes').value = '';
+    document.getElementById('recurringToggle').checked = false;
+    document.getElementById('recurringOptions').classList.remove('active');
+    document.getElementById('rangeBuilder').innerHTML = '';
+
+    // reset assignment to "both"
+    setAssignmentValue('both');
+
+    // reset visit rows
+    document.getElementById('visitRows').innerHTML = '';
+    addVisitRow(prefilledDate);
+
+    // build day checkboxes
+    buildDayCheckboxes();
+
+    openModal('scheduleModal');
+}
+
+function setAssignmentValue(value) {
+    document.querySelectorAll('#assignToggle .assign-option').forEach(opt => {
+        const input = opt.querySelector('input');
+        const checked = input.value === value;
+        input.checked = checked;
+        opt.classList.toggle('checked', checked);
+    });
+}
+function getAssignmentValue() {
+    const checked = document.querySelector('#assignToggle input:checked');
+    return checked ? checked.value : 'both';
+}
+// wire up the toggle visual on click
+document.addEventListener('change', (e) => {
+    if (e.target.matches('#assignToggle input')) {
+        setAssignmentValue(e.target.value);
+    }
+});
+
+/* ============================================================
+   CLIENT AUTOCOMPLETE
+   ============================================================ */
+let selectedClientId = null;
+let dropdownHighlightIdx = -1;
+
+function clearClientSelection() {
+    selectedClientId = null;
+    dropdownHighlightIdx = -1;
+    const input = document.getElementById('visitClientInput');
+    if (input) {
+        input.value = '';
+        input.classList.remove('has-selection');
+        input.readOnly = false;
+        input.disabled = false;
+    }
+    // also clear address/access since they were auto-filled from a client
+    const addr = document.getElementById('visitAddress');
+    const acc = document.getElementById('visitAccess');
+    if (addr) addr.value = '';
+    if (acc) acc.value = '';
+    hideClientDropdown();
+    // hide all window hints since no client is selected
+    document.querySelectorAll('#visitRows .window-hint').forEach(h => h.style.display = 'none');
+}
+
+function handleClientInput() {
+    // If we already have a selection, typing should NOT immediately re-search —
+    // user must clear first (otherwise typing in a fixed-state input is confusing)
+    if (selectedClientId) return;
+
+    const input = document.getElementById('visitClientInput');
+    const query = (input.value || '').trim().toLowerCase();
+    const dropdown = document.getElementById('clientDropdown');
+    const clients = Store.getClients();
+
+    let matches;
+    if (!query) {
+        // empty — show all clients (alphabetical), capped at 50 for speed
+        matches = clients.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '')).slice(0, 50);
+    } else {
+        matches = clients.filter(c => (c.name || '').toLowerCase().includes(query))
+                         .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+
+    const exactMatch = clients.find(c => (c.name || '').trim().toLowerCase() === query);
+    const showAddNew = query.length >= 2 && !exactMatch;
+
+    let html = '';
+    if (matches.length === 0 && !showAddNew) {
+        html = '<div class="autocomplete-empty">No matches. Keep typing to add a new client.</div>';
+    } else {
+        matches.forEach((c, i) => {
+            const subtitle = c.address ? ` <span style="color: var(--text-faint); font-size: 0.85em;">— ${escapeHtml(c.address)}</span>` : '';
+            // mousedown fires before blur, so use mousedown to prevent the dropdown from closing first
+            html += `<div class="autocomplete-item" data-idx="${i}" onmousedown="event.preventDefault(); selectExistingClient('${c.id}')">${escapeHtml(c.name || '(unnamed)')}${subtitle}</div>`;
+        });
+        if (showAddNew) {
+            const safeName = escapeHtml(input.value.trim());
+            html += `<div class="autocomplete-item add-new" onmousedown="event.preventDefault(); createInlineClient()">+ Add new client: <strong>${safeName}</strong></div>`;
+        }
+    }
+    dropdown.innerHTML = html;
+    dropdown.classList.add('active');
+    dropdownHighlightIdx = -1;
+}
+
+function hideClientDropdown() {
+    // small delay so onmousedown click registers
+    setTimeout(() => {
+        document.getElementById('clientDropdown').classList.remove('active');
+    }, 150);
+}
+
+function handleClientKeydown(event) {
+    if (selectedClientId) return; // input is "locked" once a client is chosen
+    const dropdown = document.getElementById('clientDropdown');
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (items.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        dropdownHighlightIdx = Math.min(items.length - 1, dropdownHighlightIdx + 1);
+        updateHighlight(items);
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        dropdownHighlightIdx = Math.max(0, dropdownHighlightIdx - 1);
+        updateHighlight(items);
+    } else if (event.key === 'Enter') {
+        if (dropdownHighlightIdx >= 0 && items[dropdownHighlightIdx]) {
+            event.preventDefault();
+            // trigger the click handler
+            items[dropdownHighlightIdx].dispatchEvent(new MouseEvent('mousedown'));
+        }
+    } else if (event.key === 'Escape') {
+        document.getElementById('clientDropdown').classList.remove('active');
+    }
+}
+
+function updateHighlight(items) {
+    items.forEach((it, i) => it.classList.toggle('highlighted', i === dropdownHighlightIdx));
+    if (dropdownHighlightIdx >= 0 && items[dropdownHighlightIdx]) {
+        items[dropdownHighlightIdx].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+function selectExistingClient(clientId) {
+    const client = Store.getClients().find(c => c.id === clientId);
+    if (!client) return;
+    selectedClientId = clientId;
+    const input = document.getElementById('visitClientInput');
+    input.value = client.name || '';
+    input.classList.add('has-selection');
+    input.readOnly = true;
+    document.getElementById('clientDropdown').classList.remove('active');
+
+    // auto-fill address & access
+    const fullAddr = [client.address, client.city, client.state, client.zip].filter(Boolean).join(', ');
+    document.getElementById('visitAddress').value = fullAddr;
+    document.getElementById('visitAccess').value = client.accessInstructions || '';
+
+    // auto-fill any zero-priced visit rows from this client's stored pricing
+    fillEmptyPricesFromClient();
+    // refresh window hints for all rows now that client has windows defined
+    refreshAllRowHints();
+}
+
+function fillEmptyPricesFromClient() {
+    if (!selectedClientId) return;
+    const client = Store.getClients().find(c => c.id === selectedClientId);
+    if (!client || !client.pricing) return;
+    document.querySelectorAll('#visitRows .visit-row').forEach(row => {
+        const priceInput = row.querySelector('.visit-price');
+        const typeSelect = row.querySelector('.visit-type');
+        const type = typeSelect.value;
+        const current = parseFloat(priceInput.value) || 0;
+        if (type === 'meet-greet') return; // M&G stays at whatever it is (default 0)
+        if (current === 0 && client.pricing[type] !== undefined && client.pricing[type] > 0) {
+            priceInput.value = client.pricing[type];
+        }
+    });
+}
+
+function onVisitTypeChange(row) {
+    if (!selectedClientId) return;
+    const client = Store.getClients().find(c => c.id === selectedClientId);
+    if (!client) return;
+    const priceInput = row.querySelector('.visit-price');
+    const type = row.querySelector('.visit-type').value;
+    if (type === 'meet-greet') {
+        priceInput.value = 0;
+        return;
+    }
+    if (client.pricing && client.pricing[type] !== undefined) {
+        priceInput.value = client.pricing[type];
+    }
+}
+
+function createInlineClient() {
+    const input = document.getElementById('visitClientInput');
+    const name = (input.value || '').trim();
+    if (name.length < 2) {
+        showToast('Client name needs at least 2 characters', 'error');
+        return;
+    }
+    const clients = Store.getClients();
+    // double-check there's no exact match (defensive — race conditions)
+    const exact = clients.find(c => (c.name || '').trim().toLowerCase() === name.toLowerCase());
+    if (exact) {
+        selectExistingClient(exact.id);
+        return;
+    }
+    const newClient = {
+        id: 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        name,
+        address: '',
+        city: '',
+        state: '',
+        zip: '',
+        phone: '',
+        email: '',
+        accessInstructions: '',
+        pricing: {},
+        timeWindows: [],
+        pets: [],
+        notes: '',
+        createdDate: new Date().toISOString().split('T')[0]
+    };
+    clients.push(newClient);
+    Store.save(STORAGE_KEYS.clients, clients);
+
+    selectedClientId = newClient.id;
+    input.value = newClient.name;
+    input.classList.add('has-selection');
+    input.readOnly = true;
+    document.getElementById('clientDropdown').classList.remove('active');
+
+    // address/access stay empty — user can fill in for THIS visit, then update full client record on the Clients page later
+    showToast(`Added "${name}" — fill in their full info on the Clients page later`);
+}
+
+function addVisitRow(prefilledDate = null) {
+    const container = document.getElementById('visitRows');
+    const row = document.createElement('div');
+    row.className = 'visit-row';
+    row.innerHTML = `
+        <input type="date" class="visit-date" value="${prefilledDate || todayYmd()}" onchange="updateRowWindowHint(this.closest('.visit-row'))">
+        <input type="time" class="visit-time" value="09:00">
+        <select class="visit-type" onchange="onVisitTypeChange(this.closest('.visit-row'))">
+            ${Object.entries(VISIT_TYPES).map(([k, v]) =>
+                `<option value="${k}">${v.label}</option>`
+            ).join('')}
+        </select>
+        <input type="number" class="visit-price" placeholder="Price" min="0" step="0.01" value="0">
+        <button type="button" class="visit-remove" onclick="this.parentElement.remove()" title="Remove">×</button>
+        <div class="window-hint" style="display: none;"></div>
+    `;
+    container.appendChild(row);
+    updateRowWindowHint(row);
+}
+
+function updateRowWindowHint(row) {
+    const hintEl = row.querySelector('.window-hint');
+    if (!selectedClientId) { hintEl.style.display = 'none'; return; }
+    const client = Store.getClients().find(c => c.id === selectedClientId);
+    if (!client) { hintEl.style.display = 'none'; return; }
+    const windows = client.timeWindows || [];
+    if (windows.length === 0) { hintEl.style.display = 'none'; return; }
+
+    const date = row.querySelector('.visit-date').value;
+    if (!date) { hintEl.style.display = 'none'; return; }
+    const dow = parseYmd(date).getDay();
+    const matching = windows.filter(w => (w.days || []).includes(dow));
+
+    if (matching.length === 0) {
+        hintEl.className = 'window-hint no-window';
+        hintEl.innerHTML = `No preferred window for ${DAYS_OF_WEEK[dow]}`;
+        hintEl.style.display = 'flex';
+    } else {
+        const labels = matching.map(w => `${formatTime12(w.startTime)} – ${formatTime12(w.endTime)}`).join(' or ');
+        // use the FIRST matching window for the "snap" button
+        const first = matching[0];
+        hintEl.className = 'window-hint';
+        hintEl.innerHTML = `<span>Preferred: ${labels}</span><button type="button" onclick="snapToWindow(this.closest('.visit-row'), '${first.startTime}')">Snap to ${formatTime12(first.startTime)}</button>`;
+        hintEl.style.display = 'flex';
+    }
+}
+
+function snapToWindow(row, time) {
+    row.querySelector('.visit-time').value = time;
+}
+
+function refreshAllRowHints() {
+    document.querySelectorAll('#visitRows .visit-row').forEach(updateRowWindowHint);
+}
+
+function showRangeBuilder() {
+    const container = document.getElementById('rangeBuilder');
+    if (container.querySelector('.range-builder')) return; // already open
+    const today = todayYmd();
+    const tomorrow = ymd(addDays(new Date(), 1));
+    container.innerHTML = `
+        <div class="range-builder">
+            <h4>Add a Date Range</h4>
+            <div class="form-row">
+                <div class="form-group" style="margin: 0;">
+                    <label>Start date</label>
+                    <input type="date" id="rb_start" value="${today}">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>End date</label>
+                    <input type="date" id="rb_end" value="${tomorrow}">
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 12px;">
+                <label>Times per day (one or more)</label>
+                <div class="times-list" id="rb_times"></div>
+                <button type="button" class="btn btn-ghost btn-sm" style="margin-top: 8px;" onclick="addRangeTime()">+ Add another time</button>
+            </div>
+            <div class="range-builder-actions">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="cancelRangeBuilder()">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="applyRangeBuilder()">Generate visits</button>
+            </div>
+        </div>
+    `;
+    addRangeTime();
+}
+
+function addRangeTime() {
+    const list = document.getElementById('rb_times');
+    if (!list) return;
+    const line = document.createElement('div');
+    line.className = 'time-line';
+    line.innerHTML = `
+        <input type="time" class="rb_time" value="09:00">
+        <select class="rb_type">
+            ${Object.entries(VISIT_TYPES).map(([k, v]) =>
+                `<option value="${k}">${v.label}</option>`
+            ).join('')}
+        </select>
+        <input type="number" class="rb_price" placeholder="Price" min="0" step="0.01" value="0">
+        <button type="button" class="visit-remove" onclick="this.parentElement.remove()">×</button>
+    `;
+    list.appendChild(line);
+}
+
+function cancelRangeBuilder() {
+    document.getElementById('rangeBuilder').innerHTML = '';
+}
+
+function applyRangeBuilder() {
+    const start = document.getElementById('rb_start').value;
+    const end = document.getElementById('rb_end').value;
+    if (!start || !end) { showToast('Pick start and end dates', 'error'); return; }
+    if (parseYmd(start) > parseYmd(end)) { showToast('End date must be after start date', 'error'); return; }
+    if (monthsBetween(start, end) > 3) { showToast('Range too long — max 3 months at once', 'error'); return; }
+
+    const timeRows = document.querySelectorAll('#rb_times .time-line');
+    if (timeRows.length === 0) { showToast('Add at least one time slot', 'error'); return; }
+
+    const slots = [];
+    timeRows.forEach(line => {
+        slots.push({
+            time: line.querySelector('.rb_time').value,
+            type: line.querySelector('.rb_type').value,
+            price: parseFloat(line.querySelector('.rb_price').value) || 0
+        });
+    });
+
+    // Generate visit rows for each day × each time slot
+    let cursor = parseYmd(start);
+    const endDate = parseYmd(end);
+    const visitRows = document.getElementById('visitRows');
+    let added = 0;
+    while (cursor <= endDate) {
+        slots.forEach(s => {
+            const row = document.createElement('div');
+            row.className = 'visit-row';
+            row.innerHTML = `
+                <input type="date" class="visit-date" value="${ymd(cursor)}" onchange="updateRowWindowHint(this.closest('.visit-row'))">
+                <input type="time" class="visit-time" value="${s.time}">
+                <select class="visit-type" onchange="onVisitTypeChange(this.closest('.visit-row'))">
+                    ${Object.entries(VISIT_TYPES).map(([k, v]) =>
+                        `<option value="${k}" ${k === s.type ? 'selected' : ''}>${v.label}</option>`
+                    ).join('')}
+                </select>
+                <input type="number" class="visit-price" placeholder="Price" min="0" step="0.01" value="${s.price}">
+                <button type="button" class="visit-remove" onclick="this.parentElement.remove()" title="Remove">×</button>
+                <div class="window-hint" style="display: none;"></div>
+            `;
+            visitRows.appendChild(row);
+            added++;
+        });
+        cursor = addDays(cursor, 1);
+    }
+    cancelRangeBuilder();
+    fillEmptyPricesFromClient();
+    refreshAllRowHints();
+    showToast(`Added ${added} visit${added === 1 ? '' : 's'} — review & save`);
+}
+
+function buildDayCheckboxes() {
+    const container = document.getElementById('dayCheckboxes');
+    container.innerHTML = '';
+    DAYS_OF_WEEK.forEach((day, i) => {
+        const lbl = document.createElement('label');
+        lbl.className = 'day-checkbox';
+        lbl.innerHTML = `<input type="checkbox" value="${i}" onchange="this.parentElement.classList.toggle('checked', this.checked)"> ${day}`;
+        container.appendChild(lbl);
+    });
+    // sensible defaults: today
+    const todayDow = new Date().getDay();
+    const todayBox = container.querySelector(`input[value="${todayDow}"]`);
+    if (todayBox) { todayBox.checked = true; todayBox.parentElement.classList.add('checked'); }
+
+    document.getElementById('recurringStart').value = todayYmd();
+    document.getElementById('recurringEnd').value = ymd(addDays(new Date(), 28));
+}
+
+function toggleRecurring() {
+    const on = document.getElementById('recurringToggle').checked;
+    document.getElementById('recurringOptions').classList.toggle('active', on);
+}
+
+function saveSchedule() {
+    const clientId = selectedClientId;
+    if (!clientId) { showToast('Pick a client (or type a new name and tap "Add new client")', 'error'); return; }
+    const client = Store.getClients().find(c => c.id === clientId);
+    if (!client) { showToast('Client not found', 'error'); return; }
+
+    const address = document.getElementById('visitAddress').value.trim();
+    const access = document.getElementById('visitAccess').value.trim();
+    const notes = document.getElementById('visitNotes').value.trim();
+    const isRecurring = document.getElementById('recurringToggle').checked;
+
+    const rows = document.querySelectorAll('#visitRows .visit-row');
+    if (rows.length === 0) { showToast('Add at least one visit', 'error'); return; }
+
+    const visitTemplates = [];
+    let invalid = false;
+    rows.forEach(r => {
+        const date = r.querySelector('.visit-date').value;
+        const time = r.querySelector('.visit-time').value;
+        const type = r.querySelector('.visit-type').value;
+        const price = parseFloat(r.querySelector('.visit-price').value) || 0;
+        if (!date || !time) { invalid = true; return; }
+        visitTemplates.push({ date, time, type, price });
+    });
+    if (invalid) { showToast('Each visit needs a date and time', 'error'); return; }
+
+    // Build the actual visit list
+    const visits = Store.getVisits();
+    let toCreate = [];
+
+    if (isRecurring) {
+        const start = document.getElementById('recurringStart').value;
+        const end = document.getElementById('recurringEnd').value;
+        if (!start || !end) { showToast('Recurring needs start & end dates', 'error'); return; }
+        if (parseYmd(start) > parseYmd(end)) { showToast('End must be after start', 'error'); return; }
+        if (monthsBetween(start, end) > 6) { showToast('Recurring max range is 6 months', 'error'); return; }
+
+        const selectedDays = Array.from(
+            document.querySelectorAll('#dayCheckboxes input:checked')
+        ).map(i => parseInt(i.value));
+        if (selectedDays.length === 0) { showToast('Pick at least one day of the week', 'error'); return; }
+
+        const groupId = generateId('rec');
+        const assignedTo = getAssignmentValue();
+        // For recurring, ignore the date in templates — use time/type/price as the per-occurrence template
+        let cursor = parseYmd(start);
+        const endDate = parseYmd(end);
+        while (cursor <= endDate) {
+            if (selectedDays.includes(cursor.getDay())) {
+                visitTemplates.forEach(t => {
+                    toCreate.push({
+                        id: generateId('visit'),
+                        clientId,
+                        clientName: client.name,
+                        date: ymd(cursor),
+                        time: t.time,
+                        visitType: t.type,
+                        price: t.price,
+                        address,
+                        accessInstructions: access,
+                        notes,
+                        status: 'scheduled',
+                        recurringGroupId: groupId,
+                        invoiced: false,
+                        paid: false,
+                        paidDate: null,
+                        assignedTo,
+                        createdAt: new Date().toISOString()
+                    });
+                });
+            }
+            cursor = addDays(cursor, 1);
+        }
+        if (toCreate.length === 0) {
+            showToast('No matching days in that range', 'error');
+            return;
+        }
+    } else {
+        // One-time: each template row becomes one visit
+        const assignedTo = getAssignmentValue();
+        visitTemplates.forEach(t => {
+            toCreate.push({
+                id: generateId('visit'),
+                clientId,
+                clientName: client.name,
+                date: t.date,
+                time: t.time,
+                visitType: t.type,
+                price: t.price,
+                address,
+                accessInstructions: access,
+                notes,
+                status: 'scheduled',
+                recurringGroupId: null,
+                invoiced: false,
+                paid: false,
+                paidDate: null,
+                assignedTo,
+                createdAt: new Date().toISOString()
+            });
+        });
+    }
+
+    Store.saveVisits([...visits, ...toCreate]);
+
+    // Backfill client record from this booking — only fills fields that are currently empty
+    backfillClientFromBooking(clientId, address, access, visitTemplates);
+
+    closeModal('scheduleModal');
+    refreshAll();
+    showToast(`Scheduled ${toCreate.length} visit${toCreate.length === 1 ? '' : 's'}`);
+}
+
+function backfillClientFromBooking(clientId, address, access, visitTemplates) {
+    const allClients = Store.getClients();
+    const idx = allClients.findIndex(c => c.id === clientId);
+    if (idx < 0) return;
+    const cli = allClients[idx];
+    let updated = false;
+
+    // Address: only fill if every address field on the client is empty
+    const hasNoAddress = !cli.address && !cli.city && !cli.state && !cli.zip;
+    if (hasNoAddress && address && address.trim()) {
+        cli.address = address.trim();
+        updated = true;
+    }
+
+    // Access instructions: fill only if currently empty
+    if (!cli.accessInstructions && access && access.trim()) {
+        cli.accessInstructions = access.trim();
+        updated = true;
+    }
+
+    // Pricing: track per visit type, only fill if not already set
+    if (!cli.pricing) cli.pricing = {};
+    visitTemplates.forEach(t => {
+        if (t.type === 'meet-greet') return; // M&G always free, no need to track
+        if (cli.pricing[t.type] === undefined && t.price > 0) {
+            cli.pricing[t.type] = t.price;
+            updated = true;
+        }
+    });
+
+    if (updated) {
+        allClients[idx] = cli;
+        Store.save(STORAGE_KEYS.clients, allClients);
+    }
+}
+
+/* ============================================================
+   PERSONAL EVENT MODAL
+   ============================================================ */
+function openPersonalEventModal(prefilledDate = null) {
+    editingEventId = null;
+    editingEventType = null;
+    document.getElementById('personalModalTitle').textContent = 'Personal Event';
+    document.getElementById('savePersonalBtn').textContent = 'Save Event';
+    document.getElementById('personalTitle').value = '';
+    document.getElementById('personalDate').value = prefilledDate || todayYmd();
+    document.getElementById('personalTime').value = '';
+    document.getElementById('personalNotes').value = '';
+    openModal('personalModal');
+}
+
+function savePersonalEvent() {
+    const title = document.getElementById('personalTitle').value.trim();
+    const date = document.getElementById('personalDate').value;
+    const time = document.getElementById('personalTime').value;
+    const notes = document.getElementById('personalNotes').value.trim();
+    if (!title) { showToast('Event needs a title', 'error'); return; }
+    if (!date) { showToast('Event needs a date', 'error'); return; }
+
+    const events = Store.getPersonalEvents();
+    if (editingEventId && editingEventType === 'personal') {
+        const idx = events.findIndex(e => e.id === editingEventId);
+        if (idx >= 0) {
+            events[idx] = { ...events[idx], title, date, time, notes };
+        }
+    } else {
+        events.push({
+            id: generateId('pers'),
+            title, date, time, notes,
+            createdAt: new Date().toISOString()
+        });
+    }
+    Store.savePersonalEvents(events);
+    closeModal('personalModal');
+    refreshAll();
+    showToast('Event saved');
+}
+
+/* ============================================================
+   EVENT DETAIL / EDIT
+   ============================================================ */
+function openEventDetail(eventId, eventType) {
+    if (eventType === 'visit') {
+        const v = Store.getVisits().find(x => x.id === eventId);
+        if (!v) return;
+        const t = VISIT_TYPES[v.visitType] || { label: v.visitType };
+        const paidBadge = v.status === 'completed'
+            ? (v.paid ? '<span class="paid-badge">PAID</span>' : '<span class="paid-badge unpaid">UNPAID</span>')
+            : '';
+        // Pet names from client record
+        const linkedClient = Store.getClients().find(c => c.id === v.clientId);
+        const petNames = (linkedClient && linkedClient.pets && linkedClient.pets.length > 0)
+            ? linkedClient.pets.map(p => escapeHtml(p.name || '')).filter(Boolean).join(', ')
+            : '';
+        document.getElementById('detailTitle').innerHTML = `${t.label} — ${escapeHtml(v.clientName || 'Client')} ${paidBadge}`;
+        document.getElementById('detailBody').innerHTML = `
+            <div class="event-detail-row"><div class="event-detail-label">Status:</div>
+                <div class="event-detail-value"><span class="event-status-badge ${v.status}">${v.status}</span>
+                ${v.recurringGroupId ? ' <span style="color: var(--text-faint); font-size: 0.9em; font-style: italic;">part of a recurring schedule</span>' : ''}</div>
+            </div>
+            <div class="event-detail-row"><div class="event-detail-label">Assigned to:</div><div class="event-detail-value">${assigneeFullLabel(v.assignedTo)}</div></div>
+            <div class="event-detail-row"><div class="event-detail-label">Date:</div><div class="event-detail-value">${formatDateLong(v.date)}</div></div>
+            <div class="event-detail-row"><div class="event-detail-label">Time:</div><div class="event-detail-value">${formatTime12(v.time)}</div></div>
+            <div class="event-detail-row"><div class="event-detail-label">Visit type:</div><div class="event-detail-value">${t.label}</div></div>
+            ${petNames ? `<div class="event-detail-row"><div class="event-detail-label">Pets:</div><div class="event-detail-value">${petNames}</div></div>` : ''}
+            <div class="event-detail-row"><div class="event-detail-label">Price:</div><div class="event-detail-value">$${(v.price || 0).toFixed(2)}${v.paid ? ` <span style="color: var(--success); font-size: 0.9em;">· paid ${v.paidDate ? formatDateLong(v.paidDate) : ''}</span>` : ''}${v.invoiced ? ' <span style="color: var(--accent); font-size: 0.9em;">· on an invoice</span>' : ''}</div></div>
+            ${v.status === 'completed' ? `<div class="event-detail-row"><div class="event-detail-label">Tip:</div><div class="event-detail-value" id="tipDisplay-${v.id}">${renderTipUI(v)}</div></div>` : ''}
+            <div class="event-detail-row"><div class="event-detail-label">Address:</div><div class="event-detail-value">${renderAddressWithMaps(v.address)}</div></div>
+            <div class="event-detail-row"><div class="event-detail-label">Access:</div><div class="event-detail-value">${escapeHtml(v.accessInstructions || '—')}</div></div>
+            ${v.notes ? `<div class="event-detail-row"><div class="event-detail-label">Notes:</div><div class="event-detail-value">${escapeHtml(v.notes)}</div></div>` : ''}
+        `;
+        const footer = document.getElementById('detailFooter');
+        let actionButtons = '';
+        if (v.status === 'completed') {
+            // toggle paid status
+            actionButtons += v.paid
+                ? `<button class="btn btn-ghost" onclick="markVisitUnpaid('${v.id}')">Mark Unpaid</button>`
+                : `<button class="btn btn-success" onclick="markVisitPaid('${v.id}')">Mark Paid</button>`;
+            actionButtons += `<button class="btn btn-ghost" onclick="markVisitScheduled('${v.id}')">Reopen</button>`;
+        } else {
+            // not yet completed — offer two completion paths
+            actionButtons += `<button class="btn btn-success" onclick="markVisitCompleteAndPaid('${v.id}')">Complete & Paid</button>`;
+            actionButtons += `<button class="btn btn-primary" onclick="markVisitComplete('${v.id}')">Mark Complete</button>`;
+        }
+        footer.innerHTML = `
+            <button class="btn btn-danger" onclick="deleteVisit('${v.id}')">Delete</button>
+            <button class="btn btn-ghost" onclick="closeModal('detailModal')">Close</button>
+            ${actionButtons}
+        `;
+    } else if (eventType === 'personal') {
+        const p = Store.getPersonalEvents().find(x => x.id === eventId);
+        if (!p) return;
+        document.getElementById('detailTitle').textContent = p.title;
+        document.getElementById('detailBody').innerHTML = `
+            <div class="event-detail-row"><div class="event-detail-label">Date:</div><div class="event-detail-value">${formatDateLong(p.date)}</div></div>
+            ${p.time ? `<div class="event-detail-row"><div class="event-detail-label">Time:</div><div class="event-detail-value">${formatTime12(p.time)}</div></div>` : ''}
+            ${p.notes ? `<div class="event-detail-row"><div class="event-detail-label">Notes:</div><div class="event-detail-value">${escapeHtml(p.notes)}</div></div>` : ''}
+        `;
+        document.getElementById('detailFooter').innerHTML = `
+            <button class="btn btn-danger" onclick="deletePersonal('${p.id}')">Delete</button>
+            <button class="btn btn-ghost" onclick="closeModal('detailModal')">Close</button>
+            <button class="btn btn-personal" onclick="editPersonal('${p.id}')">Edit</button>
+        `;
+    }
+    openModal('detailModal');
+}
+
+function markVisitPaid(id) {
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === id);
+    if (!v) return;
+    v.paid = true;
+    v.paidDate = todayYmd();
+    Store.saveVisits(visits);
+    closeModal('detailModal');
+    refreshAll();
+    showToast('Marked paid');
+}
+function markVisitUnpaid(id) {
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === id);
+    if (!v) return;
+    v.paid = false;
+    v.paidDate = null;
+    Store.saveVisits(visits);
+    closeModal('detailModal');
+    refreshAll();
+    showToast('Marked unpaid');
+}
+function markVisitCompleteAndPaid(id) {
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === id);
+    if (!v) return;
+    v.status = 'completed';
+    v.paid = true;
+    v.paidDate = todayYmd();
+    Store.saveVisits(visits);
+    closeModal('detailModal');
+    refreshAll();
+    showToast('Visit completed & paid');
+}
+
+function markVisitComplete(id) {
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === id);
+    if (v) { v.status = 'completed'; Store.saveVisits(visits); }
+    closeModal('detailModal');
+    refreshAll();
+    showToast('Visit marked complete');
+}
+function markVisitScheduled(id) {
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === id);
+    if (v) { v.status = 'scheduled'; Store.saveVisits(visits); }
+    closeModal('detailModal');
+    refreshAll();
+    showToast('Visit reopened');
+}
+let _recurringDeleteId = null;
+
+function deleteVisit(id) {
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === id);
+    if (!v) return;
+    if (v.recurringGroupId) {
+        // Defer to modal — actual save happens in confirmRecurringDelete after fresh re-load
+        _recurringDeleteId = id;
+        openModal('recurringDeleteModal');
+    } else {
+        if (!confirm('Delete this visit?')) return;
+        // Re-load right at save time to avoid any race with cross-tab edits during the confirm
+        const fresh = Store.getVisits();
+        Store.saveVisits(fresh.filter(x => x.id !== id));
+        showToast('Visit deleted');
+        closeModal('detailModal');
+        refreshAll();
+    }
+}
+
+function confirmRecurringDelete(scope) {
+    const id = _recurringDeleteId;
+    if (!id) { closeRecurringDeleteModal(); return; }
+    // Fresh load — the canonical source of truth at save time
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === id);
+    if (!v) { closeRecurringDeleteModal(); return; }
+    if (scope === 'future') {
+        const filtered = visits.filter(x =>
+            !(x.recurringGroupId === v.recurringGroupId && parseYmd(x.date) >= parseYmd(v.date))
+        );
+        Store.saveVisits(filtered);
+        showToast('Deleted this and future visits in the series');
+    } else {
+        Store.saveVisits(visits.filter(x => x.id !== id));
+        showToast('Visit deleted');
+    }
+    closeRecurringDeleteModal();
+    closeModal('detailModal');
+    refreshAll();
+}
+
+function closeRecurringDeleteModal() {
+    _recurringDeleteId = null;
+    closeModal('recurringDeleteModal');
+}
+function deletePersonal(id) {
+    if (!confirm('Delete this event?')) return;
+    Store.savePersonalEvents(Store.getPersonalEvents().filter(x => x.id !== id));
+    closeModal('detailModal');
+    refreshAll();
+    showToast('Event deleted');
+}
+function editPersonal(id) {
+    const p = Store.getPersonalEvents().find(x => x.id === id);
+    if (!p) return;
+    closeModal('detailModal');
+    editingEventId = id;
+    editingEventType = 'personal';
+    document.getElementById('personalModalTitle').textContent = 'Edit Personal Event';
+    document.getElementById('savePersonalBtn').textContent = 'Save Changes';
+    document.getElementById('personalTitle').value = p.title;
+    document.getElementById('personalDate').value = p.date;
+    document.getElementById('personalTime').value = p.time || '';
+    document.getElementById('personalNotes').value = p.notes || '';
+    openModal('personalModal');
+}
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+/* ============================================================
+   CALENDAR RENDERING
+   ============================================================ */
+function getEventsForDate(dateStr) {
+    const visits = Store.getVisits().filter(v => v.date === dateStr);
+    const personal = Store.getPersonalEvents().filter(p => p.date === dateStr);
+    const all = [
+        ...visits.map(v => ({ ...v, _type: 'visit', _sortTime: v.time || '' })),
+        ...personal.map(p => ({ ...p, _type: 'personal', _sortTime: p.time || '' }))
+    ];
+    all.sort((a, b) => a._sortTime.localeCompare(b._sortTime));
+    return all;
+}
+
+function renderCalendar() {
+    if (currentCalendarView === 'week') {
+        renderWeekView();
+    } else {
+        renderMonthView();
+    }
+}
+
+function renderMonthView() {
+    const grid = document.getElementById('calendarGrid');
+    const monthLabel = document.getElementById('calendarMonth');
+    const { year, month } = currentView;
+
+    grid.className = 'calendar-grid';
+
+    const firstOfMonth = new Date(year, month, 1);
+    const monthName = firstOfMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    monthLabel.textContent = monthName;
+
+    grid.innerHTML = '';
+    DAYS_OF_WEEK.forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'calendar-day-name';
+        el.textContent = d;
+        grid.appendChild(el);
+    });
+
+    const startDow = firstOfMonth.getDay();
+    for (let i = 0; i < startDow; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'calendar-day empty';
+        grid.appendChild(empty);
+    }
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = todayYmd();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = ymd(new Date(year, month, day));
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day';
+        if (dateStr === today) cell.classList.add('today');
+        cell.addEventListener('click', () => openDayModal(dateStr));
+
+        const events = getEventsForDate(dateStr);
+        const visiblePills = events.slice(0, 3);
+        const remaining = events.length - visiblePills.length;
+
+        cell.innerHTML = `
+            <div class="day-num">${day}</div>
+            ${visiblePills.map(e => renderEventPill(e)).join('')}
+            ${remaining > 0 ? `<div class="event-more">+${remaining} more</div>` : ''}
+        `;
+        grid.appendChild(cell);
+    }
+
+    // Bottom-of-month padding to complete the grid (Google does this)
+    const totalCellsRendered = startDow + daysInMonth;
+    const remainder = totalCellsRendered % 7;
+    if (remainder !== 0) {
+        for (let i = remainder; i < 7; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'calendar-day empty';
+            grid.appendChild(empty);
+        }
+    }
+}
+
+function renderWeekView() {
+    const grid = document.getElementById('calendarGrid');
+    const monthLabel = document.getElementById('calendarMonth');
+
+    // anchor week at Sunday containing currentDate
+    const refDate = new Date(currentDate);
+    refDate.setHours(0, 0, 0, 0);
+    const weekStart = addDays(refDate, -refDate.getDay());
+    const weekEnd = addDays(weekStart, 6);
+
+    // header label
+    const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
+    const sameYear = weekStart.getFullYear() === weekEnd.getFullYear();
+    let label;
+    if (sameMonth) {
+        label = `${weekStart.toLocaleString('en-US', { month: 'long' })} ${weekStart.getDate()}–${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
+    } else if (sameYear) {
+        label = `${weekStart.toLocaleString('en-US', { month: 'short', day: 'numeric' })} – ${weekEnd.toLocaleString('en-US', { month: 'short', day: 'numeric' })}, ${weekEnd.getFullYear()}`;
+    } else {
+        label = `${weekStart.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} – ${weekEnd.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+    monthLabel.textContent = label;
+
+    grid.className = 'calendar-grid calendar-week';
+    grid.innerHTML = '';
+
+    const todayStr = todayYmd();
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) weekDates.push(addDays(weekStart, i));
+
+    // ── header row ──
+    const headerRow = document.createElement('div');
+    headerRow.className = 'week-header-row';
+    const corner = document.createElement('div');
+    corner.className = 'week-corner';
+    headerRow.appendChild(corner);
+    weekDates.forEach(d => {
+        const dStr = ymd(d);
+        const isToday = dStr === todayStr;
+        const h = document.createElement('div');
+        h.className = 'week-day-header' + (isToday ? ' today' : '');
+        h.style.cursor = 'pointer';
+        h.addEventListener('click', () => openDayModal(dStr));
+        h.innerHTML = `
+            <div class="week-day-name">${DAYS_OF_WEEK[d.getDay()]}</div>
+            <div class="week-day-num">${d.getDate()}</div>
+        `;
+        headerRow.appendChild(h);
+    });
+    grid.appendChild(headerRow);
+
+    // ── all-day row (personal events without time) ──
+    const alldayRow = document.createElement('div');
+    alldayRow.className = 'week-allday-row';
+    const alldayLabel = document.createElement('div');
+    alldayLabel.className = 'week-allday-label';
+    alldayLabel.textContent = 'All-day';
+    alldayRow.appendChild(alldayLabel);
+    weekDates.forEach(d => {
+        const dStr = ymd(d);
+        const events = getEventsForDate(dStr).filter(e => e._type === 'personal' && !e.time);
+        const cell = document.createElement('div');
+        cell.className = 'week-allday-cell' + (dStr === todayStr ? ' today' : '');
+        events.forEach(e => {
+            const pill = document.createElement('div');
+            pill.className = 'event-pill personal';
+            pill.title = e.title || '';
+            pill.textContent = e.title || '';
+            pill.style.cursor = 'pointer';
+            pill.addEventListener('click', (ev) => { ev.stopPropagation(); openEventDetail(e.id, 'personal'); });
+            cell.appendChild(pill);
+        });
+        alldayRow.appendChild(cell);
+    });
+    grid.appendChild(alldayRow);
+
+    // ── body row (time grid) ──
+    const bodyRow = document.createElement('div');
+    bodyRow.className = 'week-body-row';
+
+    // Time axis on the left
+    const timeAxis = document.createElement('div');
+    timeAxis.className = 'week-time-axis';
+    for (let h = WEEK_START_HOUR; h < WEEK_END_HOUR; h++) {
+        const lbl = document.createElement('div');
+        lbl.className = 'week-time-label';
+        lbl.textContent = formatHourLabel(h);
+        timeAxis.appendChild(lbl);
+    }
+    bodyRow.appendChild(timeAxis);
+
+    // 7 day columns
+    const totalHeight = (WEEK_END_HOUR - WEEK_START_HOUR) * HOUR_HEIGHT;
+    weekDates.forEach(d => {
+        const dStr = ymd(d);
+        const isToday = dStr === todayStr;
+        const col = document.createElement('div');
+        col.className = 'week-day-column' + (isToday ? ' today' : '');
+        col.style.height = totalHeight + 'px';
+        col.addEventListener('click', (ev) => {
+            // Click on empty area opens day modal
+            if (ev.target === col) openDayModal(dStr);
+        });
+
+        // Hour gridlines
+        for (let i = 1; i < (WEEK_END_HOUR - WEEK_START_HOUR); i++) {
+            const line = document.createElement('div');
+            line.className = 'hour-line';
+            line.style.top = (i * HOUR_HEIGHT) + 'px';
+            col.appendChild(line);
+        }
+
+        // "Now" indicator on today's column
+        if (isToday) {
+            const now = new Date();
+            const minutesIntoDay = (now.getHours() - WEEK_START_HOUR) * 60 + now.getMinutes();
+            if (minutesIntoDay >= 0 && minutesIntoDay <= (WEEK_END_HOUR - WEEK_START_HOUR) * 60) {
+                const nowLine = document.createElement('div');
+                nowLine.className = 'week-now-line';
+                nowLine.style.top = (minutesIntoDay / 60 * HOUR_HEIGHT) + 'px';
+                col.appendChild(nowLine);
+            }
+        }
+
+        // Place timed events
+        const dayEvents = getEventsForDate(dStr).filter(e => e.time && !(e._type === 'personal' && !e.time));
+        // Sort and resolve overlap
+        const positioned = layOutWeekEvents(dayEvents);
+        positioned.forEach(({ event: e, top, height, leftPct, widthPct }) => {
+            const block = document.createElement('div');
+            const isPersonal = e._type === 'personal';
+            const t = !isPersonal ? (VISIT_TYPES[e.visitType] || { cssClass: '' }) : { cssClass: 'personal' };
+            const cls = `${t.cssClass}${e.status === 'completed' ? ' completed' : ''}`;
+            block.className = `week-event ${cls}`;
+            block.style.top = top + 'px';
+            block.style.height = height + 'px';
+            block.style.left = `calc(${leftPct}% + 2px)`;
+            block.style.width = `calc(${widthPct}% - 4px)`;
+            const titleText = isPersonal ? (e.title || '') : (e.clientName || 'Client');
+            block.title = titleText;
+            block.innerHTML = `
+                <div class="week-event-time">${formatTime12(e.time)}</div>
+                <div class="week-event-title">${escapeHtml(titleText)}</div>
+            `;
+            block.addEventListener('click', (ev) => { ev.stopPropagation(); openEventDetail(e.id, e._type); });
+            col.appendChild(block);
+        });
+
+        bodyRow.appendChild(col);
+    });
+    grid.appendChild(bodyRow);
+}
+
+// Lay out timed events for a single day column, handling overlap by splitting columns.
+// Returns array of {event, top, height, leftPct, widthPct}.
+function layOutWeekEvents(events) {
+    if (!events.length) return [];
+    const visitDurationMin = (e) => {
+        if (e._type === 'personal') return 30;
+        if (e.visitType === '60min') return 60;
+        return 30; // 30min and meet-greet
+    };
+    const startMin = e => {
+        const [h, m] = (e.time || '00:00').split(':').map(Number);
+        return h * 60 + m;
+    };
+    const items = events.map(e => {
+        const start = startMin(e);
+        const end = start + visitDurationMin(e);
+        return { event: e, start, end, col: 0 };
+    }).sort((a, b) => a.start - b.start || a.end - b.end);
+
+    // Greedy column assignment for overlaps
+    const groups = []; // each group is an array of items that all overlap with at least one other in the group
+    items.forEach(it => {
+        // Find any active group this item overlaps with
+        let placed = false;
+        for (const g of groups) {
+            const overlaps = g.items.some(x => !(it.end <= x.start || it.start >= x.end));
+            if (overlaps) {
+                g.items.push(it);
+                g.maxEnd = Math.max(g.maxEnd, it.end);
+                placed = true;
+                // Find first free column index
+                const usedCols = new Set(g.items.filter(x => x !== it && !(it.end <= x.start || it.start >= x.end)).map(x => x.col));
+                let col = 0;
+                while (usedCols.has(col)) col++;
+                it.col = col;
+                g.cols = Math.max(g.cols, col + 1);
+                break;
+            }
+        }
+        if (!placed) {
+            groups.push({ items: [it], maxEnd: it.end, cols: 1 });
+            it.col = 0;
+        }
+    });
+
+    // Now compute layout positions
+    return items.map(it => {
+        // Find this item's group to know total cols for width calc
+        const g = groups.find(g => g.items.includes(it));
+        const totalCols = g.cols;
+        const widthPct = 100 / totalCols;
+        const leftPct = it.col * widthPct;
+        const minutesFromStart = it.start - WEEK_START_HOUR * 60;
+        const top = (minutesFromStart / 60) * HOUR_HEIGHT;
+        const height = Math.max((it.end - it.start) / 60 * HOUR_HEIGHT - 2, 22);
+        return { event: it.event, top, height, leftPct, widthPct };
+    });
+}
+
+function formatHourLabel(h) {
+    if (h === 0) return '12am';
+    if (h === 12) return '12pm';
+    return h < 12 ? `${h}am` : `${h - 12}pm`;
+}
+
+function setCalendarView(view) {
+    currentCalendarView = view;
+    document.querySelectorAll('.view-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.view === view);
+    });
+    renderCalendar();
+}
+
+function changeCalendar(delta) {
+    if (currentCalendarView === 'month') {
+        changeMonth(delta);
+    } else {
+        // Move week by 7 days
+        currentDate = addDays(currentDate, delta * 7);
+        currentView = { year: currentDate.getFullYear(), month: currentDate.getMonth() };
+        renderCalendar();
+    }
+}
+
+function renderEventPill(e) {
+    if (e._type === 'personal') {
+        return `<div class="event-pill personal" title="${escapeHtml(e.title)}">${formatTime12(e.time) ? formatTime12(e.time) + ' ' : ''}${escapeHtml(e.title)}</div>`;
+    }
+    const t = VISIT_TYPES[e.visitType] || { cssClass: '' };
+    const cls = `${t.cssClass}${e.status === 'completed' ? ' completed' : ''}`;
+    const assigneeLetter = assigneeBadgeText(e.assignedTo);
+    const assigneeBadge = assigneeLetter ? ` <span class="assignee-badge ${e.assignedTo || 'both'}">${assigneeLetter}</span>` : '';
+    return `<div class="event-pill ${cls}" title="${escapeHtml(e.clientName || '')}">${formatTime12(e.time)} ${escapeHtml(e.clientName || '')}${assigneeBadge}</div>`;
+}
+
+function assigneeBadgeText(value) {
+    if (value === 'kasey') return 'K';
+    if (value === 'charlie') return 'C';
+    if (value === 'both' || value == null) return 'K+C';
+    return '';
+}
+function assigneeFullLabel(value) {
+    if (value === 'kasey') return 'Kasey';
+    if (value === 'charlie') return 'Charlie';
+    return 'Kasey + Charlie';
+}
+
+function changeMonth(delta) {
+    let { year, month } = currentView;
+    month += delta;
+    if (month < 0) { month = 11; year--; }
+    if (month > 11) { month = 0; year++; }
+    currentView = { year, month };
+    // Keep currentDate aligned with the visible month (so toggling to week view lands somewhere reasonable)
+    currentDate = new Date(year, month, 1);
+    renderCalendar();
+}
+function goToToday() {
+    const now = new Date();
+    currentDate = now;
+    currentView = { year: now.getFullYear(), month: now.getMonth() };
+    renderCalendar();
+}
+
+/* ============================================================
+   DAY MODAL (when user clicks a calendar day)
+   ============================================================ */
+function openDayModal(dateStr) {
+    document.getElementById('dayModalTitle').textContent = formatDateLong(dateStr);
+    const events = getEventsForDate(dateStr);
+    const body = document.getElementById('dayModalBody');
+    if (events.length === 0) {
+        body.innerHTML = `
+            <p class="empty-state">Nothing scheduled for this day.</p>
+            <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-sm" onclick="closeModal('dayModal'); openScheduleModal('${dateStr}')">+ Schedule visit</button>
+                <button class="btn btn-personal btn-sm" onclick="closeModal('dayModal'); openPersonalEventModal('${dateStr}')">+ Personal event</button>
+            </div>
+        `;
+    } else {
+        body.innerHTML = renderPlanDay(dateStr, events) + `
+            <div style="display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-sm" onclick="closeModal('dayModal'); openScheduleModal('${dateStr}')">+ Add visit</button>
+                <button class="btn btn-personal btn-sm" onclick="closeModal('dayModal'); openPersonalEventModal('${dateStr}')">+ Add personal</button>
+            </div>
+        `;
+    }
+    openModal('dayModal');
+}
+
+function renderPlanDay(dateStr, events) {
+    // Only the work visits get the route treatment; personal events shown but not numbered
+    const visits = events.filter(e => e._type === 'visit');
+    const personal = events.filter(e => e._type === 'personal');
+
+    // Compute summary
+    const total = events.length;
+    const visitTotal = visits.reduce((s, v) => s + (v.price || 0), 0);
+    const firstTime = events[0]?._sortTime;
+    const lastVisit = visits.length ? visits[visits.length - 1] : null;
+    const span = (firstTime && lastVisit?.time) ? `${formatTime12(firstTime)} – ${formatTime12(lastVisit.time)}` : '';
+
+    // Pull zip codes for clustering: scan address strings for a 5-digit zip
+    const zipOf = (addr) => {
+        if (!addr) return '';
+        const m = String(addr).match(/\b(\d{5})\b/);
+        return m ? m[1] : '';
+    };
+
+    let html = '';
+    if (total > 0) {
+        html += `<div class="plan-day-summary">
+            <strong>${total} event${total === 1 ? '' : 's'}</strong>
+            ${span ? ` · ${span}` : ''}
+            ${visits.length > 0 ? ` · $${visitTotal.toFixed(2)} total` : ''}
+        </div>`;
+    }
+
+    // Build the ordered list (visits + personal interleaved by time)
+    let prevZip = null;
+    let prevEndTime = null;
+    let stopNum = 0;
+
+    events.forEach((e) => {
+        if (e._type === 'personal') {
+            html += `
+                <div class="schedule-item personal" onclick="closeModal('dayModal'); openEventDetail('${e.id}', 'personal')" style="margin-bottom: 10px;">
+                    <div class="schedule-time">${formatTime12(e.time) || 'All day'} · Personal</div>
+                    <div class="schedule-title">${escapeHtml(e.title)}</div>
+                    ${e.notes ? `<div class="schedule-meta">${escapeHtml(e.notes)}</div>` : ''}
+                </div>
+            `;
+            return;
+        }
+
+        stopNum++;
+        const v = e;
+        const t = VISIT_TYPES[v.visitType] || { label: 'Visit' };
+        const zip = zipOf(v.address);
+        const cluster = zip && zip === prevZip;
+
+        // Time gap from previous stop
+        if (prevEndTime && v.time && prevEndTime < v.time) {
+            const gap = timeDiffMinutes(prevEndTime, v.time);
+            if (gap >= 30) html += `<div class="plan-day-gap">${gap} min until next stop</div>`;
+        }
+
+        const durationMin = v.visitType === '60min' ? 60 : v.visitType === '30min' ? 30 : 15;
+        prevEndTime = v.time ? addMinutes(v.time, durationMin) : prevEndTime;
+        prevZip = zip;
+
+        // window check
+        const client = Store.getClients().find(c => c.id === v.clientId);
+        let windowFlag = '';
+        if (client && (client.timeWindows || []).length > 0 && v.time) {
+            const dow = parseYmd(v.date).getDay();
+            const matches = (client.timeWindows || []).filter(w => (w.days || []).includes(dow));
+            if (matches.length > 0) {
+                const inside = matches.some(w => v.time >= w.startTime && v.time <= w.endTime);
+                windowFlag = inside
+                    ? `<div class="plan-day-window-hit">Within preferred window</div>`
+                    : `<div class="plan-day-window-miss">Outside preferred window (${matches.map(w => `${formatTime12(w.startTime)}–${formatTime12(w.endTime)}`).join(', ')})</div>`;
+            }
+        }
+
+        const mapsLink = v.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}" target="_blank" class="plan-day-link" onclick="event.stopPropagation()">Open in Maps</a>` : '';
+        const assigneeBadge = `<span class="assignee-badge ${v.assignedTo || 'both'}">${assigneeBadgeText(v.assignedTo)}</span>`;
+        const paidBadge = v.status === 'completed'
+            ? (v.paid ? '<span class="paid-badge" style="margin-left: 0;">PAID</span>' : '<span class="paid-badge unpaid" style="margin-left: 0;">UNPAID</span>')
+            : '';
+
+        html += `
+            <div class="plan-day-stop ${cluster ? 'cluster' : ''} ${v.status === 'completed' ? 'completed' : ''}" onclick="closeModal('dayModal'); openEventDetail('${v.id}', 'visit')">
+                <div class="plan-day-num">${stopNum}</div>
+                <div>
+                    <div class="plan-day-time">${formatTime12(v.time)} · ${t.label} ${assigneeBadge} ${paidBadge}</div>
+                    <div class="plan-day-name">${escapeHtml(v.clientName || 'Client')}</div>
+                    ${v.address ? `<div class="plan-day-addr">${escapeHtml(v.address)}${zip ? ` · ${zip}` : ''}${cluster ? ' · same area as previous' : ''}</div>` : ''}
+                    ${windowFlag}
+                </div>
+                <div style="text-align: right;">
+                    <div style="color: var(--accent-light); font-weight: 600;">$${(v.price || 0).toFixed(2)}</div>
+                    ${mapsLink}
+                </div>
+            </div>
+        `;
+    });
+
+    return html;
+}
+
+function timeDiffMinutes(t1, t2) {
+    const [h1, m1] = t1.split(':').map(Number);
+    const [h2, m2] = t2.split(':').map(Number);
+    return (h2 * 60 + m2) - (h1 * 60 + m1);
+}
+function addMinutes(t, mins) {
+    const [h, m] = t.split(':').map(Number);
+    const total = h * 60 + m + mins;
+    const newH = Math.floor(total / 60) % 24;
+    const newM = total % 60;
+    return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+}
+
+function renderListItem(e) {
+    if (e._type === 'personal') {
+        return `
+            <div class="schedule-item personal" onclick="closeModal('dayModal'); openEventDetail('${e.id}', 'personal')">
+                <div class="schedule-time">${formatTime12(e.time) || 'All day'}</div>
+                <div class="schedule-title">${escapeHtml(e.title)}</div>
+            </div>
+        `;
+    }
+    const t = VISIT_TYPES[e.visitType] || { label: e.visitType };
+    // Look up pet names from client record so they stay current
+    const client = Store.getClients().find(c => c.id === e.clientId);
+    const petNames = (client && client.pets && client.pets.length > 0)
+        ? client.pets.map(p => p.name).filter(Boolean).join(', ')
+        : '';
+    const titleHtml = petNames
+        ? `${escapeHtml(e.clientName || 'Client')} <span class="schedule-pets">— ${escapeHtml(petNames)}</span>`
+        : escapeHtml(e.clientName || 'Client');
+    const badge = renderAssigneeBadge(e.assignedTo);
+    return `
+        <div class="schedule-item ${e.status === 'completed' ? 'completed' : ''}" onclick="closeModal('dayModal'); openEventDetail('${e.id}', 'visit')">
+            ${badge}
+            <div class="schedule-time">${formatTime12(e.time)} · ${t.label}</div>
+            <div class="schedule-title">${titleHtml}</div>
+        </div>
+    `;
+}
+
+function renderAssigneeBadge(assignedTo) {
+    if (!assignedTo) return '';
+    const map = {
+        'kasey':   { cls: 'kasey',   text: 'K' },
+        'charlie': { cls: 'charlie', text: 'C' },
+        'both':    { cls: 'both',    text: 'K + C' }
+    };
+    const a = map[assignedTo];
+    if (!a) return '';
+    return `<span class="assignee-badge ${a.cls}">${a.text}</span>`;
+}
+
+function renderTipUI(v) {
+    const tip = v.tip || 0;
+    if (tip > 0) {
+        return `<span style="color: var(--success); font-weight: 600;">$${tip.toFixed(2)}</span>
+                <button class="btn btn-ghost btn-sm" style="margin-left: 8px;" onclick="event.stopPropagation(); editTip('${v.id}')">Edit</button>`;
+    }
+    return `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); editTip('${v.id}')">+ Add tip</button>`;
+}
+
+function editTip(visitId) {
+    const cell = document.getElementById('tipDisplay-' + visitId);
+    if (!cell) return;
+    const v = Store.getVisits().find(x => x.id === visitId);
+    if (!v) return;
+    const current = v.tip || 0;
+    cell.innerHTML = `
+        <input type="number" id="tipInput-${visitId}" value="${current || ''}" min="0" step="0.01" placeholder="0.00"
+               style="width: 100px; padding: 4px 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: 'Cormorant', serif;"
+               onblur="saveTip('${visitId}')"
+               onkeydown="if(event.key==='Enter'){this.blur();} else if(event.key==='Escape'){cancelTip('${visitId}');}">
+        <button class="btn btn-ghost btn-sm" style="margin-left: 6px;" onclick="event.stopPropagation(); cancelTip('${visitId}')">Cancel</button>
+    `;
+    document.getElementById('tipInput-' + visitId).focus();
+    document.getElementById('tipInput-' + visitId).select();
+}
+
+function saveTip(visitId) {
+    const input = document.getElementById('tipInput-' + visitId);
+    if (!input) return;
+    const tip = parseFloat(input.value) || 0;
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === visitId);
+    if (!v) return;
+    v.tip = tip;
+    Store.saveVisits(visits);
+    // Re-render the tip cell
+    const cell = document.getElementById('tipDisplay-' + visitId);
+    if (cell) cell.innerHTML = renderTipUI(v);
+    showToast(tip > 0 ? `Tip saved: $${tip.toFixed(2)}` : 'Tip cleared');
+    refreshAll();
+}
+
+function cancelTip(visitId) {
+    const v = Store.getVisits().find(x => x.id === visitId);
+    if (!v) return;
+    const cell = document.getElementById('tipDisplay-' + visitId);
+    if (cell) cell.innerHTML = renderTipUI(v);
+}
+
+function renderAddressWithMaps(address) {
+    if (!address || !address.trim()) return '—';
+    const q = encodeURIComponent(address);
+    const safe = escapeHtml(address);
+    return `
+        <div>${safe}</div>
+        <div class="map-links">
+            <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Google Maps</a>
+            <a class="map-link" href="https://maps.apple.com/?q=${q}" target="_blank" rel="noopener">Apple Maps</a>
+            <a class="map-link" href="https://waze.com/ul?q=${q}" target="_blank" rel="noopener">Waze</a>
+        </div>
+    `;
+}
+
+/* ============================================================
+   TODAY'S SCHEDULE
+   ============================================================ */
+function renderToday() {
+    const today = todayYmd();
+    const todayEvents = getEventsForDate(today);
+    const todayList = document.getElementById('todayList');
+    if (todayEvents.length === 0) {
+        todayList.innerHTML = '<p class="empty-state">Nothing scheduled today.</p>';
+    } else {
+        todayList.innerHTML = todayEvents.map(e => renderListItem(e)).join('');
+    }
+}
+
+/* ============================================================
+   WEEKLY SNAPSHOT
+   ============================================================ */
+function renderWeeklySnapshot() {
+    // Use Sunday as start of week (US convention)
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const sundayStart = addDays(today, -dayOfWeek);
+    const dates = [];
+    for (let i = 0; i < 7; i++) dates.push(ymd(addDays(sundayStart, i)));
+
+    const visits = Store.getVisits();
+    const weekVisits = visits.filter(v => dates.includes(v.date));
+    const completedWeekVisits = weekVisits.filter(v => v.status === 'completed');
+    const totalCount = weekVisits.length;
+    const totalCompleted = completedWeekVisits.length;
+    // Income = sum of completed visit prices + their tips (actual earned $, not projected)
+    const totalRevenue = completedWeekVisits.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
+    const totalPaid = completedWeekVisits.filter(v => v.paid).reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
+
+    // title with date range
+    const startStr = sundayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endDate = addDays(sundayStart, 6);
+    const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    document.getElementById('weeklyTitle').textContent = `This Week — ${startStr} to ${endStr}`;
+
+    // per-day breakdown — count of all visits, but income = completed only
+    const dayCounts = dates.map(d => {
+        const dayVisits = visits.filter(v => v.date === d);
+        const completedDayVisits = dayVisits.filter(v => v.status === 'completed');
+        return {
+            date: d,
+            count: dayVisits.length,
+            revenue: completedDayVisits.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0)
+        };
+    });
+    const maxCount = Math.max(1, ...dayCounts.map(d => d.count));
+    const todayStr = todayYmd();
+
+    let html = `
+        <div class="weekly-summary">
+            <div class="weekly-summary-item">
+                <div class="weekly-label">Visits</div>
+                <div class="weekly-value">${totalCount}</div>
+            </div>
+            <div class="weekly-summary-item">
+                <div class="weekly-label">Completed</div>
+                <div class="weekly-value">${totalCompleted}</div>
+            </div>
+            <div class="weekly-summary-item">
+                <div class="weekly-label">Total Income</div>
+                <div class="weekly-value">$${totalRevenue.toFixed(0)}</div>
+            </div>
+        </div>
+    `;
+    dayCounts.forEach((d, i) => {
+        const isToday = d.date === todayStr;
+        const dayName = DAYS_OF_WEEK[i];
+        const widthPct = (d.count / maxCount) * 100;
+        const barContent = d.count > 0
+            ? `<div class="weekly-day-bar-fill" style="width: ${widthPct}%;"></div>`
+            : `<span class="weekly-day-bar-empty">—</span>`;
+        html += `
+            <div class="weekly-day-row ${isToday ? 'today' : ''}">
+                <div class="weekly-day-name">${dayName}${isToday ? ' (today)' : ''}</div>
+                <div class="weekly-day-bar">${barContent}</div>
+                <div class="weekly-day-amount">${d.count > 0 ? d.count + ' · $' + d.revenue.toFixed(0) : ''}</div>
+            </div>
+        `;
+    });
+    document.getElementById('weeklySnapshot').innerHTML = html;
+}
+
+/* ============================================================
+   QUICK NOTES
+   ============================================================ */
+function openQuickNotes() {
+    renderQuickNotesList();
+    openModal('quickNotesModal');
+    setTimeout(() => document.getElementById('quickNoteInput').focus(), 50);
+}
+
+function getQuickNotes() {
+    return Store.load(STORAGE_KEYS.quickNotes, []);
+}
+function saveQuickNotes(notes) {
+    return Store.save(STORAGE_KEYS.quickNotes, notes);
+}
+
+function addQuickNote() {
+    const input = document.getElementById('quickNoteInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const notes = getQuickNotes();
+    notes.unshift({
+        id: 'note_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        text,
+        done: false,
+        createdAt: new Date().toISOString()
+    });
+    saveQuickNotes(notes);
+    input.value = '';
+    renderQuickNotesList();
+}
+
+function toggleQuickNote(id) {
+    const notes = getQuickNotes();
+    const n = notes.find(x => x.id === id);
+    if (!n) return;
+    n.done = !n.done;
+    saveQuickNotes(notes);
+    renderQuickNotesList();
+}
+
+function deleteQuickNote(id) {
+    saveQuickNotes(getQuickNotes().filter(x => x.id !== id));
+    renderQuickNotesList();
+}
+
+function renderQuickNotesList() {
+    const notes = getQuickNotes();
+    const container = document.getElementById('quickNotesList');
+    if (notes.length === 0) {
+        container.innerHTML = '<div class="qnotes-empty">No notes yet. Add one above.</div>';
+        return;
+    }
+    // sort: undone first, then by date desc
+    notes.sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+    container.innerHTML = notes.map(n => {
+        const ago = relativeTime(n.createdAt);
+        return `
+            <div class="qnote ${n.done ? 'done' : ''}">
+                <div class="qnote-check" onclick="toggleQuickNote('${n.id}')" title="${n.done ? 'Mark not done' : 'Mark done'}"></div>
+                <div class="qnote-text">${escapeHtml(n.text)}</div>
+                <div class="qnote-time">${ago}</div>
+                <button class="qnote-del" onclick="deleteQuickNote('${n.id}')" title="Delete">×</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function relativeTime(iso) {
+    if (!iso) return '';
+    const then = new Date(iso);
+    const diffMin = Math.round((Date.now() - then.getTime()) / 60000);
+    if (diffMin < 1) return 'just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.round(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.round(diffHr / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return then.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/* ============================================================
+/* ============================================================
+   REFRESH ALL
+   ============================================================ */
+function refreshAll() {
+    renderCalendar();
+    renderToday();
+    renderWeeklySnapshot();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function initApp() {
+    renderLogo();
+    refreshAll();
+
+    // refresh data when tab regains focus (so changes from other tabs/pages show)
+    window.addEventListener('focus', refreshAll);
+    window.addEventListener('storage', (e) => {
+        if (e.key && e.key.startsWith('myreliacare_')) refreshAll();
+    });
+
+    // Handle ?schedule=clientId — auto-open modal with client pre-selected
+    const params = new URLSearchParams(location.search);
+    const scheduleClientId = params.get('schedule');
+    if (scheduleClientId) {
+        // Defer briefly so the modal HTML is fully ready
+        setTimeout(() => {
+            openScheduleModal();
+            const client = Store.getClients().find(c => c.id === scheduleClientId);
+            if (client) selectExistingClient(scheduleClientId);
+            // Clean URL so refresh doesn't reopen
+            history.replaceState({}, '', location.pathname);
+        }, 100);
+    }
+}
+
+// Make initApp accessible to firebase-sync.js
+window.initApp = initApp;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Firebase auth listener (in firebase-sync.js) drives the login screen.
+    // If a session is cached, the user goes straight to the app; otherwise
+    // the password screen shows automatically.
+    const inp = document.getElementById('passwordInput');
+    if (inp) inp.focus();
+});
+</script>
+
+</body>
+</html>

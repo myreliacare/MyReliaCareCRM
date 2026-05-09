@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyReliaCare CRM - Clients & Pets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@300;400;500;600;700&family=Cormorant+Unicase:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-deep: #1A1614; --bg-card: #2A2220; --bg-card-light: #3A3530;
+            --bg-input: #2F2825; --accent: #B59197; --accent-dark: #A47F85;
+            --accent-light: #D4C5C9; --text: #F5E8EB; --text-dim: #D4C5C9;
+            --text-faint: #8B7378; --border: #4A413E; --danger: #ff6b6b;
+            --success: #7FB069; --personal: #6B8FA8;
+        }
+        body { font-family: 'Cormorant', serif; background: var(--bg-deep); min-height: 100vh; padding: 20px; color: var(--text); line-height: 1.6; font-size: 18px; }
+        h1, h2, h3 { font-family: 'Cormorant Unicase', serif; font-weight: 600; }
+
+        #passwordScreen { display: none; align-items: center; justify-content: center; min-height: 100vh; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, var(--bg-deep) 0%, #2A2220 100%); z-index: 9999; }
+        .password-container { background: var(--bg-card); padding: 50px 40px; border-radius: 16px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); max-width: 420px; width: 90%; border: 1px solid var(--border); }
+        .password-container h1 { color: var(--accent); margin-bottom: 8px; font-size: 2.4em; letter-spacing: 1px; }
+        .password-container p { color: var(--text-dim); margin-bottom: 24px; font-size: 1.05em; }
+        .password-input { width: 100%; padding: 12px 16px; font-size: 1.1em; font-family: 'Cormorant', serif; background: var(--bg-input); color: var(--text); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; }
+        .password-input:focus { outline: none; border-color: var(--accent); }
+        .password-btn { width: 100%; padding: 12px 20px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 1.1em; font-family: 'Cormorant', serif; font-weight: 600; cursor: pointer; }
+        .password-btn:hover { background: var(--accent-dark); }
+        .password-error { color: var(--danger); margin-top: 12px; display: none; }
+
+        #mainContent { display: none; }
+        .container { max-width: 1180px; margin: 0 auto; }
+
+        .header { display: flex; align-items: center; justify-content: space-between; background: linear-gradient(to bottom, #3A3530, var(--bg-card)); padding: 20px 30px; border-radius: 16px; margin-bottom: 24px; border: 1px solid var(--border); flex-wrap: wrap; gap: 20px; }
+        .header-brand { display: flex; align-items: center; gap: 16px; }
+        .header-logo-container { position: relative; width: 56px; height: 56px; border-radius: 12px; overflow: hidden; cursor: pointer; background: var(--bg-input); border: 1px solid var(--border); }
+        .header-logo { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .header-logo.loaded { display: block; }
+        .header-logo-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.7em; color: var(--text-faint); padding: 4px; text-align: center; }
+        .header-logo.loaded + .header-logo-placeholder { display: none; }
+        .header-title h1 { color: var(--accent); font-size: 1.8em; line-height: 1; letter-spacing: 0.5px; }
+        .header-title .tagline { font-size: 0.95em; color: var(--text-dim); font-style: italic; margin-top: 2px; }
+        .nav { display: flex; gap: 14px; flex-wrap: nowrap; align-items: center; }
+        .nav a { padding: 8px 18px; color: var(--text-dim); text-decoration: none; border-radius: 8px; transition: all 0.2s; font-size: 1.05em; white-space: nowrap; }
+        .nav a:hover { background: var(--bg-input); color: var(--text); }
+        .nav a.active { background: var(--accent); color: white; }
+        .logout-btn { background: transparent; color: var(--text-faint); border: 1px solid var(--border); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-family: 'Cormorant', serif; font-size: 0.9em; white-space: nowrap; }
+        .logout-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--bg-card); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent); }
+        .stat-label { color: var(--text-faint); font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { color: var(--accent); font-size: 2em; font-weight: 600; margin-top: 4px; font-family: 'Cormorant Unicase', serif; }
+        @media (max-width: 600px) {
+            .stats-row { gap: 8px; }
+            .stat-card { padding: 12px 10px; }
+            .stat-label { font-size: 0.7em; letter-spacing: 0.5px; }
+            .stat-value { font-size: 1.4em; }
+        }
+
+        .card { background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; }
+        .card-title { color: var(--accent); font-size: 1.4em; margin-bottom: 16px; }
+
+        .toolbar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .search-bar { flex: 1; min-width: 240px; padding: 10px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; }
+        .search-bar:focus { outline: none; border-color: var(--accent); }
+
+        .btn { padding: 10px 20px; font-family: 'Cormorant', serif; font-size: 1.05em; font-weight: 600; border-radius: 8px; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-dark); }
+        .btn-secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+        .btn-secondary:hover { background: var(--accent); color: white; }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: white; }
+        .btn-ghost { background: var(--bg-input); color: var(--text-dim); border: 1px solid var(--border); }
+        .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+        .btn-sm { padding: 6px 14px; font-size: 0.95em; }
+
+        .clients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+        .client-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; gap: 10px; }
+        .client-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .client-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .client-card-name { font-family: 'Cormorant Unicase', serif; color: var(--accent); font-size: 1.3em; font-weight: 600; }
+        .client-card-pets { color: var(--text-faint); font-family: 'Cormorant', serif; font-style: italic; font-size: 0.85em; font-weight: 400; }
+        .client-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+        .badge { font-size: 0.78em; padding: 2px 8px; border-radius: 10px; background: var(--bg-card-light); color: var(--text-dim); }
+        .badge.success { background: rgba(127, 176, 105, 0.18); color: var(--success); }
+        .badge.warn { background: rgba(255, 107, 107, 0.18); color: var(--danger); }
+        .badge.info { background: rgba(181, 145, 151, 0.2); color: var(--accent-light); }
+        .badge.tip { background: rgba(127, 176, 105, 0.2); color: var(--success); border: 1px solid var(--success); font-weight: 600; }
+        .badge.muted { background: transparent; color: var(--text-faint); border: 1px dashed var(--border); }
+        .client-tips { font-size: 0.95em; color: var(--success); }
+        .client-info-row { color: var(--text-dim); font-size: 0.95em; display: flex; gap: 8px; align-items: center; }
+        .client-info-row strong { color: var(--text-faint); font-weight: 400; min-width: 60px; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; }
+        .client-pets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+        .pet-pill { background: var(--bg-card-light); color: var(--accent-light); padding: 3px 10px; border-radius: 12px; font-size: 0.88em; }
+        .next-visit { font-size: 0.95em; color: var(--accent); font-style: italic; }
+        .next-visit.none { color: var(--text-faint); }
+        .client-ltv { font-size: 0.95em; color: var(--text-dim); }
+        .client-ltv .ltv-detail { color: var(--text-faint); font-size: 0.9em; font-style: italic; }
+        .client-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); font-style: italic; }
+        .empty-state h3 { color: var(--accent-light); font-style: normal; margin-bottom: 8px; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 40px 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); max-width: 760px; width: 100%; box-shadow: 0 25px 80px rgba(0,0,0,0.6); margin: auto 0; }
+        .modal.modal-wide { max-width: 900px; }
+        .modal-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { color: var(--accent); font-size: 1.5em; }
+        .modal-close { background: transparent; border: none; color: var(--text-faint); font-size: 1.6em; cursor: pointer; padding: 0 8px; line-height: 1; }
+        .modal-close:hover { color: var(--danger); }
+        .modal-body { padding: 24px 28px; }
+        .modal-footer { padding: 20px 28px; border-top: 1px solid var(--border); display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; color: var(--text-dim); margin-bottom: 6px; font-size: 1em; font-weight: 500; }
+        .form-group label .required { color: var(--accent); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-row-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .form-row, .form-row-3 { grid-template-columns: 1fr; } }
+        .form-section-title { color: var(--accent-light); font-size: 1.1em; margin: 24px 0 12px; font-family: 'Cormorant Unicase', serif; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+        .checkbox-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+        .checkbox-row label { display: flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
+        .checkbox-row input { width: auto; }
+
+        .time-window-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--bg-input); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
+        .time-window-days { display: flex; gap: 4px; flex-wrap: wrap; flex: 1 1 250px; }
+        .day-pill { display: inline-flex; align-items: center; padding: 4px 10px; background: var(--bg-card); color: var(--text-faint); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; user-select: none; font-size: 0.92em; }
+        .day-pill input { display: none; }
+        .day-pill.checked { background: var(--accent); color: white; border-color: var(--accent); }
+        .time-window-times { display: flex; gap: 6px; align-items: center; }
+        .time-window-times input { padding: 6px 10px; font-size: 0.95em; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: 'Cormorant', serif; width: 110px; }
+        .time-window-remove { background: transparent; color: var(--text-faint); border: none; cursor: pointer; font-size: 1.3em; padding: 4px 8px; line-height: 1; }
+        .time-window-remove:hover { color: var(--danger); }
+        .pet-entry { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .pet-entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .pet-entry-title { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.1em; }
+        .remove-pet-btn { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-family: 'Cormorant', serif; font-size: 0.9em; }
+        .remove-pet-btn:hover { background: var(--danger); color: white; }
+
+        .detail-section { margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .detail-section:last-child { border-bottom: none; }
+        .detail-section h3 { color: var(--accent-light); font-size: 1.1em; margin-bottom: 10px; font-family: 'Cormorant Unicase', serif; }
+        .detail-row { display: flex; gap: 12px; margin-bottom: 6px; }
+        .detail-label { color: var(--text-faint); min-width: 130px; font-size: 0.92em; }
+        .detail-value { color: var(--text); flex: 1; }
+        .pricing-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 6px; }
+        .pricing-tile { background: var(--bg-input); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); }
+        .pricing-tile-label { color: var(--text-faint); font-size: 0.85em; }
+        .pricing-tile-value { color: var(--accent); font-size: 1.3em; font-weight: 600; font-family: 'Cormorant Unicase', serif; }
+        .visit-history-row { display: grid; grid-template-columns: 130px 1fr 90px 90px; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; font-size: 0.95em; }
+        .visit-history-row:last-child { border-bottom: none; }
+        .visit-history-date { color: var(--text-dim); }
+        .visit-history-type { color: var(--text); }
+        .visit-history-price { color: var(--accent); text-align: right; }
+        .visit-history-status { font-size: 0.85em; text-align: right; }
+        .visit-history-status.completed { color: var(--success); }
+        .visit-history-status.scheduled { color: var(--accent-light); }
+        .pet-detail-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+        .pet-detail-card h4 { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.05em; margin-bottom: 6px; }
+        .pet-detail-meta { color: var(--text-dim); font-size: 0.92em; margin-bottom: 8px; }
+        .pet-note { color: var(--text-dim); font-size: 0.92em; margin-top: 6px; }
+        .pet-note strong { color: var(--accent-light); font-weight: 500; }
+
+        #toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--accent); color: var(--text); padding: 14px 22px; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); z-index: 2000; display: none; max-width: 320px; }
+        #toast.error { border-color: var(--danger); }
+        #toast.success { border-color: var(--success); }
+
+        #logoUpload { display: none; }
+        /* === THEMED FORM CONTROLS === */
+        input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], select { color-scheme: dark; }
+        select {
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0 L10 0 L5 6 Z' fill='%23B59197'/></svg>");
+            background-repeat: no-repeat; background-position: right 12px center;
+            padding-right: 32px !important; cursor: pointer;
+        }
+        select:focus { border-color: var(--accent) !important; outline: none; }
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.7) sepia(0.3) saturate(1.5) hue-rotate(310deg);
+            cursor: pointer; opacity: 0.85; transition: opacity 0.15s;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover,
+        input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    </style>
+</head>
+<body>
+
+<div id="passwordScreen">
+    <div class="password-container">
+        <h1>MyReliaCare</h1>
+        <p>Enter password to access CRM</p>
+        <input type="password" id="passwordInput" class="password-input" placeholder="Password" autocomplete="off"
+               onkeydown="if(event.key==='Enter') checkPassword()">
+        <button onclick="checkPassword()" class="password-btn">Access CRM</button>
+        <p class="password-error" id="passwordError">Incorrect password. Please try again.</p>
+    </div>
+</div>
+
+<div id="mainContent">
+    <div class="container">
+        <div class="header">
+            <div class="header-brand">
+                <div class="header-logo-container" onclick="document.getElementById('logoUpload').click()" title="Click to change logo">
+                    <img id="headerLogo" class="header-logo" alt="MyReliaCare Logo">
+                    <div id="logoPlaceholder" class="header-logo-placeholder">+ Logo</div>
+                    <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo(event)">
+                </div>
+                <div class="header-title">
+                    <h1>MyReliaCare</h1>
+                    <div class="tagline">Pet care, with intention.</div>
+                </div>
+            </div>
+            <nav class="nav">
+                <a href="index.html">Dashboard</a>
+                <a href="clients.html" class="active">Clients & Pets</a>
+                <a href="invoices.html">Invoices</a>
+                <button class="logout-btn" onclick="logout()">Sign Out</button>
+            </nav>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Total Clients</div>
+                <div class="stat-value" id="statClients">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Pets</div>
+                <div class="stat-value" id="statPets">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active This Month</div>
+                <div class="stat-value" id="statActive">0</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="toolbar">
+                <input type="text" id="searchBar" class="search-bar" placeholder="Search by name, phone, email, or pet…" oninput="renderClients()">
+                <button class="btn btn-primary" onclick="openClientModal()">+ Add Client</button>
+            </div>
+            <div id="clientsList"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="clientModal">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h2 id="clientModalTitle">Add Client</h2>
+            <button class="modal-close" onclick="closeModal('clientModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" id="cName" required></div>
+                <div class="form-group"><label>Preferred Contact</label>
+                    <select id="cPreferredContact">
+                        <option value="">—</option>
+                        <option>Phone</option><option>Text</option><option>Email</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Phone</label><input type="tel" id="cPhone"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="cEmail"></div>
+            </div>
+
+            <div class="form-group"><label>Address</label><input type="text" id="cAddress" placeholder="Street address"></div>
+            <div class="form-row-3">
+                <div class="form-group"><label>City</label><input type="text" id="cCity"></div>
+                <div class="form-group"><label>State</label><input type="text" id="cState" placeholder="KY"></div>
+                <div class="form-group"><label>Zip</label><input type="text" id="cZip"></div>
+            </div>
+
+            <div class="form-group"><label>Access Instructions</label><textarea id="cAccess" rows="2" placeholder="Gate code, lockbox, key location…"></textarea></div>
+
+            <h3 class="form-section-title">Pricing</h3>
+            <p style="color: var(--text-faint); font-size: 0.92em; margin-bottom: 10px;">Per-visit pricing for this client. Auto-fills when scheduling visits.</p>
+            <div class="form-row">
+                <div class="form-group"><label>30 min Visit ($)</label><input type="number" id="cPrice30" min="0" step="0.01" placeholder="0"></div>
+                <div class="form-group"><label>1 hour Visit ($)</label><input type="number" id="cPrice60" min="0" step="0.01" placeholder="0"></div>
+            </div>
+
+            <h3 class="form-section-title">Preferred Time Windows</h3>
+            <p style="color: var(--text-faint); font-size: 0.92em; margin-bottom: 10px;">When this client wants visits to happen. The dashboard uses these to suggest times when scheduling.</p>
+            <div id="timeWindowsContainer"></div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addTimeWindow()">+ Add window</button>
+
+            <h3 class="form-section-title">Pets</h3>
+            <div id="petsContainer"></div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addPetEntry()">+ Add Pet</button>
+
+            <h3 class="form-section-title">Emergency Contact</h3>
+            <div class="form-row-3">
+                <div class="form-group"><label>Name</label><input type="text" id="cEmergencyName"></div>
+                <div class="form-group"><label>Phone</label><input type="tel" id="cEmergencyPhone"></div>
+                <div class="form-group"><label>Relationship</label><input type="text" id="cEmergencyRel"></div>
+            </div>
+
+            <h3 class="form-section-title">Veterinarian</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Clinic Name</label><input type="text" id="cVetClinic"></div>
+                <div class="form-group"><label>Clinic Phone</label><input type="tel" id="cVetPhone"></div>
+            </div>
+            <div class="form-group"><label>Clinic Address</label><input type="text" id="cVetAddress"></div>
+
+            <h3 class="form-section-title">Other</h3>
+            <div class="form-group"><label>Notes</label><textarea id="cNotes" rows="3" placeholder="Anything important about the home, household, or client..."></textarea></div>
+            <div class="checkbox-row">
+                <label><input type="checkbox" id="cTerms"> Terms Signed</label>
+                <label><input type="checkbox" id="cEmailSub"> Email List Subscriber</label>
+            </div>
+            <div class="form-row" style="margin-top: 12px;">
+                <div class="form-group"><label>Cancellations</label><input type="number" id="cCancellations" min="0" value="0"></div>
+                <div class="form-group"><label>Keepsakes Given</label><input type="number" id="cKeepsakes" min="0" value="0"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('clientModal')">Cancel</button>
+            <button class="btn btn-primary" id="saveClientBtn" onclick="saveClient()">Save Client</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h2 id="detailTitle">Client Details</h2>
+            <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+        </div>
+        <div class="modal-body" id="detailBody"></div>
+        <div class="modal-footer" id="detailFooter"></div>
+    </div>
+</div>
+
+<!-- Reusable themed confirm modal -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal" style="max-width: 460px;">
+        <div class="modal-header">
+            <h2 id="confirmTitle">Confirm</h2>
+            <button class="modal-close" onclick="_confirmNo()">×</button>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage" style="color: var(--text-dim); white-space: pre-wrap; line-height: 1.5; margin: 0;"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="_confirmNo()">Cancel</button>
+            <button id="confirmYesBtn" class="btn btn-primary" onclick="_confirmYes()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Firebase Cloud Sync -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="firebase-sync.js"></script>
+
+<script>
+// CORRECT_PASSWORD, STORAGE_KEYS, Store, checkPassword, logout, checkLoginState
+// are all defined in firebase-sync.js — no need to duplicate here.
+
+const VISIT_TYPES = {
+    'meet-greet': { label: 'Meet & Greet' },
+    '30min':      { label: '30 min Visit' },
+    '60min':      { label: '1 hour Visit' }
+};
+
+let editingClientId = null;
+
+function uploadLogo(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const r = new FileReader(); r.onload = (e) => { localStorage.setItem(STORAGE_KEYS.logo, e.target.result); renderLogo(); }; r.readAsDataURL(file);
+}
+function renderLogo() {
+    const s = localStorage.getItem(STORAGE_KEYS.logo);
+    if (s) { const i = document.getElementById('headerLogo'); i.src = s; i.classList.add('loaded'); }
+}
+
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = type; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+document.addEventListener('click', (e) => { if (e.target.classList && e.target.classList.contains('modal-overlay')) e.target.classList.remove('active'); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active')); });
+
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+function formatPhone(p) {
+    if (!p) return '';
+    const digits = String(p).replace(/\D/g, '');
+    if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+    return p;
+}
+function formatDateLong(s) {
+    if (!s) return '';
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m-1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+function formatTime12(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function getClientStats(clientId) {
+    const visits = Store.getVisits().filter(v => v.clientId === clientId);
+    const invoices = Store.getInvoices().filter(i => i.clientId === clientId);
+    const today = new Date().toISOString().split('T')[0];
+    const upcoming = visits
+        .filter(v => v.date >= today && v.status !== 'completed' && v.status !== 'cancelled')
+        .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+    const nextVisit = upcoming[0] || null;
+    const completedVisits = visits.filter(v => v.status === 'completed');
+    const completedTotal = completedVisits.reduce((s, v) => s + (v.price || 0), 0);
+    const paidInvoiceTotal = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0);
+    const ltv = Math.max(completedTotal, paidInvoiceTotal);
+    const thisMonthYM = new Date().toISOString().slice(0, 7);
+    const activeThisMonth = visits.some(v => (v.date || '').startsWith(thisMonthYM));
+    // Tips
+    const tippedVisits = completedVisits.filter(v => (v.tip || 0) > 0);
+    const totalTips = tippedVisits.reduce((s, v) => s + (v.tip || 0), 0);
+    const avgTip = tippedVisits.length > 0 ? totalTips / tippedVisits.length : 0;
+    return { nextVisit, ltv, activeThisMonth, totalVisits: visits.length, totalTips, avgTip, tippedCount: tippedVisits.length };
+}
+
+function renderStats() {
+    const clients = Store.getClients();
+    const totalPets = clients.reduce((s, c) => s + (c.pets?.length || 0), 0);
+    document.getElementById('statClients').textContent = clients.length;
+    document.getElementById('statPets').textContent = totalPets;
+    let active = 0;
+    clients.forEach(c => {
+        const s = getClientStats(c.id);
+        if (s.activeThisMonth) active++;
+    });
+    document.getElementById('statActive').textContent = active;
+}
+
+function renderClients() {
+    const list = document.getElementById('clientsList');
+    const search = document.getElementById('searchBar').value.toLowerCase().trim();
+    let clients = Store.getClients();
+    if (search) {
+        clients = clients.filter(c => {
+            const blob = [c.name, c.email, c.phone, c.address, c.city,
+                ...(c.pets || []).map(p => `${p.name} ${p.breed || ''} ${p.species || ''}`)].join(' ').toLowerCase();
+            return blob.includes(search);
+        });
+    }
+    clients.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    if (clients.length === 0) {
+        const allClients = Store.getClients();
+        list.innerHTML = `<div class="empty-state"><h3>${allClients.length === 0 ? 'No clients yet' : 'No matches'}</h3><p>${allClients.length === 0 ? 'Add your first client to get started.' : 'Try a different search term.'}</p></div>`;
+        renderStats(); return;
+    }
+    list.innerHTML = `<div class="clients-grid">${clients.map(renderClientCard).join('')}</div>`;
+    renderStats();
+}
+
+function renderClientCard(c) {
+    const stats = getClientStats(c.id);
+    const addressLine = [c.address, c.city, c.state, c.zip].filter(Boolean).join(', ');
+    const cancellations = c.cancellations || 0;
+    const keepsakes = c.keepsakes || 0;
+    const badges = [];
+    if (c.termsSigned) badges.push('<span class="badge success">Terms Signed</span>');
+    if (c.emailSubscribed) badges.push('<span class="badge info">Email List</span>');
+    if (cancellations >= 3) badges.push(`<span class="badge warn">${cancellations} Cancellations</span>`);
+    else if (cancellations > 0) badges.push(`<span class="badge">${cancellations} Cancellation${cancellations > 1 ? 's' : ''}</span>`);
+    if (keepsakes > 0) badges.push(`<span class="badge info">${keepsakes} Keepsake${keepsakes > 1 ? 's' : ''}</span>`);
+    // Tip-related badges
+    const tippedCount = stats.tippedCount || 0;
+    const totalVisitsCompleted = (Store.getVisits().filter(v => v.clientId === c.id && v.status === 'completed')).length;
+    if (totalVisitsCompleted >= 3 && tippedCount === 0) badges.push('<span class="badge muted">Non-tipper</span>');
+    if (stats.totalTips >= 100) badges.push('<span class="badge tip">Top Tipper</span>');
+    const pets = (c.pets || []).map(p => `<span class="pet-pill">${escapeHtml(p.name)}${p.species ? ` (${escapeHtml(p.species)})` : ''}</span>`).join('');
+    let nextVisitHtml;
+    if (stats.nextVisit) {
+        const t = VISIT_TYPES[stats.nextVisit.visitType] || { label: 'Visit' };
+        nextVisitHtml = `<div class="next-visit">Next: ${formatDateLong(stats.nextVisit.date)} (${t.label})</div>`;
+    } else {
+        nextVisitHtml = `<div class="next-visit none">No upcoming visits</div>`;
+    }
+    const ltvLine = stats.ltv > 0
+        ? `<div class="client-ltv">Lifetime: $${stats.ltv.toFixed(0)}${stats.totalVisits > 0 ? ` <span class="ltv-detail">over ${stats.totalVisits} visit${stats.totalVisits === 1 ? '' : 's'}</span>` : ''}</div>`
+        : '';
+    const tipsLine = stats.totalTips > 0
+        ? `<div class="client-tips">Tips: $${stats.totalTips.toFixed(0)} <span class="ltv-detail">across ${stats.tippedCount} visit${stats.tippedCount === 1 ? '' : 's'} · avg $${stats.avgTip.toFixed(0)}</span></div>`
+        : '';
+    return `
+        <div class="client-card" onclick="viewClient('${c.id}')">
+            <div class="client-card-header">
+                <div>
+                    <div class="client-card-name">${escapeHtml(c.name || '(unnamed)')}${(c.pets && c.pets.length) ? ` <span class="client-card-pets">— ${escapeHtml(c.pets.map(p => p.name).filter(Boolean).join(', '))}</span>` : ''}</div>
+                    ${badges.length ? `<div class="client-badges">${badges.join('')}</div>` : ''}
+                </div>
+            </div>
+            ${c.phone ? `<div class="client-info-row"><strong>Phone</strong> ${escapeHtml(formatPhone(c.phone))}</div>` : ''}
+            ${c.email ? `<div class="client-info-row"><strong>Email</strong> ${escapeHtml(c.email)}</div>` : ''}
+            ${addressLine ? `<div class="client-info-row"><strong>Address</strong> ${escapeHtml(addressLine)}</div>` : ''}
+            ${pets ? `<div class="client-pets">${pets}</div>` : ''}
+            ${nextVisitHtml}
+            ${ltvLine}
+            ${tipsLine}
+            <div class="client-card-actions" onclick="event.stopPropagation()">
+                <button class="btn btn-primary btn-sm" onclick="scheduleVisitFor('${c.id}')">Schedule</button>
+                <button class="btn btn-ghost btn-sm" onclick="editClient('${c.id}')">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteClient('${c.id}', event)">Delete</button>
+            </div>
+        </div>`;
+}
+
+function scheduleVisitFor(clientId) {
+    location.href = `index.html?schedule=${encodeURIComponent(clientId)}`;
+}
+
+function openClientModal() {
+    editingClientId = null;
+    document.getElementById('clientModalTitle').textContent = 'Add Client';
+    document.getElementById('saveClientBtn').textContent = 'Save Client';
+    ['cName','cPhone','cEmail','cAddress','cCity','cState','cZip','cAccess','cNotes',
+     'cEmergencyName','cEmergencyPhone','cEmergencyRel','cVetClinic','cVetPhone','cVetAddress',
+     'cPrice30','cPrice60'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('cPreferredContact').value = '';
+    document.getElementById('cTerms').checked = false;
+    document.getElementById('cEmailSub').checked = false;
+    document.getElementById('cCancellations').value = 0;
+    document.getElementById('cKeepsakes').value = 0;
+    document.getElementById('petsContainer').innerHTML = '';
+    document.getElementById('timeWindowsContainer').innerHTML = '';
+    openModal('clientModal');
+    setTimeout(() => document.getElementById('cName').focus(), 50);
+}
+
+function editClient(clientId) {
+    const c = Store.getClients().find(x => x.id === clientId);
+    if (!c) return;
+    editingClientId = clientId;
+    document.getElementById('clientModalTitle').textContent = 'Edit Client';
+    document.getElementById('saveClientBtn').textContent = 'Save Changes';
+    document.getElementById('cName').value = c.name || '';
+    document.getElementById('cPreferredContact').value = c.preferredContact || '';
+    document.getElementById('cPhone').value = c.phone || '';
+    document.getElementById('cEmail').value = c.email || '';
+    document.getElementById('cAddress').value = c.address || '';
+    document.getElementById('cCity').value = c.city || '';
+    document.getElementById('cState').value = c.state || '';
+    document.getElementById('cZip').value = c.zip || '';
+    document.getElementById('cAccess').value = c.accessInstructions || '';
+    document.getElementById('cNotes').value = c.notes || '';
+    document.getElementById('cPrice30').value = c.pricing?.['30min'] || '';
+    document.getElementById('cPrice60').value = c.pricing?.['60min'] || '';
+    const em = c.emergencyContact || {};
+    document.getElementById('cEmergencyName').value = em.name || '';
+    document.getElementById('cEmergencyPhone').value = em.phone || '';
+    document.getElementById('cEmergencyRel').value = em.relationship || '';
+    const vet = c.vetInfo || {};
+    document.getElementById('cVetClinic').value = vet.clinic || '';
+    document.getElementById('cVetPhone').value = vet.phone || '';
+    document.getElementById('cVetAddress').value = vet.address || '';
+    document.getElementById('cTerms').checked = !!c.termsSigned;
+    document.getElementById('cEmailSub').checked = !!c.emailSubscribed;
+    document.getElementById('cCancellations').value = c.cancellations || 0;
+    document.getElementById('cKeepsakes').value = c.keepsakes || 0;
+    document.getElementById('petsContainer').innerHTML = '';
+    (c.pets || []).forEach(p => addPetEntry(p));
+    document.getElementById('timeWindowsContainer').innerHTML = '';
+    (c.timeWindows || []).forEach(w => addTimeWindow(w));
+    closeModal('detailModal');
+    openModal('clientModal');
+}
+
+function addPetEntry(petData = null) {
+    const container = document.getElementById('petsContainer');
+    const idx = container.children.length;
+    const row = document.createElement('div');
+    row.className = 'pet-entry';
+    const v = (k) => petData && petData[k] ? escapeHtml(petData[k]) : '';
+    const sel = (k, opt) => petData && petData[k] === opt ? 'selected' : '';
+    row.innerHTML = `
+        <div class="pet-entry-header">
+            <div class="pet-entry-title">Pet ${idx + 1}</div>
+            <button type="button" class="remove-pet-btn" onclick="this.closest('.pet-entry').remove()">Remove</button>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" class="pet-name" value="${v('name')}"></div>
+            <div class="form-group"><label>Species</label>
+                <select class="pet-species">
+                    <option value="">—</option>
+                    <option ${sel('species','Dog')}>Dog</option>
+                    <option ${sel('species','Cat')}>Cat</option>
+                    <option ${sel('species','Bird')}>Bird</option>
+                    <option ${sel('species','Rabbit')}>Rabbit</option>
+                    <option ${sel('species','Other')}>Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row-3">
+            <div class="form-group"><label>Sex</label>
+                <select class="pet-sex">
+                    <option value="">—</option>
+                    <option ${sel('sex','Male')}>Male</option>
+                    <option ${sel('sex','Female')}>Female</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Breed</label><input type="text" class="pet-breed" value="${v('breed')}"></div>
+            <div class="form-group"><label>Age</label><input type="text" class="pet-age" value="${v('age')}" placeholder="e.g. 3 yrs"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Weight</label><input type="text" class="pet-weight" value="${v('weight')}" placeholder="e.g. 25 lbs"></div>
+            <div class="form-group"><label>Color/Markings</label><input type="text" class="pet-color" value="${v('color')}"></div>
+        </div>
+        <div class="form-group"><label>Behavior Notes</label><textarea class="pet-behavior" rows="2" placeholder="Temperament, anxiety triggers, special handling…">${v('behaviorNotes')}</textarea></div>
+        <div class="form-group"><label>Medical / Conditions</label><textarea class="pet-medical" rows="2" placeholder="Medications, allergies, chronic conditions…">${v('medicalNotes')}</textarea></div>
+        <div class="form-group"><label>Feeding Instructions</label><textarea class="pet-feeding" rows="2" placeholder="Food, amounts, meal times…">${v('feedingInstructions')}</textarea></div>
+        <div class="form-group"><label>Care Instructions</label><textarea class="pet-care" rows="2" placeholder="Potty schedule, exercise, daily routine…">${v('careInstructions')}</textarea></div>
+    `;
+    container.appendChild(row);
+}
+
+const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function addTimeWindow(windowData = null) {
+    const container = document.getElementById('timeWindowsContainer');
+    const row = document.createElement('div');
+    row.className = 'time-window-row';
+    const days = (windowData && windowData.days) || [];
+    const startTime = windowData?.startTime || '09:00';
+    const endTime = windowData?.endTime || '17:00';
+    const dayPills = DAYS_SHORT.map((d, i) => {
+        const checked = days.includes(i);
+        return `<label class="day-pill ${checked ? 'checked' : ''}">
+            <input type="checkbox" value="${i}" ${checked ? 'checked' : ''} onchange="this.closest('.day-pill').classList.toggle('checked', this.checked)">${d}
+        </label>`;
+    }).join('');
+    row.innerHTML = `
+        <div class="time-window-days">${dayPills}</div>
+        <div class="time-window-times">
+            <input type="time" class="tw-start" value="${startTime}">
+            <span style="color: var(--text-faint);">–</span>
+            <input type="time" class="tw-end" value="${endTime}">
+        </div>
+        <button type="button" class="time-window-remove" onclick="this.closest('.time-window-row').remove()" title="Remove">×</button>
+    `;
+    container.appendChild(row);
+}
+
+function collectTimeWindows() {
+    const windows = [];
+    document.querySelectorAll('#timeWindowsContainer .time-window-row').forEach(row => {
+        const days = Array.from(row.querySelectorAll('.day-pill input:checked')).map(i => parseInt(i.value));
+        const startTime = row.querySelector('.tw-start').value;
+        const endTime = row.querySelector('.tw-end').value;
+        if (days.length === 0 || !startTime || !endTime) return;
+        windows.push({ days, startTime, endTime });
+    });
+    return windows;
+}
+
+function saveClient() {
+    const name = document.getElementById('cName').value.trim();
+    if (!name) { showToast('Name is required', 'error'); return; }
+    const pets = [];
+    document.querySelectorAll('#petsContainer .pet-entry').forEach(p => {
+        const petName = p.querySelector('.pet-name').value.trim();
+        if (!petName) return;
+        pets.push({
+            name: petName,
+            species: p.querySelector('.pet-species').value,
+            sex: p.querySelector('.pet-sex').value,
+            breed: p.querySelector('.pet-breed').value.trim(),
+            age: p.querySelector('.pet-age').value.trim(),
+            weight: p.querySelector('.pet-weight').value.trim(),
+            color: p.querySelector('.pet-color').value.trim(),
+            behaviorNotes: p.querySelector('.pet-behavior').value.trim(),
+            medicalNotes: p.querySelector('.pet-medical').value.trim(),
+            feedingInstructions: p.querySelector('.pet-feeding').value.trim(),
+            careInstructions: p.querySelector('.pet-care').value.trim()
+        });
+    });
+    const pricing = {};
+    const p30 = parseFloat(document.getElementById('cPrice30').value);
+    const p60 = parseFloat(document.getElementById('cPrice60').value);
+    if (!isNaN(p30) && p30 > 0) pricing['30min'] = p30;
+    if (!isNaN(p60) && p60 > 0) pricing['60min'] = p60;
+    const data = {
+        name,
+        preferredContact: document.getElementById('cPreferredContact').value,
+        phone: document.getElementById('cPhone').value.trim(),
+        email: document.getElementById('cEmail').value.trim(),
+        address: document.getElementById('cAddress').value.trim(),
+        city: document.getElementById('cCity').value.trim(),
+        state: document.getElementById('cState').value.trim(),
+        zip: document.getElementById('cZip').value.trim(),
+        accessInstructions: document.getElementById('cAccess').value.trim(),
+        notes: document.getElementById('cNotes').value.trim(),
+        pricing, pets,
+        timeWindows: collectTimeWindows(),
+        emergencyContact: {
+            name: document.getElementById('cEmergencyName').value.trim(),
+            phone: document.getElementById('cEmergencyPhone').value.trim(),
+            relationship: document.getElementById('cEmergencyRel').value.trim()
+        },
+        vetInfo: {
+            clinic: document.getElementById('cVetClinic').value.trim(),
+            phone: document.getElementById('cVetPhone').value.trim(),
+            address: document.getElementById('cVetAddress').value.trim()
+        },
+        termsSigned: document.getElementById('cTerms').checked,
+        emailSubscribed: document.getElementById('cEmailSub').checked,
+        cancellations: parseInt(document.getElementById('cCancellations').value) || 0,
+        keepsakes: parseInt(document.getElementById('cKeepsakes').value) || 0
+    };
+    const clients = Store.getClients();
+    if (editingClientId) {
+        const idx = clients.findIndex(c => c.id === editingClientId);
+        if (idx >= 0) {
+            clients[idx] = { ...clients[idx], ...data };
+            Store.saveClients(clients);
+            updateClientNameInVisits(editingClientId, name);
+            showToast('Client updated');
+        }
+    } else {
+        const newClient = {
+            id: 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            createdDate: new Date().toISOString().split('T')[0],
+            ...data
+        };
+        clients.push(newClient);
+        Store.saveClients(clients);
+        showToast('Client added');
+    }
+    closeModal('clientModal');
+    renderClients();
+}
+
+function updateClientNameInVisits(clientId, newName) {
+    const visits = Store.getVisits();
+    let changed = false;
+    visits.forEach(v => { if (v.clientId === clientId && v.clientName !== newName) { v.clientName = newName; changed = true; } });
+    if (changed) Store.save(STORAGE_KEYS.visits, visits);
+}
+
+let _confirmCallback = null;
+function showConfirm(title, message, onConfirm, options = {}) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    const btn = document.getElementById('confirmYesBtn');
+    btn.textContent = options.confirmText || 'Confirm';
+    btn.className = 'btn ' + (options.danger ? 'btn-danger' : 'btn-primary');
+    _confirmCallback = onConfirm;
+    openModal('confirmModal');
+}
+function _confirmYes() {
+    const cb = _confirmCallback;
+    _confirmCallback = null;
+    closeModal('confirmModal');
+    if (cb) try { cb(); } catch(e) { console.error('Confirm callback error:', e); showToast('Something went wrong', 'error'); }
+}
+function _confirmNo() {
+    _confirmCallback = null;
+    closeModal('confirmModal');
+}
+
+function deleteClient(clientId, ev) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+    const c = Store.getClients().find(x => x.id === clientId);
+    if (!c) { showToast('Client not found', 'error'); return; }
+    const visits = Store.getVisits().filter(v => v.clientId === clientId);
+    let msg = `Are you sure you want to delete "${c.name}"?`;
+    if (visits.length > 0) msg += `\n\nThis client has ${visits.length} visit${visits.length > 1 ? 's' : ''} on file. The visits will stay so your records remain accurate.`;
+    showConfirm('Delete client?', msg, () => {
+        // Re-load fresh at save time to avoid any stale-write race
+        const fresh = Store.getClients();
+        const updated = fresh.filter(x => x.id !== clientId);
+        const ok = Store.saveClients(updated);
+        if (!ok) { showToast('Could not save — try again', 'error'); return; }
+        closeModal('detailModal');
+        renderClients();
+        showToast('Client deleted');
+    }, { confirmText: 'Delete', danger: true });
+}
+
+function viewClient(clientId) {
+    const c = Store.getClients().find(x => x.id === clientId);
+    if (!c) return;
+    const visits = Store.getVisits().filter(v => v.clientId === clientId)
+        .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+    const stats = getClientStats(clientId);
+    document.getElementById('detailTitle').textContent = c.name || '(unnamed)';
+    const addressLine = [c.address, c.city, c.state, c.zip].filter(Boolean).join(', ');
+    let html = '';
+    const pricing = c.pricing || {};
+    html += `
+        <div class="detail-section">
+            <h3>Pricing</h3>
+            <div class="pricing-mini-grid">
+                <div class="pricing-tile"><div class="pricing-tile-label">30 min Visit</div><div class="pricing-tile-value">${pricing['30min'] ? '$' + pricing['30min'].toFixed(2) : '—'}</div></div>
+                <div class="pricing-tile"><div class="pricing-tile-label">1 hour Visit</div><div class="pricing-tile-value">${pricing['60min'] ? '$' + pricing['60min'].toFixed(2) : '—'}</div></div>
+            </div>
+        </div>`;
+
+    const tw = c.timeWindows || [];
+    if (tw.length > 0) {
+        html += `<div class="detail-section"><h3>Preferred Time Windows</h3>`;
+        tw.forEach(w => {
+            const dayLabels = (w.days || []).map(d => DAYS_SHORT[d]).join(', ');
+            html += `<div class="detail-row"><div class="detail-label">${escapeHtml(dayLabels)}</div><div class="detail-value">${formatTime12(w.startTime)} – ${formatTime12(w.endTime)}</div></div>`;
+        });
+        html += `</div>`;
+    }
+    html += `
+        <div class="detail-section">
+            <h3>Contact & Access</h3>
+            ${c.phone ? `<div class="detail-row"><div class="detail-label">Phone</div><div class="detail-value">${escapeHtml(formatPhone(c.phone))}</div></div>` : ''}
+            ${c.email ? `<div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">${escapeHtml(c.email)}</div></div>` : ''}
+            ${c.preferredContact ? `<div class="detail-row"><div class="detail-label">Preferred</div><div class="detail-value">${escapeHtml(c.preferredContact)}</div></div>` : ''}
+            ${addressLine ? `<div class="detail-row"><div class="detail-label">Address</div><div class="detail-value">${escapeHtml(addressLine)}</div></div>` : ''}
+            ${c.accessInstructions ? `<div class="detail-row"><div class="detail-label">Access</div><div class="detail-value">${escapeHtml(c.accessInstructions)}</div></div>` : ''}
+        </div>`;
+    if ((c.pets || []).length > 0) {
+        html += `<div class="detail-section"><h3>Pets (${c.pets.length})</h3>`;
+        c.pets.forEach(p => {
+            const meta = [p.species, p.breed, p.sex, p.age, p.weight, p.color].filter(Boolean).join(' · ');
+            html += `
+                <div class="pet-detail-card">
+                    <h4>${escapeHtml(p.name)}</h4>
+                    ${meta ? `<div class="pet-detail-meta">${escapeHtml(meta)}</div>` : ''}
+                    ${p.behaviorNotes ? `<div class="pet-note"><strong>Behavior:</strong> ${escapeHtml(p.behaviorNotes)}</div>` : ''}
+                    ${p.medicalNotes ? `<div class="pet-note"><strong>Medical:</strong> ${escapeHtml(p.medicalNotes)}</div>` : ''}
+                    ${p.feedingInstructions ? `<div class="pet-note"><strong>Feeding:</strong> ${escapeHtml(p.feedingInstructions)}</div>` : ''}
+                    ${p.careInstructions ? `<div class="pet-note"><strong>Care:</strong> ${escapeHtml(p.careInstructions)}</div>` : ''}
+                </div>`;
+        });
+        html += `</div>`;
+    }
+    if (visits.length > 0) {
+        const recent = visits.slice(0, 10);
+        html += `
+            <div class="detail-section">
+                <h3>Visit History — ${visits.length} total · Lifetime: $${stats.ltv.toFixed(2)}</h3>
+                <div class="visit-history-row" style="font-weight: 600; color: var(--text-faint); border-bottom-width: 2px;">
+                    <div>Date</div><div>Type</div><div style="text-align: right;">Price</div><div style="text-align: right;">Status</div>
+                </div>
+                ${recent.map(v => {
+                    const t = VISIT_TYPES[v.visitType] || { label: v.visitType };
+                    return `
+                    <div class="visit-history-row">
+                        <div class="visit-history-date">${formatDateLong(v.date).replace(/, \d{4}$/, '')}</div>
+                        <div class="visit-history-type">${t.label}</div>
+                        <div class="visit-history-price">$${(v.price || 0).toFixed(2)}</div>
+                        <div class="visit-history-status ${v.status}">${v.status}</div>
+                    </div>`;
+                }).join('')}
+                ${visits.length > 10 ? `<div style="text-align: center; color: var(--text-faint); padding-top: 10px; font-size: 0.9em; font-style: italic;">+ ${visits.length - 10} earlier visits</div>` : ''}
+            </div>`;
+    } else {
+        html += `<div class="detail-section"><h3>Visit History</h3><div class="empty-state" style="padding: 20px;">No visits yet</div></div>`;
+    }
+    const em = c.emergencyContact || {};
+    const vet = c.vetInfo || {};
+    if (em.name || em.phone || vet.clinic || vet.phone) {
+        html += `<div class="detail-section"><h3>Emergency & Vet</h3>`;
+        if (em.name || em.phone) {
+            html += `<div class="detail-row"><div class="detail-label">Emergency</div><div class="detail-value">${escapeHtml(em.name || '—')}${em.phone ? ' · ' + escapeHtml(formatPhone(em.phone)) : ''}${em.relationship ? ' (' + escapeHtml(em.relationship) + ')' : ''}</div></div>`;
+        }
+        if (vet.clinic || vet.phone) {
+            html += `<div class="detail-row"><div class="detail-label">Vet</div><div class="detail-value">${escapeHtml(vet.clinic || '—')}${vet.phone ? ' · ' + escapeHtml(formatPhone(vet.phone)) : ''}</div></div>`;
+            if (vet.address) html += `<div class="detail-row"><div class="detail-label"></div><div class="detail-value">${escapeHtml(vet.address)}</div></div>`;
+        }
+        html += `</div>`;
+    }
+    if (c.notes) {
+        html += `<div class="detail-section"><h3>Notes</h3><div style="color: var(--text-dim); white-space: pre-wrap;">${escapeHtml(c.notes)}</div></div>`;
+    }
+    document.getElementById('detailBody').innerHTML = html;
+    document.getElementById('detailFooter').innerHTML = `
+        <button class="btn btn-danger" onclick="deleteClient('${c.id}', event)">Delete</button>
+        <button class="btn btn-ghost" onclick="closeModal('detailModal')">Close</button>
+        <button class="btn btn-secondary" onclick="editClient('${c.id}')">Edit</button>
+        <button class="btn btn-primary" onclick="scheduleVisitFor('${c.id}')">Schedule Visit</button>
+    `;
+    openModal('detailModal');
+}
+
+function init() {
+    renderLogo();
+    renderClients();
+}
+window.initApp = init;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('passwordInput');
+    if (inp) inp.focus();
+});
+</script>
+
+</body>
+</html>
