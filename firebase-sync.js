@@ -25,6 +25,23 @@ const firebaseConfig = {
 
 const SHARED_EMAIL = 'team@myreliacare.com';
 
+// "Remember me" credential storage. Stored base64'd (light obfuscation, not encryption) —
+// for the threat model of a private 2-person CRM behind phone unlock, this is acceptable.
+// Tradeoff: anyone with unlocked phone access can open the CRM without entering a password.
+const _REMEMBER_KEY = 'myreliacare_session_token';
+function _saveRemembered(pw) {
+    try { localStorage.setItem(_REMEMBER_KEY, btoa(pw)); } catch {}
+}
+function _getRemembered() {
+    try {
+        const raw = localStorage.getItem(_REMEMBER_KEY);
+        return raw ? atob(raw) : null;
+    } catch { return null; }
+}
+function _clearRemembered() {
+    try { localStorage.removeItem(_REMEMBER_KEY); } catch {}
+}
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -209,6 +226,7 @@ window.checkPassword = async function() {
 
     try {
         await auth.signInWithEmailAndPassword(SHARED_EMAIL, password);
+        _saveRemembered(password);
         // onAuthStateChanged will handle UI transition
     } catch (e) {
         console.error('[sync] login error:', e);
@@ -232,6 +250,7 @@ window.checkPassword = async function() {
 };
 
 window.logout = async function() {
+    _clearRemembered();
     try {
         await auth.signOut();
         // Don't reload — onAuthStateChanged handles UI
@@ -321,7 +340,23 @@ auth.onAuthStateChanged(async user => {
             try { window.initApp(); } catch (e) { console.error('[sync] initApp error:', e); }
         }
     } else {
-        // Logged out
+        // Not logged in. Before showing the password screen, try silent auto-relogin
+        // using a remembered credential (Safari ITP and aggressive storage cleanup
+        // sometimes wipe the Firebase session token even when localStorage survives).
+        const remembered = _getRemembered();
+        if (remembered) {
+            try {
+                await auth.signInWithEmailAndPassword(SHARED_EMAIL, remembered);
+                // Success — onAuthStateChanged will fire again with user set
+                return;
+            } catch (e) {
+                // Stored password no longer works (rotated, etc). Clear it.
+                console.warn('[sync] auto-relogin failed:', e.code || e.message);
+                _clearRemembered();
+            }
+        }
+
+        // Fall through to manual login
         detachListeners();
         if (passwordScreen) passwordScreen.style.display = 'flex';
         if (mainContent) mainContent.style.display = 'none';
