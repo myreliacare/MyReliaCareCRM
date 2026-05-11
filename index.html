@@ -818,23 +818,40 @@
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            inset: 0;
             background: rgba(0,0,0,0.7);
             z-index: 1000;
-            align-items: flex-start;
-            justify-content: center;
-            overflow-y: auto;
-            padding: 40px 20px;
+            padding: 20px;
+            overflow: hidden;
         }
-        .modal-overlay.active { display: flex; }
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         .modal {
             background: var(--bg-card);
             border-radius: 16px;
             border: 1px solid var(--border);
             max-width: 720px;
             width: 100%;
+            max-height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
             box-shadow: 0 25px 80px rgba(0,0,0,0.6);
-            margin: auto 0;
+            overflow: hidden;
+        }
+        .modal-header { flex-shrink: 0; min-width: 0; }
+        .modal-header h2 { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+        .modal-body-scrollable { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
+        .modal-footer { flex-shrink: 0; }
+        @media (max-width: 700px) {
+            .modal-overlay { padding: 8px; }
+            .modal { max-height: calc(100vh - 16px); border-radius: 12px; }
+            .modal-header { padding: 14px 16px !important; }
+            .modal-body { padding: 14px 16px !important; }
+            .modal-footer { padding: 14px 16px !important; }
+            .modal-header h2 { font-size: 1.15em !important; }
         }
         .modal-header {
             padding: 20px 28px;
@@ -857,7 +874,7 @@
             line-height: 1;
         }
         .modal-close:hover { color: var(--danger); }
-        .modal-body { padding: 24px 28px; }
+        .modal-body { padding: 24px 28px; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
         .modal-footer {
             padding: 20px 28px;
             border-top: 1px solid var(--border);
@@ -1379,6 +1396,17 @@
         ::-webkit-scrollbar-track { background: var(--bg-deep); }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    
+        /* === Overflow safety net for mobile === */
+        @media (max-width: 700px) {
+            .container { max-width: 100%; overflow-x: hidden; }
+            .form-row, .form-row-3 { grid-template-columns: 1fr !important; gap: 8px !important; }
+            input, select, textarea { max-width: 100%; box-sizing: border-box; }
+            img { max-width: 100%; height: auto; }
+            pre, code { white-space: pre-wrap; word-break: break-word; }
+            /* Long words/URLs in client notes / addresses */
+            .client-card, .schedule-item, .invoice-row, .modal-body { word-wrap: break-word; overflow-wrap: break-word; }
+        }
     </style>
 </head>
 <body>
@@ -1401,7 +1429,7 @@
 
         <!-- Header -->
         <div class="header">
-            <div class="header-brand">
+            <a href="index.html" class="header-brand" style="text-decoration: none; color: inherit;">
                 <div class="header-logo-container" onclick="document.getElementById('logoUpload').click()" title="Click to change logo">
                     <img id="headerLogo" class="header-logo" alt="MyReliaCare Logo">
                     <div id="logoPlaceholder" class="header-logo-placeholder">+ Logo</div>
@@ -1411,7 +1439,7 @@
                     <h1>MyReliaCare</h1>
                     <div class="tagline">Pet care, with intention.</div>
                 </div>
-            </div>
+            </a>
             <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
             <nav class="nav" id="mainNav">
                 <button class="menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
