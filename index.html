@@ -61,9 +61,9 @@
         body.menu-open { overflow: hidden; }
         body.modal-open {
             overflow: hidden;
-            position: fixed;
-            width: 100%;
         }
+        /* iOS: prevent body scroll-through behind modal by locking html height too */
+        html.modal-open { overflow: hidden; height: 100%; }
 
         @media (max-width: 700px) {
             body { padding: 20px 8px 8px 8px; font-size: 17px; }
@@ -1661,12 +1661,12 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             width: 38px; height: 38px;
-            font-size: 1.2em;
             line-height: 1;
             cursor: pointer;
             transition: all 0.15s;
-            font-family: system-ui, sans-serif;
+            padding: 0;
         }
+        .mobile-signout svg { display: block; }
         .mobile-signout:hover, .mobile-signout:active { color: var(--danger); border-color: var(--danger); }
         @media (max-width: 700px) {
             .mobile-signout { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -1705,7 +1705,7 @@
                 </div>
             </a>
             <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
-            <button class="mobile-signout" onclick="logout()" aria-label="Sign out" title="Sign out">↩</button>
+            <button class="mobile-signout" onclick="logout()" aria-label="Sign out" title="Sign out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             <nav class="nav" id="mainNav">
                 <button class="menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
                 <a href="index.html" class="active">Dashboard</a>
@@ -2124,6 +2124,12 @@ function formatTime12(t) {
 function todayYmd() {
     return ymd(new Date());
 }
+function isVisitEarned(v) {
+    if (v.status === 'completed') return true;
+    if (v.status === 'cancelled') return false;
+    // Past-date scheduled visits are auto-treated as earned (if not done, user would have deleted/cancelled)
+    return (v.date || '') < todayYmd();
+}
 function addDays(date, n) {
     const d = new Date(date);
     d.setDate(d.getDate() + n);
@@ -2138,28 +2144,36 @@ function monthsBetween(d1, d2) {
 /* ============================================================
    MODAL HELPERS
    ============================================================ */
-let _savedScroll = 0;
 function openModal(id) {
-    if (!document.body.classList.contains('modal-open')) {
-        _savedScroll = window.pageYOffset || document.documentElement.scrollTop;
-        document.body.style.top = `-${_savedScroll}px`;
-        document.body.classList.add('modal-open');
-    }
+    document.documentElement.classList.add('modal-open');
+    document.body.classList.add('modal-open');
     document.getElementById(id).classList.add('active');
 }
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
     if (!document.querySelector('.modal-overlay.active')) {
+        document.documentElement.classList.remove('modal-open');
         document.body.classList.remove('modal-open');
-        document.body.style.top = '';
-        window.scrollTo(0, _savedScroll);
     }
 }
-// click outside to close
+// click outside to close — but only if both mousedown AND mouseup landed on the overlay
+// (prevents accidental close when iOS sends a spurious click after keyboard/scroll/focus change,
+//  or when dragging from inside the modal to outside)
+let _modalCloseArmed = null;
+function _isOverlayTarget(el) {
+    return el && el.classList && el.classList.contains('modal-overlay') && el.id;
+}
+document.addEventListener('mousedown', (e) => {
+    _modalCloseArmed = _isOverlayTarget(e.target) ? e.target.id : null;
+});
+document.addEventListener('touchstart', (e) => {
+    _modalCloseArmed = _isOverlayTarget(e.target) ? e.target.id : null;
+}, { passive: true });
 document.addEventListener('click', (e) => {
-    if (e.target.classList && e.target.classList.contains('modal-overlay') && e.target.id) {
-        closeModal(e.target.id);
+    if (_modalCloseArmed && _isOverlayTarget(e.target) && e.target.id === _modalCloseArmed) {
+        closeModal(_modalCloseArmed);
     }
+    _modalCloseArmed = null;
 });
 // escape to close
 document.addEventListener('keydown', (e) => {
@@ -2440,6 +2454,10 @@ function addVisitRow(prefilledDate = null) {
     `;
     container.appendChild(row);
     updateRowWindowHint(row);
+    // Scroll the newly added row into view inside the modal so user sees it appear
+    setTimeout(() => {
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
 }
 
 function updateRowWindowHint(row) {
@@ -2708,7 +2726,11 @@ function saveSchedule() {
         });
     }
 
-    Store.saveVisits([...visits, ...toCreate]);
+    const ok = Store.saveVisits([...visits, ...toCreate]);
+    if (ok === false) {
+        showToast('Could not save — you may be signed out. Please refresh and sign in again.', 'error');
+        return;
+    }
 
     // Backfill client record from this booking — only fills fields that are currently empty
     backfillClientFromBooking(clientId, address, access, visitTemplates);
@@ -3781,14 +3803,14 @@ function renderWeeklySnapshot() {
 
     const visits = Store.getVisits();
     const weekVisits = visits.filter(v => dates.includes(v.date));
-    const completedWeekVisits = weekVisits.filter(v => v.status === 'completed');
+    const earnedWeekVisits = weekVisits.filter(isVisitEarned);
     const totalCount = weekVisits.length;
-    const totalCompleted = completedWeekVisits.length;
+    const totalCompleted = earnedWeekVisits.length;
     // Projected = sum of ALL scheduled visits' prices (what you expect to earn)
     const projectedRevenue = weekVisits.reduce((s, v) => s + (v.price || 0), 0);
-    // Earned = sum of completed visits + their tips (what you've actually earned)
-    const earnedRevenue = completedWeekVisits.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
-    const totalPaid = completedWeekVisits.filter(v => v.paid).reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
+    // Earned = visits explicitly completed OR past-date scheduled (auto-treated as earned) + their tips
+    const earnedRevenue = earnedWeekVisits.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
+    const totalPaid = earnedWeekVisits.filter(v => v.paid).reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
 
     // title with date range
     const startStr = sundayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -3796,14 +3818,13 @@ function renderWeeklySnapshot() {
     const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     document.getElementById('weeklyTitle').textContent = `This Week — ${startStr} to ${endStr}`;
 
-    // per-day breakdown — count of all visits, but income = completed only
+    // per-day breakdown — projected revenue = all visits' prices; earned still tracked separately at the summary
     const dayCounts = dates.map(d => {
         const dayVisits = visits.filter(v => v.date === d);
-        const completedDayVisits = dayVisits.filter(v => v.status === 'completed');
         return {
             date: d,
             count: dayVisits.length,
-            revenue: completedDayVisits.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0)
+            revenue: dayVisits.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0)
         };
     });
     const maxCount = Math.max(1, ...dayCounts.map(d => d.count));

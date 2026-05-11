@@ -100,17 +100,42 @@ COLLECTIONS.forEach(c => {
 // --- Firestore listeners ---
 let _listenersAttached = false;
 const _unsubscribers = [];
+// Track locally-saved items not yet echoed back from cloud, so a stale snapshot
+// from before our write doesn't wipe out the optimistic update.
+const _pendingWrites = new Set();
+const _pendingDeletes = new Set();
+
 function attachListeners() {
     if (_listenersAttached) return;
     _listenersAttached = true;
     COLLECTIONS.forEach(c => {
         const unsub = db.collection(c.name).onSnapshot(snap => {
-            const newData = snap.docs.map(d => ({ ...d.data(), id: d.id }));
-            // Skip if data is identical (echo of our own write or unchanged remote snapshot)
+            let newData = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+            const snapIds = new Set(newData.map(d => d.id));
+
+            // Hide items we just locally deleted that the cloud hasn't confirmed yet
+            newData = newData.filter(d => !_pendingDeletes.has(d.id));
+
+            // Add back items we just locally wrote that the cloud hasn't confirmed yet
+            const cloudIds = new Set(newData.map(d => d.id));
+            const stillPending = _state[c.stateKey].filter(local =>
+                _pendingWrites.has(local.id) && !cloudIds.has(local.id)
+            );
+            const merged = stillPending.length ? [...newData, ...stillPending] : newData;
+
+            // Clear pending markers for items the cloud has confirmed
+            for (const id of Array.from(_pendingWrites)) {
+                if (snapIds.has(id)) _pendingWrites.delete(id);
+            }
+            for (const id of Array.from(_pendingDeletes)) {
+                if (!snapIds.has(id)) _pendingDeletes.delete(id);
+            }
+
+            // Skip if nothing actually changed
             const oldJson = JSON.stringify(_state[c.stateKey] || []);
-            const newJson = JSON.stringify(newData);
+            const newJson = JSON.stringify(merged);
             if (oldJson === newJson) return;
-            _state[c.stateKey] = newData;
+            _state[c.stateKey] = merged;
             try { localStorage.setItem(c.storageKey, newJson); } catch {}
             _scheduleNotify();
         }, err => {
@@ -187,6 +212,21 @@ function _saveCollection(coll, newArr) {
         return false;
     }
     const oldArr = _state[coll.stateKey].slice();
+    const oldById = Object.fromEntries(oldArr.map(x => [x.id, x]));
+    const newIds = new Set(newArr.map(x => x.id));
+
+    // Mark items being written/updated as pending (so listener doesn't lose them to stale snapshots)
+    for (const item of newArr) {
+        if (!item.id) continue;
+        const old = oldById[item.id];
+        if (!old || JSON.stringify(old) !== JSON.stringify(item)) {
+            _pendingWrites.add(item.id);
+        }
+    }
+    // Mark deletes as pending
+    for (const oldItem of oldArr) {
+        if (!newIds.has(oldItem.id)) _pendingDeletes.add(oldItem.id);
+    }
 
     // Optimistic local update — caller's next get*() returns fresh data
     _state[coll.stateKey] = JSON.parse(JSON.stringify(newArr));
