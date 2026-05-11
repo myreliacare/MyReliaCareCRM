@@ -452,6 +452,7 @@
         }
         .weekly-summary-item .weekly-label { color: var(--text-faint); font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; }
         .weekly-summary-item .weekly-value { color: var(--accent); font-size: 1.6em; font-weight: 600; font-family: 'Cormorant Unicase', serif; }
+        .weekly-summary-item .weekly-sub { color: var(--text-dim); font-size: 0.8em; font-style: italic; margin-top: 2px; }
         .weekly-day-row {
             display: grid;
             grid-template-columns: 60px 1fr 70px;
@@ -1565,10 +1566,22 @@
                 justify-content: flex-start !important;
                 gap: 4px !important;
             }
+            /* Strip the today-circle from the day-num on mobile; we'll highlight the whole cell instead */
             .calendar-day.mobile-compact .day-num {
+                background: transparent !important;
+                width: auto !important;
+                height: auto !important;
+                margin: 0 !important;
                 font-size: 1.05em;
                 color: var(--text);
                 font-weight: 500;
+                border-radius: 0 !important;
+            }
+            /* Today: tint the whole cell */
+            .calendar-day.mobile-compact.today {
+                background: rgba(181, 145, 151, 0.18) !important;
+                border-color: var(--accent) !important;
+                box-shadow: inset 0 0 0 1px var(--accent);
             }
             .calendar-day.mobile-compact.today .day-num {
                 color: var(--accent-light);
@@ -1577,8 +1590,9 @@
             .calendar-day.mobile-compact .event-count {
                 background: var(--accent);
                 color: white;
-                font-size: 0.8em;
-                font-weight: 600;
+                font-size: 0.78em;
+                font-weight: 700;
+                font-family: system-ui, -apple-system, sans-serif;
                 min-width: 20px;
                 height: 20px;
                 padding: 0 6px;
@@ -1586,9 +1600,76 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                line-height: 1;
+                line-height: 20px;
             }
             .calendar-day.mobile-compact.empty .event-count { display: none; }
+        }
+
+        /* === Mobile bottom tab bar (replaces drawer menu) === */
+        .bottom-tabs { display: none; }
+        @media (max-width: 700px) {
+            .bottom-tabs {
+                display: flex;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                background: var(--bg-card);
+                border-top: 1px solid var(--border);
+                padding: 4px 0;
+                padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+                z-index: 100;
+                box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+            }
+            .bottom-tabs a {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 2px;
+                padding: 6px 4px;
+                color: var(--text-faint);
+                text-decoration: none;
+                font-size: 0.78em;
+                font-family: 'Cormorant', serif;
+                letter-spacing: 0.5px;
+            }
+            .bottom-tabs a .tab-icon {
+                font-size: 1.4em;
+                line-height: 1;
+            }
+            .bottom-tabs a.active {
+                color: var(--accent-light);
+            }
+            .bottom-tabs a.active .tab-icon {
+                color: var(--accent);
+            }
+            /* Leave room for the tab bar above content */
+            body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; }
+            /* Hide the old hamburger drawer system */
+            .menu-toggle { display: none !important; }
+            .menu-close { display: none !important; }
+            nav.nav, nav.nav.open { display: none !important; }
+            .menu-backdrop { display: none !important; }
+            /* Restore body overflow if drawer was open before nav change */
+            body.menu-open { overflow: auto !important; position: static !important; }
+        }
+
+        .mobile-signout {
+            display: none;
+            background: var(--bg-card-light);
+            color: var(--text-faint);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 38px; height: 38px;
+            font-size: 1.2em;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: system-ui, sans-serif;
+        }
+        .mobile-signout:hover, .mobile-signout:active { color: var(--danger); border-color: var(--danger); }
+        @media (max-width: 700px) {
+            .mobile-signout { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
         }
 </style>
 </head>
@@ -1624,6 +1705,7 @@
                 </div>
             </a>
             <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
+            <button class="mobile-signout" onclick="logout()" aria-label="Sign out" title="Sign out">↩</button>
             <nav class="nav" id="mainNav">
                 <button class="menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
                 <a href="index.html" class="active">Dashboard</a>
@@ -1775,7 +1857,7 @@
         <div class="modal-body">
             <div class="form-group">
                 <label>Client</label>
-                <input type="text" id="editVisitClient" readonly style="opacity: 0.7;">
+                <select id="editVisitClient"></select>
             </div>
             <div class="form-row form-row-compact">
                 <div class="form-group">
@@ -2922,7 +3004,13 @@ function editVisit(id) {
         .map(([k, t]) => `<option value="${k}"${k === v.visitType ? ' selected' : ''}>${t.label}</option>`)
         .join('');
 
-    document.getElementById('editVisitClient').value = v.clientName || '';
+    // Populate the client dropdown
+    const clientSel = document.getElementById('editVisitClient');
+    const clients = Store.getClients().slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    clientSel.innerHTML = clients
+        .map(c => `<option value="${c.id}"${c.id === v.clientId ? ' selected' : ''}>${escapeHtml(c.name)}</option>`)
+        .join('');
+
     document.getElementById('editVisitDate').value = v.date || '';
     document.getElementById('editVisitTime').value = v.time || '';
     document.getElementById('editVisitPrice').value = v.price != null ? v.price : 0;
@@ -2951,6 +3039,16 @@ function saveEditVisit() {
     const date = document.getElementById('editVisitDate').value;
     const time = document.getElementById('editVisitTime').value;
     if (!date || !time) { showToast('Date and time required', 'error'); return; }
+
+    // Update client (and clientName for display)
+    const newClientId = document.getElementById('editVisitClient').value;
+    if (newClientId && newClientId !== v.clientId) {
+        const client = Store.getClients().find(c => c.id === newClientId);
+        if (client) {
+            v.clientId = client.id;
+            v.clientName = client.name;
+        }
+    }
 
     v.date = date;
     v.time = time;
@@ -3686,8 +3784,10 @@ function renderWeeklySnapshot() {
     const completedWeekVisits = weekVisits.filter(v => v.status === 'completed');
     const totalCount = weekVisits.length;
     const totalCompleted = completedWeekVisits.length;
-    // Income = sum of completed visit prices + their tips (actual earned $, not projected)
-    const totalRevenue = completedWeekVisits.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
+    // Projected = sum of ALL scheduled visits' prices (what you expect to earn)
+    const projectedRevenue = weekVisits.reduce((s, v) => s + (v.price || 0), 0);
+    // Earned = sum of completed visits + their tips (what you've actually earned)
+    const earnedRevenue = completedWeekVisits.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
     const totalPaid = completedWeekVisits.filter(v => v.paid).reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
 
     // title with date range
@@ -3720,8 +3820,9 @@ function renderWeeklySnapshot() {
                 <div class="weekly-value">${totalCompleted}</div>
             </div>
             <div class="weekly-summary-item">
-                <div class="weekly-label">Total Income</div>
-                <div class="weekly-value">$${totalRevenue.toFixed(0)}</div>
+                <div class="weekly-label">Projected</div>
+                <div class="weekly-value">$${projectedRevenue.toFixed(0)}</div>
+                <div class="weekly-sub">$${earnedRevenue.toFixed(0)} earned</div>
             </div>
         </div>
     `;
@@ -3884,5 +3985,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+
+    <!-- Mobile bottom tab bar -->
+    <nav class="bottom-tabs">
+        <a href="index.html" class="active">
+            <span class="tab-icon">⌂</span>
+            <span class="tab-label">Dashboard</span>
+        </a>
+        <a href="clients.html">
+            <span class="tab-icon">◷</span>
+            <span class="tab-label">Clients</span>
+        </a>
+        <a href="invoices.html">
+            <span class="tab-icon">$</span>
+            <span class="tab-label">Invoices</span>
+        </a>
+    </nav>
 </body>
 </html>

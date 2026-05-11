@@ -413,6 +413,73 @@
                 line-height: 1.2 !important;
             }
         }
+
+        /* === Mobile bottom tab bar (replaces drawer menu) === */
+        .bottom-tabs { display: none; }
+        @media (max-width: 700px) {
+            .bottom-tabs {
+                display: flex;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                background: var(--bg-card);
+                border-top: 1px solid var(--border);
+                padding: 4px 0;
+                padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+                z-index: 100;
+                box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+            }
+            .bottom-tabs a {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 2px;
+                padding: 6px 4px;
+                color: var(--text-faint);
+                text-decoration: none;
+                font-size: 0.78em;
+                font-family: 'Cormorant', serif;
+                letter-spacing: 0.5px;
+            }
+            .bottom-tabs a .tab-icon {
+                font-size: 1.4em;
+                line-height: 1;
+            }
+            .bottom-tabs a.active {
+                color: var(--accent-light);
+            }
+            .bottom-tabs a.active .tab-icon {
+                color: var(--accent);
+            }
+            /* Leave room for the tab bar above content */
+            body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; }
+            /* Hide the old hamburger drawer system */
+            .menu-toggle { display: none !important; }
+            .menu-close { display: none !important; }
+            nav.nav, nav.nav.open { display: none !important; }
+            .menu-backdrop { display: none !important; }
+            /* Restore body overflow if drawer was open before nav change */
+            body.menu-open { overflow: auto !important; position: static !important; }
+        }
+
+        .mobile-signout {
+            display: none;
+            background: var(--bg-card-light);
+            color: var(--text-faint);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 38px; height: 38px;
+            font-size: 1.2em;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: system-ui, sans-serif;
+        }
+        .mobile-signout:hover, .mobile-signout:active { color: var(--danger); border-color: var(--danger); }
+        @media (max-width: 700px) {
+            .mobile-signout { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        }
 </style>
 </head>
 <body>
@@ -443,6 +510,7 @@
                 </div>
             </a>
             <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
+            <button class="mobile-signout" onclick="logout()" aria-label="Sign out" title="Sign out">↩</button>
             <nav class="nav" id="mainNav">
                 <button class="menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
                 <a href="index.html">Dashboard</a>
@@ -1454,5 +1522,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+
+    <!-- Mobile bottom tab bar -->
+    <nav class="bottom-tabs">
+        <a href="index.html">
+            <span class="tab-icon">⌂</span>
+            <span class="tab-label">Dashboard</span>
+        </a>
+        <a href="clients.html">
+            <span class="tab-icon">◷</span>
+            <span class="tab-label">Clients</span>
+        </a>
+        <a href="invoices.html" class="active">
+            <span class="tab-icon">$</span>
+            <span class="tab-label">Invoices</span>
+        </a>
+    </nav>
 </body>
 </html>
