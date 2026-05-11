@@ -712,14 +712,12 @@ function showToast(msg, type = 'success') {
     setTimeout(() => t.style.display = 'none', 3000);
 }
 function openModal(id) {
-    document.documentElement.classList.add('modal-open');
     document.body.classList.add('modal-open');
     document.getElementById(id).classList.add('active');
 }
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
     if (!document.querySelector('.modal-overlay.active')) {
-        document.documentElement.classList.remove('modal-open');
         document.body.classList.remove('modal-open');
     }
 }
@@ -1519,6 +1517,8 @@ function init() {
 }
 window.initApp = init;
 
+document.documentElement.classList.remove('modal-open');
+document.body && document.body.classList.remove('modal-open', 'menu-open');
 document.addEventListener('DOMContentLoaded', () => {
     const inp = document.getElementById('passwordInput');
     if (inp) inp.focus();
