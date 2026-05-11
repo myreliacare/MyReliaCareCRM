@@ -142,8 +142,16 @@
         .modal-body-scrollable { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
         .modal-footer { flex-shrink: 0; }
         @media (max-width: 700px) {
-            .modal-overlay { padding: 8px; }
-            .modal { max-height: calc(100vh - 16px); border-radius: 12px; }
+            .modal-overlay {
+                padding: 32px 12px;
+                padding-top: max(32px, env(safe-area-inset-top, 32px));
+                padding-bottom: max(32px, env(safe-area-inset-bottom, 32px));
+            }
+            .modal {
+                max-height: calc(100vh - 64px);
+                max-height: calc(100dvh - 64px);
+                border-radius: 14px;
+            }
             .modal-header { padding: 14px 16px !important; }
             .modal-body { padding: 14px 16px !important; }
             .modal-footer { padding: 14px 16px !important; }
@@ -205,6 +213,19 @@
         .visit-history-status { font-size: 0.85em; text-align: right; }
         .visit-history-status.completed { color: var(--success); }
         .visit-history-status.scheduled { color: var(--accent-light); }
+        @media (max-width: 700px) {
+            .visit-history-header { display: none !important; }
+            .visit-history-row {
+                grid-template-columns: 1fr auto !important;
+                grid-template-rows: auto auto;
+                gap: 2px 12px !important;
+                padding: 10px 0 !important;
+            }
+            .visit-history-date { grid-column: 1; grid-row: 1; font-weight: 600; color: var(--text); }
+            .visit-history-price { grid-column: 2; grid-row: 1; text-align: right; font-weight: 600; }
+            .visit-history-type { grid-column: 1; grid-row: 2; font-size: 0.88em; color: var(--text-dim); }
+            .visit-history-status { grid-column: 2; grid-row: 2; text-align: right; font-size: 0.85em; }
+        }
         .pet-detail-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
         .pet-detail-card h4 { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.05em; margin-bottom: 6px; }
         .pet-detail-meta { color: var(--text-dim); font-size: 0.92em; margin-bottom: 8px; }
@@ -300,7 +321,32 @@
             /* Inline buttons / badges shouldn't expand the row */
             .status-badge, .badge, .paid-badge, .assignee-badge { flex-shrink: 0; max-width: none !important; }
         }
-    </style>
+    
+        /* === Mobile: tighten inputs/sections inside modals === */
+        @media (max-width: 700px) {
+            .modal-body .form-group input,
+            .modal-body .form-group select,
+            .modal-body .form-group textarea {
+                padding: 8px 10px !important;
+                font-size: 1em !important;
+                min-width: 0 !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .modal-body .form-group label { font-size: 0.95em; margin-bottom: 4px; }
+            .modal-body .form-group { margin-bottom: 10px; }
+            .modal-body .form-row, .modal-body .form-row-3 { gap: 6px !important; }
+            /* Sections within modal — tighter padding so contents fit */
+            .modal-body .recurring-options,
+            .modal-body .pet-entry,
+            .modal-body .time-window-row,
+            .modal-body .visits-section { padding: 10px !important; }
+            .modal-body .day-checkboxes { gap: 4px; }
+            .modal-body .day-checkbox { padding: 5px 8px; font-size: 0.9em; }
+            /* Section titles a bit smaller */
+            .modal-body .form-section-title { font-size: 1em !important; margin: 10px 0 6px !important; }
+        }
+</style>
 </head>
 <body>
 
@@ -968,7 +1014,7 @@ function viewClient(clientId) {
         html += `
             <div class="detail-section">
                 <h3>Visit History — ${visits.length} total · Lifetime: $${stats.ltv.toFixed(2)}</h3>
-                <div class="visit-history-row" style="font-weight: 600; color: var(--text-faint); border-bottom-width: 2px;">
+                <div class="visit-history-row visit-history-header" style="font-weight: 600; color: var(--text-faint); border-bottom-width: 2px;">
                     <div>Date</div><div>Type</div><div style="text-align: right;">Price</div><div style="text-align: right;">Status</div>
                 </div>
                 ${recent.map(v => {
