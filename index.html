@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MyReliaCare">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1A1614">
     <title>MyReliaCare CRM - Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,6 +38,10 @@
             --visit-60min: #D4A5AC;
         }
 
+        html, body {
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
         body {
             font-family: 'Cormorant', serif;
             background: var(--bg-deep);
@@ -41,6 +50,88 @@
             color: var(--text);
             line-height: 1.6;
             font-size: 18px;
+            overscroll-behavior-y: contain;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+        }
+        body.menu-open { overflow: hidden; }
+
+        @media (max-width: 700px) {
+            body { padding: 8px; font-size: 17px; }
+            .container { padding: 0; }
+            .card { padding: 14px; margin-bottom: 14px; border-radius: 10px; }
+            .card-title { font-size: 1.25em; margin-bottom: 12px; }
+            .btn { padding: 10px 16px; font-size: 1em; }
+        }
+
+        /* === HAMBURGER MENU (mobile only) === */
+        .menu-toggle {
+            display: none;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 1.4em;
+            line-height: 1;
+            cursor: pointer;
+            font-family: monospace;
+        }
+        .menu-toggle:hover { background: var(--bg-input); }
+        .menu-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 8998;
+        }
+        .menu-backdrop.show { display: block; }
+        @media (max-width: 700px) {
+            .menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+            .nav {
+                display: none;
+                position: fixed;
+                top: 0; right: 0; bottom: 0;
+                width: 78%;
+                max-width: 300px;
+                background: var(--bg-card);
+                padding: 24px 18px;
+                gap: 4px;
+                z-index: 9000;
+                border-left: 1px solid var(--border);
+                box-shadow: -8px 0 24px rgba(0,0,0,0.4);
+                flex-direction: column;
+                align-items: stretch;
+                overflow-y: auto;
+            }
+            .nav.open { display: flex; }
+            .nav a {
+                padding: 14px 16px;
+                font-size: 1.15em;
+                border-radius: 8px;
+                margin-bottom: 4px;
+            }
+            .nav .logout-btn { margin-top: auto; padding: 12px 16px; font-size: 1em; }
+            .menu-close {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                font-size: 1.6em;
+                color: var(--text-faint);
+                background: transparent;
+                border: none;
+                padding: 4px 8px;
+                margin-bottom: 14px;
+                cursor: pointer;
+                font-family: 'Cormorant', serif;
+            }
+            .header { padding: 12px 14px; margin-bottom: 14px; gap: 10px; }
+            .header-logo-container { width: 44px; height: 44px; }
+            .header-title h1 { font-size: 1.4em; }
+            .header-title .tagline { font-size: 0.85em; }
+        }
+        @media (min-width: 701px) {
+            .menu-close { display: none; }
         }
 
         h1, h2, h3 { font-family: 'Cormorant Unicase', serif; font-weight: 600; }
@@ -204,7 +295,7 @@
         /* === STATS ROW === */
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 16px;
             margin-bottom: 24px;
         }
@@ -227,6 +318,12 @@
             font-weight: 600;
             margin-top: 4px;
             font-family: 'Cormorant Unicase', serif;
+        }
+        @media (max-width: 700px) {
+            .stats-row { gap: 8px; margin-bottom: 14px; }
+            .stat-card { padding: 12px 10px; }
+            .stat-label { font-size: 0.7em; letter-spacing: 0.5px; }
+            .stat-value { font-size: 1.4em; }
         }
 
         /* === MAIN GRID === */
@@ -610,13 +707,31 @@
             background: var(--danger);
         }
         @media (max-width: 700px) {
-            .calendar-day { min-height: 80px; padding: 2px; }
-            .day-num { width: 22px; height: 22px; font-size: 0.8em; }
-            .event-pill { font-size: 0.7em; padding: 1px 4px; }
-            .week-allday-label { font-size: 0.65em; }
-            .week-day-name { font-size: 0.65em; }
-            .week-day-num { font-size: 1.1em; }
-            .week-time-label { font-size: 0.7em; }
+            .calendar-day {
+                min-height: 92px;
+                padding: 4px 3px;
+            }
+            .day-num {
+                width: 24px; height: 24px; font-size: 0.85em;
+            }
+            .event-pill {
+                font-size: 0.82em;
+                padding: 3px 6px;
+                line-height: 1.25;
+                margin-bottom: 2px;
+                font-weight: 500;
+            }
+            .week-allday-label { font-size: 0.7em; }
+            .week-day-name { font-size: 0.7em; }
+            .week-day-num { font-size: 1.2em; }
+            .week-time-label { font-size: 0.75em; }
+            /* Schedule items — bigger touch targets, better legibility */
+            .schedule-item { padding: 12px 14px; }
+            .schedule-time { font-size: 1.05em; }
+            .schedule-title { font-size: 1.15em; line-height: 1.3; }
+            .schedule-meta { font-size: 0.92em; }
+            /* Calendar header tighter */
+            .calendar-header { padding: 8px 4px; font-size: 0.78em; }
         }
 
         /* === SIDEBAR LIST === */
@@ -1121,18 +1236,61 @@
         .plan-day-summary { background: var(--bg-card-light); padding: 12px 16px; border-radius: 8px; margin-bottom: 14px; color: var(--text-dim); font-size: 0.95em; }
 
         /* === EVENT DETAIL === */
+        .event-detail-row {
             display: flex;
             margin-bottom: 10px;
             gap: 10px;
+            align-items: baseline;
         }
         .event-detail-label {
             color: var(--text-faint);
-            min-width: 130px;
+            min-width: 110px;
             font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.82em;
         }
         .event-detail-value {
             color: var(--text);
             flex: 1;
+            font-size: 1.05em;
+        }
+        /* Hero callouts — most important info gets visual prominence */
+        .event-callout {
+            background: var(--bg-card-light);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 14px;
+            border-left: 3px solid var(--accent);
+        }
+        .event-callout-label {
+            color: var(--text-faint);
+            font-size: 0.78em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .event-callout-value {
+            color: var(--text);
+            font-size: 1.25em;
+            font-weight: 600;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+        .event-callout.access {
+            background: rgba(181, 145, 151, 0.12);
+            border-left-color: var(--accent);
+        }
+        .event-callout.access .event-callout-value {
+            font-size: 1.45em;
+            color: var(--accent-light);
+            letter-spacing: 0.5px;
+        }
+        @media (max-width: 600px) {
+            .event-detail-label { min-width: 90px; }
+            .event-detail-value { font-size: 1em; }
+            .event-callout-value { font-size: 1.15em; }
+            .event-callout.access .event-callout-value { font-size: 1.3em; }
         }
         .event-status-badge {
             display: inline-block;
@@ -1247,13 +1405,16 @@
                     <div class="tagline">Pet care, with intention.</div>
                 </div>
             </div>
-            <nav class="nav">
+            <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
+            <nav class="nav" id="mainNav">
+                <button class="menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
                 <a href="index.html" class="active">Dashboard</a>
                 <a href="clients.html">Clients & Pets</a>
                 <a href="invoices.html">Invoices</a>
                 <button class="logout-btn" onclick="logout()">Sign Out</button>
             </nav>
         </div>
+        <div class="menu-backdrop" id="menuBackdrop" onclick="toggleMobileMenu()"></div>
 
         <!-- Action Bar -->
         <div class="action-bar">
@@ -1516,6 +1677,15 @@ const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function generateId(prefix) {
     return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
+
+function toggleMobileMenu() {
+    const nav = document.getElementById('mainNav');
+    const backdrop = document.getElementById('menuBackdrop');
+    const isOpen = nav.classList.toggle('open');
+    if (backdrop) backdrop.classList.toggle('show', isOpen);
+    document.body.classList.toggle('menu-open', isOpen);
+}
+window.toggleMobileMenu = toggleMobileMenu;
 
 /* ============================================================
    APP STATE
@@ -2271,20 +2441,25 @@ function openEventDetail(eventId, eventType) {
             : '';
         document.getElementById('detailTitle').innerHTML = `${t.label} — ${escapeHtml(v.clientName || 'Client')} ${paidBadge}`;
         document.getElementById('detailBody').innerHTML = `
-            <div class="event-detail-row"><div class="event-detail-label">Status:</div>
+            <div class="event-callout">
+                <div class="event-callout-label">Address</div>
+                <div class="event-callout-value">${renderAddressWithMaps(v.address)}</div>
+            </div>
+            <div class="event-callout access">
+                <div class="event-callout-label">Access</div>
+                <div class="event-callout-value">${escapeHtml(v.accessInstructions || '—')}</div>
+            </div>
+            <div class="event-detail-row"><div class="event-detail-label">When</div><div class="event-detail-value">${formatDateLong(v.date)} · ${formatTime12(v.time)}</div></div>
+            <div class="event-detail-row"><div class="event-detail-label">Type</div><div class="event-detail-value">${t.label}</div></div>
+            ${petNames ? `<div class="event-detail-row"><div class="event-detail-label">Pets</div><div class="event-detail-value">${petNames}</div></div>` : ''}
+            <div class="event-detail-row"><div class="event-detail-label">Assigned</div><div class="event-detail-value">${assigneeFullLabel(v.assignedTo)}</div></div>
+            <div class="event-detail-row"><div class="event-detail-label">Status</div>
                 <div class="event-detail-value"><span class="event-status-badge ${v.status}">${v.status}</span>
                 ${v.recurringGroupId ? ' <span style="color: var(--text-faint); font-size: 0.9em; font-style: italic;">part of a recurring schedule</span>' : ''}</div>
             </div>
-            <div class="event-detail-row"><div class="event-detail-label">Assigned to:</div><div class="event-detail-value">${assigneeFullLabel(v.assignedTo)}</div></div>
-            <div class="event-detail-row"><div class="event-detail-label">Date:</div><div class="event-detail-value">${formatDateLong(v.date)}</div></div>
-            <div class="event-detail-row"><div class="event-detail-label">Time:</div><div class="event-detail-value">${formatTime12(v.time)}</div></div>
-            <div class="event-detail-row"><div class="event-detail-label">Visit type:</div><div class="event-detail-value">${t.label}</div></div>
-            ${petNames ? `<div class="event-detail-row"><div class="event-detail-label">Pets:</div><div class="event-detail-value">${petNames}</div></div>` : ''}
-            <div class="event-detail-row"><div class="event-detail-label">Price:</div><div class="event-detail-value">$${(v.price || 0).toFixed(2)}${v.paid ? ` <span style="color: var(--success); font-size: 0.9em;">· paid ${v.paidDate ? formatDateLong(v.paidDate) : ''}</span>` : ''}${v.invoiced ? ' <span style="color: var(--accent); font-size: 0.9em;">· on an invoice</span>' : ''}</div></div>
-            ${v.status === 'completed' ? `<div class="event-detail-row"><div class="event-detail-label">Tip:</div><div class="event-detail-value" id="tipDisplay-${v.id}">${renderTipUI(v)}</div></div>` : ''}
-            <div class="event-detail-row"><div class="event-detail-label">Address:</div><div class="event-detail-value">${renderAddressWithMaps(v.address)}</div></div>
-            <div class="event-detail-row"><div class="event-detail-label">Access:</div><div class="event-detail-value">${escapeHtml(v.accessInstructions || '—')}</div></div>
-            ${v.notes ? `<div class="event-detail-row"><div class="event-detail-label">Notes:</div><div class="event-detail-value">${escapeHtml(v.notes)}</div></div>` : ''}
+            <div class="event-detail-row"><div class="event-detail-label">Price</div><div class="event-detail-value">$${(v.price || 0).toFixed(2)}${v.paid ? ` <span style="color: var(--success); font-size: 0.9em;">· paid ${v.paidDate ? formatDateLong(v.paidDate) : ''}</span>` : ''}${v.invoiced ? ' <span style="color: var(--accent); font-size: 0.9em;">· on an invoice</span>' : ''}</div></div>
+            ${v.status === 'completed' ? `<div class="event-detail-row"><div class="event-detail-label">Tip</div><div class="event-detail-value" id="tipDisplay-${v.id}">${renderTipUI(v)}</div></div>` : ''}
+            ${v.notes ? `<div class="event-detail-row"><div class="event-detail-label">Notes</div><div class="event-detail-value" style="white-space: pre-wrap;">${escapeHtml(v.notes)}</div></div>` : ''}
         `;
         const footer = document.getElementById('detailFooter');
         let actionButtons = '';
@@ -2508,7 +2683,8 @@ function renderMonthView() {
         cell.addEventListener('click', () => openDayModal(dateStr));
 
         const events = getEventsForDate(dateStr);
-        const visiblePills = events.slice(0, 3);
+        const maxVisible = window.innerWidth <= 700 ? 2 : 3;
+        const visiblePills = events.slice(0, maxVisible);
         const remaining = events.length - visiblePills.length;
 
         cell.innerHTML = `
@@ -3243,6 +3419,13 @@ function initApp() {
     window.addEventListener('focus', refreshAll);
     window.addEventListener('storage', (e) => {
         if (e.key && e.key.startsWith('myreliacare_')) refreshAll();
+    });
+
+    // Re-render calendar on viewport resize/rotation (debounced) — affects max visible pills per day
+    let _resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(_resizeTimer);
+        _resizeTimer = setTimeout(renderCalendar, 200);
     });
 
     // Handle ?schedule=clientId — auto-open modal with client pre-selected

@@ -131,6 +131,12 @@ function _notifyDataChange() {
 }
 
 // --- Store API (synchronous from caller's perspective) ---
+// Getters return DEEP CLONES — callers mutate freely without affecting internal state.
+// This is essential: if a caller mutates a getter result and passes it back to a setter,
+// the setter must be able to diff against the pre-mutation state. Sharing references
+// would cause "no diff detected" and silently skip the Firestore write.
+function _deepClone(x) { return JSON.parse(JSON.stringify(x)); }
+
 window.Store = {
     load(key, defaultValue) {
         try {
@@ -149,10 +155,10 @@ window.Store = {
             return false;
         }
     },
-    getClients() { return _state.clients.slice(); },
-    getVisits() { return _state.visits.slice(); },
-    getPersonalEvents() { return _state.personalEvents.slice(); },
-    getInvoices() { return _state.invoices.slice(); },
+    getClients() { return _deepClone(_state.clients); },
+    getVisits() { return _deepClone(_state.visits); },
+    getPersonalEvents() { return _deepClone(_state.personalEvents); },
+    getInvoices() { return _deepClone(_state.invoices); },
     saveClients(arr) { return _saveCollection(COLLECTIONS[0], arr); },
     saveVisits(arr) { return _saveCollection(COLLECTIONS[1], arr); },
     savePersonalEvents(arr) { return _saveCollection(COLLECTIONS[2], arr); },

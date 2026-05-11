@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MyReliaCare">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1A1614">
     <title>MyReliaCare CRM - Invoices</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,6 +22,31 @@
             --success: #7FB069; --warn: #D4A85A; --personal: #6B8FA8;
         }
         body { font-family: 'Cormorant', serif; background: var(--bg-deep); min-height: 100vh; padding: 20px; color: var(--text); line-height: 1.6; font-size: 18px; }
+
+        html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        body { overscroll-behavior-y: contain; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+        body.menu-open { overflow: hidden; }
+        .menu-toggle { display: none; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 1.4em; line-height: 1; cursor: pointer; font-family: monospace; }
+        .menu-toggle:hover { background: var(--bg-input); }
+        .menu-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 8998; }
+        .menu-backdrop.show { display: block; }
+        @media (max-width: 700px) {
+            .menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+            .nav { display: none; position: fixed; top: 0; right: 0; bottom: 0; width: 78%; max-width: 300px; background: var(--bg-card); padding: 24px 18px; gap: 4px; z-index: 9000; border-left: 1px solid var(--border); box-shadow: -8px 0 24px rgba(0,0,0,0.4); flex-direction: column; align-items: stretch; overflow-y: auto; }
+            .nav.open { display: flex; }
+            .nav a { padding: 14px 16px; font-size: 1.15em; border-radius: 8px; margin-bottom: 4px; }
+            .nav .logout-btn { margin-top: auto; padding: 12px 16px; font-size: 1em; }
+            .menu-close { display: flex; align-items: center; justify-content: flex-end; font-size: 1.6em; color: var(--text-faint); background: transparent; border: none; padding: 4px 8px; margin-bottom: 14px; cursor: pointer; font-family: 'Cormorant', serif; }
+            .header { padding: 12px 14px; margin-bottom: 14px; gap: 10px; }
+        }
+        @media (min-width: 701px) { .menu-close { display: none; } }
+        @media (max-width: 700px) {
+            body { padding: 8px; font-size: 17px; }
+            .container { padding: 0; }
+            .card, .client-card, .invoice-row { padding: 14px; }
+            .btn { padding: 10px 16px; font-size: 1em; }
+        }
+
         h1, h2, h3 { font-family: 'Cormorant Unicase', serif; font-weight: 600; }
 
         #passwordScreen { display: none; align-items: center; justify-content: center; min-height: 100vh; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, var(--bg-deep) 0%, #2A2220 100%); z-index: 9999; }
@@ -252,13 +282,16 @@
                     <div class="tagline">Pet care, with intention.</div>
                 </div>
             </div>
-            <nav class="nav">
+            <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
+            <nav class="nav" id="mainNav">
+                <button class="menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
                 <a href="index.html">Dashboard</a>
                 <a href="clients.html">Clients & Pets</a>
                 <a href="invoices.html" class="active">Invoices</a>
                 <button class="logout-btn" onclick="logout()">Sign Out</button>
             </nav>
         </div>
+        <div class="menu-backdrop" id="menuBackdrop" onclick="toggleMobileMenu()"></div>
 
         <div class="action-bar">
             <button class="btn btn-primary" onclick="openNewInvoiceModal()">+ New Invoice</button>
@@ -406,6 +439,15 @@
 <script src="firebase-sync.js"></script>
 
 <script>
+function toggleMobileMenu() {
+    const nav = document.getElementById("mainNav");
+    const backdrop = document.getElementById("menuBackdrop");
+    const isOpen = nav.classList.toggle("open");
+    if (backdrop) backdrop.classList.toggle("show", isOpen);
+    document.body.classList.toggle("menu-open", isOpen);
+}
+window.toggleMobileMenu = toggleMobileMenu;
+
 /* ============================================================
    CONSTANTS
    (STORAGE_KEYS, Store, checkPassword, logout, checkLoginState
