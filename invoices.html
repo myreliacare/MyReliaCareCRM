@@ -287,7 +287,7 @@
         .menu-backdrop.show { display: block; }
         @media (min-width: 701px) { .menu-close { display: none; } }
         @media (max-width: 700px) {
-            body { padding: 8px; font-size: 17px; }
+            body { padding: 20px 8px 8px 8px; font-size: 17px; }
             .container { padding: 0; }
             .card, .client-card, .invoice-row { padding: 14px; }
             .btn { padding: 10px 16px; font-size: 1em; }
@@ -297,7 +297,12 @@
             .nav a { padding: 14px 16px; font-size: 1.15em; border-radius: 8px; margin-bottom: 4px; }
             .nav .logout-btn { margin-top: auto; padding: 12px 16px; font-size: 1em; }
             .menu-close { display: flex; align-items: center; justify-content: flex-end; font-size: 1.6em; color: var(--text-faint); background: transparent; border: none; padding: 4px 8px; margin-bottom: 14px; cursor: pointer; font-family: 'Cormorant', serif; }
-            .header { padding: 12px 14px; margin-bottom: 14px; gap: 10px; }
+            .header { padding: 12px 14px !important; margin-bottom: 14px !important; gap: 10px !important; flex-wrap: nowrap !important; }
+            .header-brand { flex: 1; min-width: 0; }
+            .header-logo-container { width: 44px !important; height: 44px !important; flex-shrink: 0; }
+            .header-title h1 { font-size: 1.4em !important; }
+            .header-title .tagline { font-size: 0.85em !important; }
+            .menu-toggle { flex-shrink: 0; }
         }
     
         /* === Overflow safety net for mobile === */
@@ -309,6 +314,29 @@
             pre, code { white-space: pre-wrap; word-break: break-word; }
             /* Long words/URLs in client notes / addresses */
             .client-card, .schedule-item, .invoice-row, .modal-body { word-wrap: break-word; overflow-wrap: break-word; }
+        }
+    
+        /* === Modal content NEVER scrolls horizontally === */
+        .modal-body { overflow-x: hidden; }
+        .modal { overflow: hidden; }
+        @media (max-width: 700px) {
+            /* Hard width clamp on all modal descendants */
+            .modal-body * { max-width: 100% !important; box-sizing: border-box !important; }
+            .modal-body input, .modal-body select, .modal-body textarea { width: 100% !important; }
+            /* Stack form rows */
+            .modal-body .form-row, .modal-body .form-row-3 { grid-template-columns: 1fr !important; gap: 8px !important; }
+            /* Time window — stack everything vertically, shrink inputs */
+            .time-window-row { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+            .time-window-days { flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important; }
+            .time-window-times { flex-wrap: wrap; width: 100%; }
+            .time-window-times input { width: auto !important; flex: 1 1 0 !important; min-width: 0 !important; }
+            .pet-entry .form-row, .pet-entry .form-row-3 { grid-template-columns: 1fr !important; }
+            /* Calendar grid inside modals shouldn't overflow either */
+            .modal-body table, .modal-body .grid-anything { max-width: 100%; overflow-x: auto; }
+            /* Long URLs/words break */
+            .modal-body { word-wrap: break-word; overflow-wrap: anywhere; }
+            /* Inline buttons / badges shouldn't expand the row */
+            .status-badge, .badge, .paid-badge, .assignee-badge { flex-shrink: 0; max-width: none !important; }
         }
     </style>
 </head>
