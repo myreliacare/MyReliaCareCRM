@@ -1553,6 +1553,43 @@
             .modal-body .time-line > .rb_price { grid-column: 1 / -1; grid-row: 3; }
             .modal-body .range-builder { padding: 12px !important; }
         }
+
+        /* === Mobile month view: compact day cells with event count === */
+        @media (max-width: 700px) {
+            .calendar-day.mobile-compact {
+                min-height: 56px !important;
+                padding: 6px 4px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                gap: 4px !important;
+            }
+            .calendar-day.mobile-compact .day-num {
+                font-size: 1.05em;
+                color: var(--text);
+                font-weight: 500;
+            }
+            .calendar-day.mobile-compact.today .day-num {
+                color: var(--accent-light);
+                font-weight: 700;
+            }
+            .calendar-day.mobile-compact .event-count {
+                background: var(--accent);
+                color: white;
+                font-size: 0.8em;
+                font-weight: 600;
+                min-width: 20px;
+                height: 20px;
+                padding: 0 6px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                line-height: 1;
+            }
+            .calendar-day.mobile-compact.empty .event-count { display: none; }
+        }
 </style>
 </head>
 <body>
@@ -1724,6 +1761,66 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('scheduleModal')">Cancel</button>
             <button class="btn btn-primary" onclick="saveSchedule()" id="saveScheduleBtn">Schedule</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= EDIT VISIT MODAL ========= -->
+<div class="modal-overlay" id="editVisitModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Edit Visit</h2>
+            <button class="modal-close" onclick="closeModal('editVisitModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Client</label>
+                <input type="text" id="editVisitClient" readonly style="opacity: 0.7;">
+            </div>
+            <div class="form-row form-row-compact">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="editVisitDate">
+                </div>
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="editVisitTime">
+                </div>
+            </div>
+            <div class="form-row form-row-compact">
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="editVisitType"></select>
+                </div>
+                <div class="form-group">
+                    <label>Price</label>
+                    <input type="number" id="editVisitPrice" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <input type="text" id="editVisitAddress">
+            </div>
+            <div class="form-group">
+                <label>Access Instructions</label>
+                <input type="text" id="editVisitAccess">
+            </div>
+            <div class="form-group">
+                <label>Assigned to</label>
+                <div class="assign-toggle" id="editAssignToggle">
+                    <label class="assign-option"><input type="radio" name="editAssignedTo" value="kasey">Kasey</label>
+                    <label class="assign-option charlie"><input type="radio" name="editAssignedTo" value="charlie">Charlie</label>
+                    <label class="assign-option both"><input type="radio" name="editAssignedTo" value="both">Both</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="editVisitNotes" placeholder="Service notes, observations, etc..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('editVisitModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveEditVisit()">Save Changes</button>
         </div>
     </div>
 </div>
@@ -2671,6 +2768,7 @@ function openEventDetail(eventId, eventType) {
         footer.innerHTML = `
             <button class="btn btn-danger" onclick="deleteVisit('${v.id}')">Delete</button>
             <button class="btn btn-ghost" onclick="closeModal('detailModal')">Close</button>
+            <button class="btn btn-primary" onclick="editVisit('${v.id}')">Edit</button>
             ${actionButtons}
         `;
     } else if (eventType === 'personal') {
@@ -2811,6 +2909,75 @@ function editPersonal(id) {
     openModal('personalModal');
 }
 
+let editingVisitId = null;
+function editVisit(id) {
+    const v = Store.getVisits().find(x => x.id === id);
+    if (!v) return;
+    closeModal('detailModal');
+    editingVisitId = id;
+
+    // Populate the type dropdown
+    const typeSel = document.getElementById('editVisitType');
+    typeSel.innerHTML = Object.entries(VISIT_TYPES)
+        .map(([k, t]) => `<option value="${k}"${k === v.visitType ? ' selected' : ''}>${t.label}</option>`)
+        .join('');
+
+    document.getElementById('editVisitClient').value = v.clientName || '';
+    document.getElementById('editVisitDate').value = v.date || '';
+    document.getElementById('editVisitTime').value = v.time || '';
+    document.getElementById('editVisitPrice').value = v.price != null ? v.price : 0;
+    document.getElementById('editVisitAddress').value = v.address || '';
+    document.getElementById('editVisitAccess').value = v.accessInstructions || '';
+    document.getElementById('editVisitNotes').value = v.notes || '';
+
+    // Set assigned-to radio
+    const assigned = v.assignedTo || 'both';
+    document.querySelectorAll('#editAssignToggle .assign-option').forEach(opt => {
+        const input = opt.querySelector('input');
+        const checked = input.value === assigned;
+        input.checked = checked;
+        opt.classList.toggle('checked', checked);
+    });
+
+    openModal('editVisitModal');
+}
+
+function saveEditVisit() {
+    if (!editingVisitId) return;
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === editingVisitId);
+    if (!v) { showToast('Visit not found', 'error'); return; }
+
+    const date = document.getElementById('editVisitDate').value;
+    const time = document.getElementById('editVisitTime').value;
+    if (!date || !time) { showToast('Date and time required', 'error'); return; }
+
+    v.date = date;
+    v.time = time;
+    v.visitType = document.getElementById('editVisitType').value;
+    v.price = parseFloat(document.getElementById('editVisitPrice').value) || 0;
+    v.address = document.getElementById('editVisitAddress').value.trim();
+    v.accessInstructions = document.getElementById('editVisitAccess').value.trim();
+    v.notes = document.getElementById('editVisitNotes').value.trim();
+    const assignedInput = document.querySelector('#editAssignToggle input:checked');
+    v.assignedTo = assignedInput ? assignedInput.value : 'both';
+
+    Store.saveVisits(visits);
+    editingVisitId = null;
+    closeModal('editVisitModal');
+    refreshAll();
+    showToast('Visit updated');
+}
+
+// Keep assign toggle visuals in sync on click
+document.addEventListener('change', (e) => {
+    if (e.target.matches('#editAssignToggle input')) {
+        document.querySelectorAll('#editAssignToggle .assign-option').forEach(opt => {
+            opt.classList.toggle('checked', opt.querySelector('input').checked);
+        });
+    }
+});
+
 function escapeHtml(str) {
     if (str == null) return '';
     return String(str)
@@ -2877,15 +3044,25 @@ function renderMonthView() {
         cell.addEventListener('click', () => openDayModal(dateStr));
 
         const events = getEventsForDate(dateStr);
-        const maxVisible = window.innerWidth <= 700 ? 2 : 3;
-        const visiblePills = events.slice(0, maxVisible);
-        const remaining = events.length - visiblePills.length;
+        const isMobile = window.innerWidth <= 700;
 
-        cell.innerHTML = `
-            <div class="day-num">${day}</div>
-            ${visiblePills.map(e => renderEventPill(e)).join('')}
-            ${remaining > 0 ? `<div class="event-more">+${remaining} more</div>` : ''}
-        `;
+        if (isMobile) {
+            // Compact mobile view: just the day number + a count dot
+            cell.classList.add('mobile-compact');
+            cell.innerHTML = `
+                <div class="day-num">${day}</div>
+                ${events.length > 0 ? `<div class="event-count">${events.length}</div>` : ''}
+            `;
+        } else {
+            const maxVisible = 3;
+            const visiblePills = events.slice(0, maxVisible);
+            const remaining = events.length - visiblePills.length;
+            cell.innerHTML = `
+                <div class="day-num">${day}</div>
+                ${visiblePills.map(e => renderEventPill(e)).join('')}
+                ${remaining > 0 ? `<div class="event-more">+${remaining} more</div>` : ''}
+            `;
+        }
         grid.appendChild(cell);
     }
 
