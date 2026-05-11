@@ -11,6 +11,10 @@
     <title>MyReliaCare CRM - Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@300;400;500;600;700&family=Cormorant+Unicase:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         /* === RESET & BASE === */
@@ -1423,7 +1427,8 @@
         @media (max-width: 700px) {
             /* Hard width clamp on all modal descendants */
             .modal-body * { max-width: 100% !important; box-sizing: border-box !important; }
-            .modal-body input, .modal-body select, .modal-body textarea { width: 100% !important; }
+            .modal-body input:not([type="checkbox"]):not([type="radio"]), .modal-body select, .modal-body textarea { width: 100% !important; }
+            .modal-body input[type="checkbox"], .modal-body input[type="radio"] { width: auto !important; flex: 0 0 auto !important; }
             /* Stack form rows */
             .modal-body .form-row, .modal-body .form-row-3 { grid-template-columns: 1fr !important; gap: 8px !important; }
             /* Time window — stack everything vertically, shrink inputs */
@@ -1442,7 +1447,7 @@
     
         /* === Mobile: tighten inputs/sections inside modals === */
         @media (max-width: 700px) {
-            .modal-body .form-group input,
+            .modal-body .form-group input:not([type="checkbox"]):not([type="radio"]),
             .modal-body .form-group select,
             .modal-body .form-group textarea {
                 padding: 8px 10px !important;
@@ -1534,6 +1539,20 @@
         .agenda-event-body { min-width: 0; }
         .agenda-event-title { color: var(--text); font-size: 0.98em; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .agenda-event-sub { color: var(--text-dim); font-size: 0.82em; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* === Range builder time-line: stack on mobile so type isn't truncated === */
+        @media (max-width: 700px) {
+            .modal-body .time-line {
+                grid-template-columns: 1fr auto !important;
+                grid-template-rows: auto auto auto !important;
+                gap: 6px !important;
+            }
+            .modal-body .time-line > .rb_time { grid-column: 1; grid-row: 1; }
+            .modal-body .time-line > .visit-remove { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; }
+            .modal-body .time-line > .rb_type { grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+            .modal-body .time-line > .rb_price { grid-column: 1 / -1; grid-row: 3; }
+            .modal-body .range-builder { padding: 12px !important; }
+        }
 </style>
 </head>
 <body>
@@ -2287,7 +2306,7 @@ function showRangeBuilder() {
     container.innerHTML = `
         <div class="range-builder">
             <h4>Add a Date Range</h4>
-            <div class="form-row">
+            <div class="form-row form-row-compact">
                 <div class="form-group" style="margin: 0;">
                     <label>Start date</label>
                     <input type="date" id="rb_start" value="${today}">

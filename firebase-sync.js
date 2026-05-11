@@ -105,9 +105,14 @@ function attachListeners() {
     _listenersAttached = true;
     COLLECTIONS.forEach(c => {
         const unsub = db.collection(c.name).onSnapshot(snap => {
-            _state[c.stateKey] = snap.docs.map(d => ({ ...d.data(), id: d.id }));
-            try { localStorage.setItem(c.storageKey, JSON.stringify(_state[c.stateKey])); } catch {}
-            _notifyDataChange();
+            const newData = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+            // Skip if data is identical (echo of our own write or unchanged remote snapshot)
+            const oldJson = JSON.stringify(_state[c.stateKey] || []);
+            const newJson = JSON.stringify(newData);
+            if (oldJson === newJson) return;
+            _state[c.stateKey] = newData;
+            try { localStorage.setItem(c.storageKey, newJson); } catch {}
+            _scheduleNotify();
         }, err => {
             console.error(`[sync] listener error on ${c.name}:`, err);
         });
@@ -118,6 +123,17 @@ function detachListeners() {
     _unsubscribers.forEach(u => { try { u(); } catch {} });
     _unsubscribers.length = 0;
     _listenersAttached = false;
+}
+
+// Debounce data-change notifications via rAF — multiple snapshots in the same tick coalesce to one render.
+let _notifyScheduled = false;
+function _scheduleNotify() {
+    if (_notifyScheduled) return;
+    _notifyScheduled = true;
+    requestAnimationFrame(() => {
+        _notifyScheduled = false;
+        _notifyDataChange();
+    });
 }
 
 // Tell the page its data changed — calls whichever render functions exist
