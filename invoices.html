@@ -371,6 +371,32 @@
             /* Section titles a bit smaller */
             .modal-body .form-section-title { font-size: 1em !important; margin: 10px 0 6px !important; }
         }
+
+        /* === Mobile: nuke min-content widths so nothing pushes modal wider than viewport === */
+        @media (max-width: 700px) {
+            .modal-body, .modal-body * { min-width: 0 !important; }
+            .modal-body { overflow-wrap: normal; word-wrap: normal; }
+            /* Visit row: stack to single col on phones (was 2-col) so date input has room */
+            .modal-body .visit-row { grid-template-columns: 1fr !important; gap: 6px !important; }
+            .modal-body .visit-row > .visit-remove { grid-column: 1 !important; justify-self: end !important; }
+            /* Make the modal itself can't escape the viewport */
+            .modal { max-width: calc(100vw - 24px) !important; }
+        }
+
+        /* === Compact form rows: stay 2-col on mobile for short fields like date+time === */
+        .form-row-compact { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 700px) {
+            .modal-body .form-row-compact { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+            /* Tighten textarea min-height on mobile */
+            .modal-body textarea { min-height: 60px !important; }
+            /* Date/time inputs: lock to a reasonable height instead of native bloated rendering */
+            .modal-body input[type="date"],
+            .modal-body input[type="time"],
+            .modal-body input[type="datetime-local"] {
+                min-height: 38px !important;
+                line-height: 1.2 !important;
+            }
+        }
 </style>
 </head>
 <body>

@@ -795,6 +795,7 @@
         .assignee-badge.both    { background: rgba(212, 197, 201, 0.15); color: var(--accent-light); border: 1px solid var(--accent-light); }
 
         .map-links { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .addr-line { display: block; }
         .map-link {
             display: inline-block;
             padding: 4px 12px;
@@ -1463,6 +1464,76 @@
             /* Section titles a bit smaller */
             .modal-body .form-section-title { font-size: 1em !important; margin: 10px 0 6px !important; }
         }
+
+        /* === Mobile: nuke min-content widths so nothing pushes modal wider than viewport === */
+        @media (max-width: 700px) {
+            .modal-body, .modal-body * { min-width: 0 !important; }
+            .modal-body { overflow-wrap: normal; word-wrap: normal; }
+            /* Visit row: stack to single col on phones (was 2-col) so date input has room */
+            .modal-body .visit-row { grid-template-columns: 1fr !important; gap: 6px !important; }
+            .modal-body .visit-row > .visit-remove { grid-column: 1 !important; justify-self: end !important; }
+            /* Make the modal itself can't escape the viewport */
+            .modal { max-width: calc(100vw - 24px) !important; }
+        }
+
+        /* === Compact form rows: stay 2-col on mobile for short fields like date+time === */
+        .form-row-compact { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 700px) {
+            .modal-body .form-row-compact { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+            /* Tighten textarea min-height on mobile */
+            .modal-body textarea { min-height: 60px !important; }
+            /* Date/time inputs: lock to a reasonable height instead of native bloated rendering */
+            .modal-body input[type="date"],
+            .modal-body input[type="time"],
+            .modal-body input[type="datetime-local"] {
+                min-height: 38px !important;
+                line-height: 1.2 !important;
+            }
+        }
+
+        /* === Mobile week agenda === */
+        .calendar-week-agenda { display: flex; flex-direction: column; gap: 12px; }
+        .agenda-day { background: var(--bg-card-light); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .agenda-day.today { border-color: var(--accent); }
+        .agenda-day-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            cursor: pointer;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+        .agenda-day.today .agenda-day-header { background: rgba(181, 145, 151, 0.10); }
+        .agenda-day:last-child > .agenda-day-events,
+        .agenda-day:only-child .agenda-day-header { border-bottom-color: transparent; }
+        .agenda-day-left { display: flex; align-items: baseline; gap: 10px; }
+        .agenda-day-name { color: var(--text-faint); text-transform: uppercase; letter-spacing: 1px; font-size: 0.78em; }
+        .agenda-day-num { color: var(--text); font-size: 1.4em; font-weight: 600; font-family: 'Cormorant', serif; }
+        .agenda-day.today .agenda-day-num { color: var(--accent-light); }
+        .agenda-day-count { color: var(--text-dim); font-size: 0.85em; font-style: italic; }
+        .agenda-events { padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+        .agenda-event {
+            display: grid;
+            grid-template-columns: 75px 1fr;
+            gap: 10px;
+            align-items: center;
+            padding: 8px 10px;
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            border-radius: 6px;
+            cursor: pointer;
+            min-width: 0;
+        }
+        .agenda-event.completed { opacity: 0.55; }
+        .agenda-event.personal { border-left-color: #7a8fa6; }
+        .agenda-event.meet-greet { border-left-color: #c4a87a; }
+        .agenda-event.thirty-min { border-left-color: var(--accent); }
+        .agenda-event.sixty-min { border-left-color: var(--accent-light); }
+        .agenda-event-time { color: var(--accent-light); font-size: 0.92em; font-weight: 600; }
+        .agenda-event-body { min-width: 0; }
+        .agenda-event-title { color: var(--text); font-size: 0.98em; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .agenda-event-sub { color: var(--text-dim); font-size: 0.82em; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -1610,7 +1681,7 @@
                         <label>Repeat on these days</label>
                         <div class="day-checkboxes" id="dayCheckboxes"></div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row form-row-compact">
                         <div class="form-group">
                             <label>Start date <span class="required">*</span></label>
                             <input type="date" id="recurringStart">
@@ -1650,7 +1721,7 @@
                 <label>Title <span class="required">*</span></label>
                 <input type="text" id="personalTitle" placeholder="e.g. Dentist appointment">
             </div>
-            <div class="form-row">
+            <div class="form-row form-row-compact">
                 <div class="form-group">
                     <label>Date <span class="required">*</span></label>
                     <input type="date" id="personalDate">
@@ -2834,6 +2905,12 @@ function renderWeekView() {
     }
     monthLabel.textContent = label;
 
+    // Mobile: agenda-style list. Desktop: full time-grid.
+    if (window.innerWidth <= 700) {
+        renderWeekAgenda(grid, weekStart);
+        return;
+    }
+
     grid.className = 'calendar-grid calendar-week';
     grid.innerHTML = '';
 
@@ -2962,6 +3039,65 @@ function renderWeekView() {
         bodyRow.appendChild(col);
     });
     grid.appendChild(bodyRow);
+}
+
+// Mobile-friendly agenda view: each day grouped as a section with its events listed.
+function renderWeekAgenda(grid, weekStart) {
+    grid.className = 'calendar-week-agenda';
+    grid.innerHTML = '';
+    const todayStr = todayYmd();
+    for (let i = 0; i < 7; i++) {
+        const d = addDays(weekStart, i);
+        const dStr = ymd(d);
+        const isToday = dStr === todayStr;
+        const events = getEventsForDate(dStr).slice().sort((a, b) => {
+            // all-day first, then by time
+            const at = a.time || '00:00';
+            const bt = b.time || '00:00';
+            return at.localeCompare(bt);
+        });
+
+        const section = document.createElement('div');
+        section.className = 'agenda-day' + (isToday ? ' today' : '');
+
+        const header = document.createElement('div');
+        header.className = 'agenda-day-header';
+        header.innerHTML = `
+            <div class="agenda-day-left">
+                <div class="agenda-day-name">${DAYS_OF_WEEK[d.getDay()]}</div>
+                <div class="agenda-day-num">${d.getDate()}</div>
+            </div>
+            <div class="agenda-day-count">${events.length ? events.length + ' event' + (events.length === 1 ? '' : 's') : 'Nothing scheduled'}</div>
+        `;
+        header.addEventListener('click', () => openDayModal(dStr));
+        section.appendChild(header);
+
+        if (events.length) {
+            const list = document.createElement('div');
+            list.className = 'agenda-events';
+            events.forEach(e => {
+                const isPersonal = e._type === 'personal';
+                const t = !isPersonal ? (VISIT_TYPES[e.visitType] || { label: '', cssClass: '' }) : { label: 'Personal', cssClass: 'personal' };
+                const cls = `${t.cssClass}${e.status === 'completed' ? ' completed' : ''}`;
+                const titleText = isPersonal ? (e.title || 'Event') : (e.clientName || 'Client');
+                const timeLbl = e.time ? formatTime12(e.time) : 'All-day';
+                const sub = isPersonal ? (e.notes ? escapeHtml(e.notes.substring(0, 40)) : '') : (t.label || '');
+                const item = document.createElement('div');
+                item.className = `agenda-event ${cls}`;
+                item.innerHTML = `
+                    <div class="agenda-event-time">${timeLbl}</div>
+                    <div class="agenda-event-body">
+                        <div class="agenda-event-title">${escapeHtml(titleText)}</div>
+                        ${sub ? `<div class="agenda-event-sub">${sub}</div>` : ''}
+                    </div>
+                `;
+                item.addEventListener('click', (ev) => { ev.stopPropagation(); openEventDetail(e.id, e._type); });
+                list.appendChild(item);
+            });
+            section.appendChild(list);
+        }
+        grid.appendChild(section);
+    }
 }
 
 // Lay out timed events for a single day column, handling overlap by splitting columns.
@@ -3189,7 +3325,7 @@ function renderPlanDay(dateStr, events) {
             }
         }
 
-        const mapsLink = v.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}" target="_blank" class="plan-day-link" onclick="event.stopPropagation()">Open in Maps</a>` : '';
+        const mapsLink = v.address ? `<a href="https://maps.apple.com/?q=${encodeURIComponent(v.address)}" target="_blank" class="plan-day-link" onclick="event.stopPropagation()">Open in Maps</a>` : '';
         const assigneeBadge = `<span class="assignee-badge ${v.assignedTo || 'both'}">${assigneeBadgeText(v.assignedTo)}</span>`;
         const paidBadge = v.status === 'completed'
             ? (v.paid ? '<span class="paid-badge" style="margin-left: 0;">PAID</span>' : '<span class="paid-badge unpaid" style="margin-left: 0;">UNPAID</span>')
@@ -3321,14 +3457,7 @@ function renderAddressWithMaps(address) {
     if (!address || !address.trim()) return '—';
     const q = encodeURIComponent(address);
     const safe = escapeHtml(address);
-    return `
-        <div>${safe}</div>
-        <div class="map-links">
-            <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Google Maps</a>
-            <a class="map-link" href="https://maps.apple.com/?q=${q}" target="_blank" rel="noopener">Apple Maps</a>
-            <a class="map-link" href="https://waze.com/ul?q=${q}" target="_blank" rel="noopener">Waze</a>
-        </div>
-    `;
+    return `<span class="addr-line">${safe}</span><span class="map-links"><a class="map-link" href="https://maps.apple.com/?q=${q}" target="_blank" rel="noopener">Apple Maps</a><a class="map-link" href="https://waze.com/ul?q=${q}" target="_blank" rel="noopener">Waze</a></span>`;
 }
 
 /* ============================================================
