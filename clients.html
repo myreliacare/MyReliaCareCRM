@@ -206,6 +206,7 @@
         html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         body { overscroll-behavior-y: contain; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
         body.menu-open { overflow: hidden; }
+        body.modal-open { overflow: hidden; position: fixed; width: 100%; }
         .menu-toggle { display: none; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 1.4em; line-height: 1; cursor: pointer; font-family: monospace; }
         .menu-toggle:hover { background: var(--bg-input); }
         .menu-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 8998; }
@@ -351,14 +352,6 @@
 
             <h3 class="form-section-title">Other</h3>
             <div class="form-group"><label>Notes</label><textarea id="cNotes" rows="3" placeholder="Anything important about the home, household, or client..."></textarea></div>
-            <div class="checkbox-row">
-                <label><input type="checkbox" id="cTerms"> Terms Signed</label>
-                <label><input type="checkbox" id="cEmailSub"> Email List Subscriber</label>
-            </div>
-            <div class="form-row" style="margin-top: 12px;">
-                <div class="form-group"><label>Cancellations</label><input type="number" id="cCancellations" min="0" value="0"></div>
-                <div class="form-group"><label>Keepsakes Given</label><input type="number" id="cKeepsakes" min="0" value="0"></div>
-            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('clientModal')">Cancel</button>
@@ -439,10 +432,25 @@ function showToast(msg, type = 'success') {
     setTimeout(() => t.style.display = 'none', 3000);
 }
 
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-document.addEventListener('click', (e) => { if (e.target.classList && e.target.classList.contains('modal-overlay')) e.target.classList.remove('active'); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active')); });
+let _savedScroll = 0;
+function openModal(id) {
+    if (!document.body.classList.contains('modal-open')) {
+        _savedScroll = window.pageYOffset || document.documentElement.scrollTop;
+        document.body.style.top = `-${_savedScroll}px`;
+        document.body.classList.add('modal-open');
+    }
+    document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    if (!document.querySelector('.modal-overlay.active')) {
+        document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        window.scrollTo(0, _savedScroll);
+    }
+}
+document.addEventListener('click', (e) => { if (e.target.classList && e.target.classList.contains('modal-overlay') && e.target.id) closeModal(e.target.id); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => { if (m.id) closeModal(m.id); }); });
 
 function escapeHtml(s) {
     if (s == null) return '';
@@ -525,14 +533,7 @@ function renderClients() {
 function renderClientCard(c) {
     const stats = getClientStats(c.id);
     const addressLine = [c.address, c.city, c.state, c.zip].filter(Boolean).join(', ');
-    const cancellations = c.cancellations || 0;
-    const keepsakes = c.keepsakes || 0;
     const badges = [];
-    if (c.termsSigned) badges.push('<span class="badge success">Terms Signed</span>');
-    if (c.emailSubscribed) badges.push('<span class="badge info">Email List</span>');
-    if (cancellations >= 3) badges.push(`<span class="badge warn">${cancellations} Cancellations</span>`);
-    else if (cancellations > 0) badges.push(`<span class="badge">${cancellations} Cancellation${cancellations > 1 ? 's' : ''}</span>`);
-    if (keepsakes > 0) badges.push(`<span class="badge info">${keepsakes} Keepsake${keepsakes > 1 ? 's' : ''}</span>`);
     // Tip-related badges
     const tippedCount = stats.tippedCount || 0;
     const totalVisitsCompleted = (Store.getVisits().filter(v => v.clientId === c.id && v.status === 'completed')).length;
@@ -587,10 +588,6 @@ function openClientModal() {
      'cEmergencyName','cEmergencyPhone','cEmergencyRel','cVetClinic','cVetPhone','cVetAddress',
      'cPrice30','cPrice60'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('cPreferredContact').value = '';
-    document.getElementById('cTerms').checked = false;
-    document.getElementById('cEmailSub').checked = false;
-    document.getElementById('cCancellations').value = 0;
-    document.getElementById('cKeepsakes').value = 0;
     document.getElementById('petsContainer').innerHTML = '';
     document.getElementById('timeWindowsContainer').innerHTML = '';
     openModal('clientModal');
@@ -623,10 +620,6 @@ function editClient(clientId) {
     document.getElementById('cVetClinic').value = vet.clinic || '';
     document.getElementById('cVetPhone').value = vet.phone || '';
     document.getElementById('cVetAddress').value = vet.address || '';
-    document.getElementById('cTerms').checked = !!c.termsSigned;
-    document.getElementById('cEmailSub').checked = !!c.emailSubscribed;
-    document.getElementById('cCancellations').value = c.cancellations || 0;
-    document.getElementById('cKeepsakes').value = c.keepsakes || 0;
     document.getElementById('petsContainer').innerHTML = '';
     (c.pets || []).forEach(p => addPetEntry(p));
     document.getElementById('timeWindowsContainer').innerHTML = '';
@@ -770,11 +763,7 @@ function saveClient() {
             clinic: document.getElementById('cVetClinic').value.trim(),
             phone: document.getElementById('cVetPhone').value.trim(),
             address: document.getElementById('cVetAddress').value.trim()
-        },
-        termsSigned: document.getElementById('cTerms').checked,
-        emailSubscribed: document.getElementById('cEmailSub').checked,
-        cancellations: parseInt(document.getElementById('cCancellations').value) || 0,
-        keepsakes: parseInt(document.getElementById('cKeepsakes').value) || 0
+        }
     };
     const clients = Store.getClients();
     if (editingClientId) {

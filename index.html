@@ -55,6 +55,11 @@
             -webkit-text-size-adjust: 100%;
         }
         body.menu-open { overflow: hidden; }
+        body.modal-open {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
 
         @media (max-width: 700px) {
             body { padding: 8px; font-size: 17px; }
@@ -125,10 +130,12 @@
                 cursor: pointer;
                 font-family: 'Cormorant', serif;
             }
-            .header { padding: 12px 14px; margin-bottom: 14px; gap: 10px; }
-            .header-logo-container { width: 44px; height: 44px; }
-            .header-title h1 { font-size: 1.4em; }
-            .header-title .tagline { font-size: 0.85em; }
+            .header { padding: 12px 14px !important; margin-bottom: 14px !important; gap: 10px !important; flex-wrap: nowrap !important; }
+            .header-brand { flex: 1; min-width: 0; }
+            .header-logo-container { width: 44px !important; height: 44px !important; flex-shrink: 0; }
+            .header-title h1 { font-size: 1.4em !important; }
+            .header-title .tagline { font-size: 0.85em !important; }
+            .menu-toggle { flex-shrink: 0; }
         }
         @media (min-width: 701px) {
             .menu-close { display: none; }
@@ -1778,22 +1785,35 @@ function monthsBetween(d1, d2) {
 /* ============================================================
    MODAL HELPERS
    ============================================================ */
+let _savedScroll = 0;
 function openModal(id) {
+    if (!document.body.classList.contains('modal-open')) {
+        _savedScroll = window.pageYOffset || document.documentElement.scrollTop;
+        document.body.style.top = `-${_savedScroll}px`;
+        document.body.classList.add('modal-open');
+    }
     document.getElementById(id).classList.add('active');
 }
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
+    if (!document.querySelector('.modal-overlay.active')) {
+        document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        window.scrollTo(0, _savedScroll);
+    }
 }
 // click outside to close
 document.addEventListener('click', (e) => {
-    if (e.target.classList && e.target.classList.contains('modal-overlay')) {
-        e.target.classList.remove('active');
+    if (e.target.classList && e.target.classList.contains('modal-overlay') && e.target.id) {
+        closeModal(e.target.id);
     }
 });
 // escape to close
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+        document.querySelectorAll('.modal-overlay.active').forEach(m => {
+            if (m.id) closeModal(m.id);
+        });
     }
 });
 
@@ -2946,13 +2966,13 @@ function changeCalendar(delta) {
 
 function renderEventPill(e) {
     if (e._type === 'personal') {
-        return `<div class="event-pill personal" title="${escapeHtml(e.title)}">${formatTime12(e.time) ? formatTime12(e.time) + ' ' : ''}${escapeHtml(e.title)}</div>`;
+        return `<div class="event-pill personal" title="${escapeHtml(e.title)}">${formatTime12(e.time) || 'all day'}</div>`;
     }
     const t = VISIT_TYPES[e.visitType] || { cssClass: '' };
     const cls = `${t.cssClass}${e.status === 'completed' ? ' completed' : ''}`;
     const assigneeLetter = assigneeBadgeText(e.assignedTo);
     const assigneeBadge = assigneeLetter ? ` <span class="assignee-badge ${e.assignedTo || 'both'}">${assigneeLetter}</span>` : '';
-    return `<div class="event-pill ${cls}" title="${escapeHtml(e.clientName || '')}">${formatTime12(e.time)} ${escapeHtml(e.clientName || '')}${assigneeBadge}</div>`;
+    return `<div class="event-pill ${cls}" title="${escapeHtml((formatTime12(e.time) || '') + ' ' + (e.clientName || ''))}">${formatTime12(e.time)}${assigneeBadge}</div>`;
 }
 
 function assigneeBadgeText(value) {

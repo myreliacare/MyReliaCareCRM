@@ -121,7 +121,17 @@
         .invoice-row { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center; cursor: pointer; transition: all 0.15s; }
         .invoice-row:hover { border-color: var(--accent); background: var(--bg-card-light); }
         @media (max-width: 700px) {
-            .invoice-row { grid-template-columns: 1fr auto; }
+            .invoice-row {
+                grid-template-columns: 1fr auto;
+                grid-template-rows: auto auto;
+                column-gap: 12px;
+                row-gap: 6px;
+                align-items: start;
+                padding: 12px 14px;
+            }
+            .invoice-main { grid-row: 1 / 3; grid-column: 1; min-width: 0; }
+            .invoice-amount { grid-row: 1; grid-column: 2; justify-self: end; font-size: 1.15em; }
+            .status-badge { grid-row: 2; grid-column: 2; justify-self: end; font-size: 0.78em; padding: 3px 9px; }
         }
         .invoice-main { min-width: 0; }
         .invoice-client { color: var(--text); font-size: 1.15em; font-weight: 600; }
@@ -235,6 +245,7 @@
         html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         body { overscroll-behavior-y: contain; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
         body.menu-open { overflow: hidden; }
+        body.modal-open { overflow: hidden; position: fixed; width: 100%; }
         .menu-toggle { display: none; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 1.4em; line-height: 1; cursor: pointer; font-family: monospace; }
         .menu-toggle:hover { background: var(--bg-input); }
         .menu-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 8998; }
@@ -483,10 +494,25 @@ function showToast(msg, type = 'success') {
     t.textContent = msg; t.className = type; t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 3000);
 }
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-document.addEventListener('click', e => { if (e.target.classList && e.target.classList.contains('modal-overlay')) e.target.classList.remove('active'); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active')); });
+let _savedScroll = 0;
+function openModal(id) {
+    if (!document.body.classList.contains('modal-open')) {
+        _savedScroll = window.pageYOffset || document.documentElement.scrollTop;
+        document.body.style.top = `-${_savedScroll}px`;
+        document.body.classList.add('modal-open');
+    }
+    document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    if (!document.querySelector('.modal-overlay.active')) {
+        document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        window.scrollTo(0, _savedScroll);
+    }
+}
+document.addEventListener('click', e => { if (e.target.classList && e.target.classList.contains('modal-overlay') && e.target.id) closeModal(e.target.id); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => { if (m.id) closeModal(m.id); }); });
 
 /* ============================================================
    HELPERS
@@ -1124,16 +1150,26 @@ function renderStats() {
 
     const outstanding = invoices.filter(i => i.status === 'sent');
     const drafts = invoices.filter(i => i.status === 'draft');
-    const paidThisMonth = invoices.filter(i => i.status === 'paid' && i.paidDate && i.paidDate.startsWith(thisMonthYM));
+    const paidInvoicesThisMonth = invoices.filter(i => i.status === 'paid' && i.paidDate && i.paidDate.startsWith(thisMonthYM));
 
-    const sum = arr => arr.reduce((s, i) => s + (i.total || 0), 0);
+    // Direct-paid visits (Complete & Paid, never went on an invoice) — count those too
+    const visits = Store.getVisits();
+    const paidDirectVisitsThisMonth = visits.filter(v =>
+        v.paid && !v.invoiced && v.paidDate && v.paidDate.startsWith(thisMonthYM)
+    );
 
-    document.getElementById('statOutstanding').textContent = '$' + sum(outstanding).toFixed(2);
+    const sumInvoices = arr => arr.reduce((s, i) => s + (i.total || 0), 0);
+    const sumVisits = arr => arr.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
+
+    const paidTotal = sumInvoices(paidInvoicesThisMonth) + sumVisits(paidDirectVisitsThisMonth);
+    const paidCount = paidInvoicesThisMonth.length + paidDirectVisitsThisMonth.length;
+
+    document.getElementById('statOutstanding').textContent = '$' + sumInvoices(outstanding).toFixed(2);
     document.getElementById('statOutstandingCount').textContent = `${outstanding.length} invoice${outstanding.length === 1 ? '' : 's'}`;
     document.getElementById('statDrafts').textContent = drafts.length;
-    document.getElementById('statDraftsSub').textContent = drafts.length === 1 ? 'in progress' : 'in progress';
-    document.getElementById('statPaid').textContent = '$' + sum(paidThisMonth).toFixed(2);
-    document.getElementById('statPaidCount').textContent = `${paidThisMonth.length} invoice${paidThisMonth.length === 1 ? '' : 's'}`;
+    document.getElementById('statDraftsSub').textContent = 'in progress';
+    document.getElementById('statPaid').textContent = '$' + paidTotal.toFixed(2);
+    document.getElementById('statPaidCount').textContent = `${paidCount} payment${paidCount === 1 ? '' : 's'}`;
 }
 
 function renderFilterTabs() {
