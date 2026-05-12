@@ -667,6 +667,19 @@
 <script src="firebase-sync.js"></script>
 
 <script>
+try {
+    document.documentElement.classList.remove('modal-open');
+    if (document.body) document.body.classList.remove('modal-open', 'menu-open');
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.height = '';
+    if (document.body) {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+    }
+} catch (e) {}
+
 function toggleMobileMenu() {
     const nav = document.getElementById("mainNav");
     const backdrop = document.getElementById("menuBackdrop");
@@ -1517,8 +1530,6 @@ function init() {
 }
 window.initApp = init;
 
-document.documentElement.classList.remove('modal-open');
-document.body && document.body.classList.remove('modal-open', 'menu-open');
 document.addEventListener('DOMContentLoaded', () => {
     const inp = document.getElementById('passwordInput');
     if (inp) inp.focus();

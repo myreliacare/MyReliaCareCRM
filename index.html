@@ -50,11 +50,10 @@
             font-family: 'Cormorant', serif;
             background: var(--bg-deep);
             min-height: 100vh;
-            padding: 20px;
+            padding: 32px 20px 20px 20px;
             color: var(--text);
             line-height: 1.6;
             font-size: 18px;
-            overscroll-behavior-y: contain;
             touch-action: manipulation;
             -webkit-text-size-adjust: 100%;
         }
@@ -747,8 +746,6 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            max-height: 500px;
-            overflow-y: auto;
         }
         .schedule-item {
             background: var(--bg-input);
@@ -1667,6 +1664,69 @@
         @media (max-width: 700px) {
             .mobile-signout { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
         }
+
+        /* Status toggles on visit detail */
+        .status-toggles {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .status-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-family: 'Cormorant', serif;
+            font-size: 1.1em;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+        .status-toggle:hover { border-color: var(--accent); color: var(--text); }
+        .status-toggle.checked {
+            background: rgba(140, 178, 130, 0.15);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        .status-toggle.checked.paid {
+            background: rgba(181, 145, 151, 0.15);
+            border-color: var(--accent);
+            color: var(--accent-light);
+        }
+        .status-toggle .toggle-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px; height: 22px;
+            border: 2px solid currentColor;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-weight: 700;
+            font-family: system-ui, sans-serif;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .status-toggle.checked .toggle-box {
+            background: currentColor;
+        }
+        .status-toggle.checked .toggle-box::before {
+            content: '';
+        }
+        .status-toggle.checked .toggle-box {
+            color: var(--success);
+        }
+        .status-toggle.checked.paid .toggle-box {
+            color: var(--accent);
+        }
+        .status-toggle.checked .toggle-box {
+            position: relative;
+        }
 </style>
 </head>
 <body>
@@ -1839,6 +1899,36 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('scheduleModal')">Cancel</button>
             <button class="btn btn-primary" onclick="saveSchedule()" id="saveScheduleBtn">Schedule</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= ADD TIP MODAL ========= -->
+<div class="modal-overlay" id="addTipModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Add Tip — <span id="addTipClientName"></span></h2>
+            <button class="modal-close" onclick="closeModal('addTipModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row form-row-compact">
+                <div class="form-group">
+                    <label>Amount <span class="required">*</span></label>
+                    <input type="number" id="addTipAmount" min="0" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="addTipDate">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Note (optional)</label>
+                <input type="text" id="addTipNote" placeholder="e.g. Holiday tip, end of recurring series">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('addTipModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveTip()">Add Tip</button>
         </div>
     </div>
 </div>
@@ -2017,6 +2107,23 @@
 <script src="firebase-sync.js"></script>
 
 <script>
+// IMMEDIATELY clear any stuck scroll-lock classes — runs synchronously on every page load,
+// before anything else (auth, DOMContentLoaded, etc.). This protects against any prior session
+// state where modal-open got stuck on html or body.
+try {
+    document.documentElement.classList.remove('modal-open');
+    if (document.body) document.body.classList.remove('modal-open', 'menu-open');
+    // Also explicitly clear any inline style overrides
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.height = '';
+    if (document.body) {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+    }
+} catch (e) {}
+
 /* ============================================================
    CONSTANTS
    (STORAGE_KEYS and Store are defined in firebase-sync.js)
@@ -2829,7 +2936,19 @@ function openEventDetail(eventId, eventType) {
             ? linkedClient.pets.map(p => escapeHtml(p.name || '')).filter(Boolean).join(', ')
             : '';
         document.getElementById('detailTitle').innerHTML = `${t.label} — ${escapeHtml(v.clientName || 'Client')} ${paidBadge}`;
+        const isComplete = v.status === 'completed';
+        const isPaid = !!v.paid;
         document.getElementById('detailBody').innerHTML = `
+            <div class="status-toggles">
+                <button class="status-toggle ${isComplete ? 'checked' : ''}" onclick="toggleVisitComplete('${v.id}')">
+                    <span class="toggle-box">${isComplete ? '✓' : ''}</span>
+                    <span class="toggle-label">Complete</span>
+                </button>
+                <button class="status-toggle ${isPaid ? 'checked paid' : ''}" onclick="toggleVisitPaid('${v.id}')">
+                    <span class="toggle-box">${isPaid ? '✓' : ''}</span>
+                    <span class="toggle-label">Paid</span>
+                </button>
+            </div>
             <div class="event-callout">
                 <div class="event-callout-label">Address</div>
                 <div class="event-callout-value">${renderAddressWithMaps(v.address)}</div>
@@ -2842,32 +2961,21 @@ function openEventDetail(eventId, eventType) {
             <div class="event-detail-row"><div class="event-detail-label">Type</div><div class="event-detail-value">${t.label}</div></div>
             ${petNames ? `<div class="event-detail-row"><div class="event-detail-label">Pets</div><div class="event-detail-value">${petNames}</div></div>` : ''}
             <div class="event-detail-row"><div class="event-detail-label">Assigned</div><div class="event-detail-value">${assigneeFullLabel(v.assignedTo)}</div></div>
-            <div class="event-detail-row"><div class="event-detail-label">Status</div>
-                <div class="event-detail-value"><span class="event-status-badge ${v.status}">${v.status}</span>
-                ${v.recurringGroupId ? ' <span style="color: var(--text-faint); font-size: 0.9em; font-style: italic;">part of a recurring schedule</span>' : ''}</div>
-            </div>
             <div class="event-detail-row"><div class="event-detail-label">Price</div><div class="event-detail-value">$${(v.price || 0).toFixed(2)}${v.paid ? ` <span style="color: var(--success); font-size: 0.9em;">· paid ${v.paidDate ? formatDateLong(v.paidDate) : ''}</span>` : ''}${v.invoiced ? ' <span style="color: var(--accent); font-size: 0.9em;">· on an invoice</span>' : ''}</div></div>
-            ${v.status === 'completed' ? `<div class="event-detail-row"><div class="event-detail-label">Tip</div><div class="event-detail-value" id="tipDisplay-${v.id}">${renderTipUI(v)}</div></div>` : ''}
+            ${v.recurringGroupId ? `<div class="event-detail-row"><div class="event-detail-label">Recurring</div><div class="event-detail-value" style="color: var(--text-faint); font-style: italic;">part of a recurring schedule</div></div>` : ''}
             ${v.notes ? `<div class="event-detail-row"><div class="event-detail-label">Notes</div><div class="event-detail-value" style="white-space: pre-wrap;">${escapeHtml(v.notes)}</div></div>` : ''}
+            <div class="event-detail-row" style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 6px;">
+                <div class="event-detail-label">Tips</div>
+                <div class="event-detail-value">
+                    <button class="btn btn-ghost btn-sm" onclick="openAddTipModal('${v.clientId}')" style="margin-top: 4px;">+ Add Tip to ${escapeHtml(v.clientName || 'Client')}</button>
+                </div>
+            </div>
         `;
         const footer = document.getElementById('detailFooter');
-        let actionButtons = '';
-        if (v.status === 'completed') {
-            // toggle paid status
-            actionButtons += v.paid
-                ? `<button class="btn btn-ghost" onclick="markVisitUnpaid('${v.id}')">Mark Unpaid</button>`
-                : `<button class="btn btn-success" onclick="markVisitPaid('${v.id}')">Mark Paid</button>`;
-            actionButtons += `<button class="btn btn-ghost" onclick="markVisitScheduled('${v.id}')">Reopen</button>`;
-        } else {
-            // not yet completed — offer two completion paths
-            actionButtons += `<button class="btn btn-success" onclick="markVisitCompleteAndPaid('${v.id}')">Complete & Paid</button>`;
-            actionButtons += `<button class="btn btn-primary" onclick="markVisitComplete('${v.id}')">Mark Complete</button>`;
-        }
         footer.innerHTML = `
             <button class="btn btn-danger" onclick="deleteVisit('${v.id}')">Delete</button>
             <button class="btn btn-ghost" onclick="closeModal('detailModal')">Close</button>
             <button class="btn btn-primary" onclick="editVisit('${v.id}')">Edit</button>
-            ${actionButtons}
         `;
     } else if (eventType === 'personal') {
         const p = Store.getPersonalEvents().find(x => x.id === eventId);
@@ -2887,28 +2995,33 @@ function openEventDetail(eventId, eventType) {
     openModal('detailModal');
 }
 
-function markVisitPaid(id) {
+// Toggle complete/paid status independently — no modal close, just refresh in place
+function toggleVisitComplete(id) {
     const visits = Store.getVisits();
     const v = visits.find(x => x.id === id);
     if (!v) return;
-    v.paid = true;
-    v.paidDate = todayYmd();
+    v.status = (v.status === 'completed') ? 'scheduled' : 'completed';
     Store.saveVisits(visits);
-    closeModal('detailModal');
     refreshAll();
-    showToast('Marked paid');
+    // Re-render the modal so the checkbox state updates
+    openEventDetail(id, 'visit');
+    showToast(v.status === 'completed' ? 'Marked complete' : 'Marked incomplete');
 }
-function markVisitUnpaid(id) {
+function toggleVisitPaid(id) {
     const visits = Store.getVisits();
     const v = visits.find(x => x.id === id);
     if (!v) return;
-    v.paid = false;
-    v.paidDate = null;
+    v.paid = !v.paid;
+    v.paidDate = v.paid ? todayYmd() : null;
     Store.saveVisits(visits);
-    closeModal('detailModal');
     refreshAll();
-    showToast('Marked unpaid');
+    openEventDetail(id, 'visit');
+    showToast(v.paid ? 'Marked paid' : 'Marked unpaid');
 }
+
+// Legacy names — kept as no-ops/aliases in case anything still references them
+function markVisitPaid(id) { toggleVisitPaid(id); }
+function markVisitUnpaid(id) { toggleVisitPaid(id); }
 function markVisitCompleteAndPaid(id) {
     const visits = Store.getVisits();
     const v = visits.find(x => x.id === id);
@@ -2917,27 +3030,53 @@ function markVisitCompleteAndPaid(id) {
     v.paid = true;
     v.paidDate = todayYmd();
     Store.saveVisits(visits);
-    closeModal('detailModal');
     refreshAll();
+    openEventDetail(id, 'visit');
     showToast('Visit completed & paid');
 }
+function markVisitComplete(id) { toggleVisitComplete(id); }
+function markVisitScheduled(id) { toggleVisitComplete(id); }
 
-function markVisitComplete(id) {
-    const visits = Store.getVisits();
-    const v = visits.find(x => x.id === id);
-    if (v) { v.status = 'completed'; Store.saveVisits(visits); }
-    closeModal('detailModal');
-    refreshAll();
-    showToast('Visit marked complete');
+// ---- Tip tab on client ----
+let _addTipClientId = null;
+function openAddTipModal(clientId) {
+    if (!clientId) { showToast('No client linked to this visit', 'error'); return; }
+    const client = Store.getClients().find(c => c.id === clientId);
+    if (!client) { showToast('Client not found', 'error'); return; }
+    _addTipClientId = clientId;
+    document.getElementById('addTipClientName').textContent = client.name || 'Client';
+    document.getElementById('addTipAmount').value = '';
+    document.getElementById('addTipDate').value = todayYmd();
+    document.getElementById('addTipNote').value = '';
+    openModal('addTipModal');
 }
-function markVisitScheduled(id) {
-    const visits = Store.getVisits();
-    const v = visits.find(x => x.id === id);
-    if (v) { v.status = 'scheduled'; Store.saveVisits(visits); }
-    closeModal('detailModal');
+
+function saveTip() {
+    if (!_addTipClientId) return;
+    const amount = parseFloat(document.getElementById('addTipAmount').value);
+    if (!amount || amount <= 0) { showToast('Enter a tip amount', 'error'); return; }
+    const date = document.getElementById('addTipDate').value || todayYmd();
+    const note = document.getElementById('addTipNote').value.trim();
+
+    const clients = Store.getClients();
+    const c = clients.find(x => x.id === _addTipClientId);
+    if (!c) { showToast('Client not found', 'error'); return; }
+    if (!Array.isArray(c.tips)) c.tips = [];
+    c.tips.push({
+        id: 'tip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        date, amount, note
+    });
+    const ok = Store.saveClients(clients);
+    if (ok === false) {
+        showToast('Could not save — try refreshing', 'error');
+        return;
+    }
+    closeModal('addTipModal');
+    _addTipClientId = null;
     refreshAll();
-    showToast('Visit reopened');
+    showToast(`Added $${amount.toFixed(2)} tip for ${c.name}`);
 }
+
 let _recurringDeleteId = null;
 
 function deleteVisit(id) {
@@ -3802,9 +3941,16 @@ function renderWeeklySnapshot() {
     const totalCompleted = earnedWeekVisits.length;
     // Projected = sum of ALL scheduled visits' prices (what you expect to earn)
     const projectedRevenue = weekVisits.reduce((s, v) => s + (v.price || 0), 0);
-    // Earned = visits explicitly completed OR past-date scheduled (auto-treated as earned) + their tips
-    const earnedRevenue = earnedWeekVisits.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
-    const totalPaid = earnedWeekVisits.filter(v => v.paid).reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
+    // Earned = visit revenue + tips this week. Tips come from client.tips entries dated this week
+    // (plus any legacy per-visit tips on earned visits this week, for backward compat)
+    const earnedVisitRevenue = earnedWeekVisits.reduce((s, v) => s + (v.price || 0), 0);
+    const legacyTipsThisWeek = earnedWeekVisits.reduce((s, v) => s + (v.tip || 0), 0);
+    const clients = Store.getClients();
+    const clientTipsThisWeek = clients.reduce((s, c) => {
+        if (!Array.isArray(c.tips)) return s;
+        return s + c.tips.filter(t => dates.includes(t.date)).reduce((ss, t) => ss + (t.amount || 0), 0);
+    }, 0);
+    const earnedRevenue = earnedVisitRevenue + legacyTipsThisWeek + clientTipsThisWeek;
 
     // title with date range
     const startStr = sundayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -3837,7 +3983,7 @@ function renderWeeklySnapshot() {
             <div class="weekly-summary-item">
                 <div class="weekly-label">Projected</div>
                 <div class="weekly-value">$${projectedRevenue.toFixed(0)}</div>
-                <div class="weekly-sub">$${earnedRevenue.toFixed(0)} earned</div>
+                <div class="weekly-sub">$${earnedRevenue.toFixed(0)} earned${(legacyTipsThisWeek + clientTipsThisWeek) > 0 ? ` · $${(legacyTipsThisWeek + clientTipsThisWeek).toFixed(0)} tips` : ''}</div>
             </div>
         </div>
     `;
