@@ -61,7 +61,7 @@
         body.modal-open { overflow: hidden; }
 
         @media (max-width: 700px) {
-            body { padding: 20px 8px 8px 8px; font-size: 17px; }
+            body { padding: max(28px, env(safe-area-inset-top, 28px)) 8px 8px 8px; font-size: 17px; }
             .container { padding: 0; }
             .card { padding: 14px; margin-bottom: 14px; border-radius: 10px; }
             .card-title { font-size: 1.25em; margin-bottom: 12px; }
@@ -792,15 +792,15 @@
         .assignee-badge.charlie { background: rgba(138, 168, 156, 0.2); color: var(--charlie); border: 1px solid var(--charlie); }
         .assignee-badge.both    { background: rgba(212, 197, 201, 0.15); color: var(--accent-light); border: 1px solid var(--accent-light); }
 
-        .map-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .map-links { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
         .addr-line { display: block; }
         .map-link {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            border-radius: 10px;
-            font-size: 0.95em;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
             font-weight: 500;
             background: var(--bg-input);
             color: var(--accent);
@@ -808,12 +808,11 @@
             text-decoration: none;
             transition: all 0.15s;
         }
-        .map-link::before { content: '➤'; font-size: 0.85em; }
         .map-link:hover { background: var(--accent); color: white; }
         .map-link:active { transform: scale(0.97); }
         @media (max-width: 700px) {
-            .map-links { gap: 10px; }
-            .map-link { flex: 1; justify-content: center; padding: 12px 16px; font-size: 1em; }
+            .map-links { gap: 6px; }
+            .map-link { padding: 5px 12px; font-size: 0.88em; }
         }
         .empty-state {
             text-align: center;
@@ -853,6 +852,8 @@
         .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .pay-method-btn { padding: 14px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-align: left; font-family: inherit; font-size: 1em; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: all 0.15s; }
         .pay-method-btn:hover { border-color: var(--accent); background: var(--bg-card); }
+        .pay-method-btn.selected { border-color: var(--accent); background: rgba(181, 145, 151, 0.12); box-shadow: 0 0 0 1px var(--accent) inset; }
+        .pay-method-btn.selected .pmb-label { color: var(--accent); }
         .pay-method-btn.pay-method-btn-wide { grid-column: 1 / -1; }
         .pmb-label { font-weight: 600; color: var(--text); }
         .pmb-hint { color: var(--text-faint); font-size: 0.78em; }
@@ -862,13 +863,13 @@
         .modal-footer { flex-shrink: 0; }
         @media (max-width: 700px) {
             .modal-overlay {
-                padding: 32px 12px;
-                padding-top: max(32px, env(safe-area-inset-top, 32px));
-                padding-bottom: max(32px, env(safe-area-inset-bottom, 32px));
+                padding: 40px 12px;
+                padding-top: max(40px, calc(env(safe-area-inset-top, 0px) + 24px));
+                padding-bottom: max(40px, calc(env(safe-area-inset-bottom, 0px) + 24px));
             }
             .modal {
-                max-height: calc(100vh - 64px);
-                max-height: calc(100dvh - 64px);
+                max-height: calc(100vh - 80px);
+                max-height: calc(100dvh - 80px);
                 border-radius: 14px;
             }
             .modal-header { padding: 14px 16px !important; }
@@ -1335,10 +1336,12 @@
             letter-spacing: 0.5px;
         }
         @media (max-width: 600px) {
-            .event-detail-label { min-width: 90px; }
-            .event-detail-value { font-size: 1em; }
-            .event-callout-value { font-size: 1.15em; }
-            .event-callout.access .event-callout-value { font-size: 1.3em; }
+            .event-detail-row { margin-bottom: 6px; }
+            .event-detail-label { min-width: 80px; font-size: 0.78em; }
+            .event-detail-value { font-size: 0.95em; }
+            .event-callout { padding: 10px 14px; margin-bottom: 10px; }
+            .event-callout-value { font-size: 1.05em; }
+            .event-callout.access .event-callout-value { font-size: 1.15em; }
         }
         .event-status-badge {
             display: inline-block;
@@ -1783,7 +1786,7 @@
                 <button class="menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
                 <a href="index.html" class="active">Dashboard</a>
                 <a href="clients.html">Clients & Pets</a>
-                <a href="invoices.html">Invoices</a>
+                <a href="invoices.html">Finances</a>
                 <button class="logout-btn" onclick="logout()">Sign Out</button>
             </nav>
         </div>
@@ -1960,16 +1963,17 @@
         <div class="modal-body">
             <div id="payMethodAmount" style="font-size: 1.4em; color: var(--accent); text-align: center; margin-bottom: 16px; font-family: 'Cormorant Unicase', serif;"></div>
             <div class="pay-method-grid">
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('venmo')"><span class="pmb-label">Venmo</span><span class="pmb-hint">1.9% + $0.10</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">2.75%</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('stripe')"><span class="pmb-label">Stripe</span><span class="pmb-hint">2.9% + $0.30</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('rover')"><span class="pmb-label">Rover</span><span class="pmb-hint">paid via app</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('cash')"><span class="pmb-label">Cash</span><span class="pmb-hint">no fee</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('other')"><span class="pmb-label">Other</span><span class="pmb-hint">no fee tracked</span></button>
+                <button class="pay-method-btn" data-method="venmo" onclick="selectPaymentMethod('venmo')"><span class="pmb-label">Venmo</span><span class="pmb-hint">1.9% + $0.10</span></button>
+                <button class="pay-method-btn" data-method="cashapp" onclick="selectPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">2.75%</span></button>
+                <button class="pay-method-btn" data-method="stripe" onclick="selectPaymentMethod('stripe')"><span class="pmb-label">Stripe</span><span class="pmb-hint">2.9% + $0.30</span></button>
+                <button class="pay-method-btn" data-method="rover" onclick="selectPaymentMethod('rover')"><span class="pmb-label">Rover</span><span class="pmb-hint">paid via app</span></button>
+                <button class="pay-method-btn" data-method="cash" onclick="selectPaymentMethod('cash')"><span class="pmb-label">Cash</span><span class="pmb-hint">no fee</span></button>
+                <button class="pay-method-btn" data-method="other" onclick="selectPaymentMethod('other')"><span class="pmb-label">Other</span><span class="pmb-hint">no fee tracked</span></button>
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="cancelPaymentMethod()">Cancel</button>
+            <button class="btn btn-primary" id="payMethodSaveBtn" onclick="confirmPaymentMethod()">Save</button>
         </div>
     </div>
 </div>
@@ -3088,6 +3092,28 @@ function toggleVisitComplete(id) {
 }
 // Payment method modal state — what we're marking paid
 let _payMethodContext = null;  // { type: 'visit', id, gross }
+let _selectedPaymentMethod = null;  // method currently selected in modal
+
+function _openPaymentMethodModal(initialMethod) {
+    _selectedPaymentMethod = initialMethod || null;
+    // Reflect selection visually
+    document.querySelectorAll('#paymentMethodModal .pay-method-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.method === _selectedPaymentMethod);
+    });
+    // Disable Save until something is selected
+    const saveBtn = document.getElementById('payMethodSaveBtn');
+    if (saveBtn) saveBtn.disabled = !_selectedPaymentMethod;
+    openModal('paymentMethodModal');
+}
+
+function selectPaymentMethod(method) {
+    _selectedPaymentMethod = method;
+    document.querySelectorAll('#paymentMethodModal .pay-method-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.method === method);
+    });
+    const saveBtn = document.getElementById('payMethodSaveBtn');
+    if (saveBtn) saveBtn.disabled = false;
+}
 
 function toggleVisitPaid(id) {
     const visits = Store.getVisits();
@@ -3098,7 +3124,7 @@ function toggleVisitPaid(id) {
         _payMethodContext = { type: 'visit', id, gross: v.price || 0 };
         document.getElementById('payMethodTitle').textContent = `How was this paid?`;
         document.getElementById('payMethodAmount').textContent = `$${(v.price || 0).toFixed(2)} — ${v.clientName || 'Client'}`;
-        openModal('paymentMethodModal');
+        _openPaymentMethodModal(null);
     } else {
         // Unmarking paid: clear method/fee/net
         v.paid = false;
@@ -3113,32 +3139,37 @@ function toggleVisitPaid(id) {
     }
 }
 
-function confirmPaymentMethod(method) {
+function confirmPaymentMethod() {
     if (!_payMethodContext) { closeModal('paymentMethodModal'); return; }
+    if (!_selectedPaymentMethod) { showToast('Pick a payment method', 'error'); return; }
+    const method = _selectedPaymentMethod;
     const { type, id, gross } = _payMethodContext;
     if (type === 'visit') {
         const visits = Store.getVisits();
         const v = visits.find(x => x.id === id);
-        if (!v) { _payMethodContext = null; closeModal('paymentMethodModal'); return; }
+        if (!v) { _payMethodContext = null; _selectedPaymentMethod = null; closeModal('paymentMethodModal'); return; }
         v.paid = true;
-        v.paidDate = todayYmd();
+        v.paidDate = v.paidDate || todayYmd();  // preserve original paid date on method change
         v.paymentMethod = method;
         v.paymentFee = calcPaymentFee(method, gross);
         v.netAmount = calcNetAmount(method, gross);
         Store.saveVisits(visits);
         closeModal('paymentMethodModal');
         _payMethodContext = null;
+        _selectedPaymentMethod = null;
         refreshAll();
         openEventDetail(id, 'visit');
-        showToast(`Marked paid via ${paymentMethodLabel(method)}`);
+        showToast(`Saved as ${paymentMethodLabel(method)}`);
     } else {
         closeModal('paymentMethodModal');
         _payMethodContext = null;
+        _selectedPaymentMethod = null;
     }
 }
 
 function cancelPaymentMethod() {
     _payMethodContext = null;
+    _selectedPaymentMethod = null;
     closeModal('paymentMethodModal');
 }
 
@@ -3149,7 +3180,7 @@ function changeVisitPaymentMethod(id) {
     _payMethodContext = { type: 'visit', id, gross: v.price || 0 };
     document.getElementById('payMethodTitle').textContent = `Change payment method`;
     document.getElementById('payMethodAmount').textContent = `$${(v.price || 0).toFixed(2)} — ${v.clientName || 'Client'}`;
-    openModal('paymentMethodModal');
+    _openPaymentMethodModal(v.paymentMethod);  // pre-select current method
 }
 
 // Legacy names — kept as no-ops/aliases in case anything still references them
@@ -4338,7 +4369,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </a>
         <a href="invoices.html">
             <span class="tab-icon">$</span>
-            <span class="tab-label">Invoices</span>
+            <span class="tab-label">Finances</span>
         </a>
     </nav>
 </body>

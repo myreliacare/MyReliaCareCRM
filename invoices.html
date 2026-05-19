@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-title" content="MyReliaCare">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1A1614">
-    <title>MyReliaCare CRM - Invoices</title>
+    <title>MyReliaCare CRM - Finances</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -185,6 +185,8 @@
         .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .pay-method-btn { padding: 14px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-align: left; font-family: inherit; font-size: 1em; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: all 0.15s; }
         .pay-method-btn:hover { border-color: var(--accent); background: var(--bg-card); }
+        .pay-method-btn.selected { border-color: var(--accent); background: rgba(181, 145, 151, 0.12); box-shadow: 0 0 0 1px var(--accent) inset; }
+        .pay-method-btn.selected .pmb-label { color: var(--accent); }
         .pay-method-btn.pay-method-btn-wide { grid-column: 1 / -1; }
         .pmb-label { font-weight: 600; color: var(--text); }
         .pmb-hint { color: var(--text-faint); font-size: 0.78em; }
@@ -216,19 +218,47 @@
             .income-method-row .imr-fee { display: none; }
             .income-method-row.header .imr-fee { display: none; }
         }
+
+        /* Mileage section */
+        .mileage-card { margin-bottom: 18px; }
+        .mileage-rate-note { color: var(--text-faint); font-size: 0.6em; font-weight: 400; font-family: 'Cormorant', serif; text-transform: none; letter-spacing: 0; margin-left: 4px; }
+        .mileage-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .mileage-entry-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.5fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: 0.95em; }
+        .mileage-entry-row:last-child { border-bottom: none; }
+        .mileage-entry-row.header { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; padding: 6px 0; }
+        .mileage-entry-date { color: var(--text); font-weight: 500; }
+        .mileage-entry-miles { text-align: right; font-variant-numeric: tabular-nums; color: var(--accent-light); font-weight: 600; }
+        .mileage-entry-deduction { text-align: right; font-variant-numeric: tabular-nums; color: var(--success); }
+        .mileage-entry-driver { color: var(--text-dim); }
+        .mileage-entry-meta { color: var(--text-faint); font-size: 0.85em; }
+        .mileage-entries-title { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; }
+        .log-miles-context { margin-top: 14px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; color: var(--text-dim); }
+        .log-miles-context strong { color: var(--text); display: block; margin-bottom: 6px; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); }
+        .backfill-day-row { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .backfill-day-row:last-child { border-bottom: none; }
+        .backfill-day-info { font-size: 0.9em; }
+        .backfill-day-date { color: var(--text); font-weight: 500; margin-bottom: 2px; }
+        .backfill-day-visits { color: var(--text-faint); font-size: 0.85em; }
+        .backfill-day-row input { padding: 6px 8px; font-size: 0.95em; }
+        @media (max-width: 700px) {
+            .mileage-entry-row { grid-template-columns: 1.4fr 1fr 1fr auto; }
+            .mileage-entry-row .mileage-entry-meta { display: none; }
+            .mileage-entry-row.header .mileage-entry-meta { display: none; }
+            .backfill-day-row { grid-template-columns: 1fr; gap: 4px; }
+        }
         .modal-header { flex-shrink: 0; min-width: 0; }
         .modal-header h2 { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
         .modal-body-scrollable { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
         .modal-footer { flex-shrink: 0; }
         @media (max-width: 700px) {
             .modal-overlay {
-                padding: 32px 12px;
-                padding-top: max(32px, env(safe-area-inset-top, 32px));
-                padding-bottom: max(32px, env(safe-area-inset-bottom, 32px));
+                padding: 40px 12px;
+                padding-top: max(40px, calc(env(safe-area-inset-top, 0px) + 24px));
+                padding-bottom: max(40px, calc(env(safe-area-inset-bottom, 0px) + 24px));
             }
             .modal {
-                max-height: calc(100vh - 64px);
-                max-height: calc(100dvh - 64px);
+                max-height: calc(100vh - 80px);
+                max-height: calc(100dvh - 80px);
                 border-radius: 14px;
             }
             .modal-header { padding: 14px 16px !important; }
@@ -345,7 +375,7 @@
         .menu-backdrop.show { display: block; }
         @media (min-width: 701px) { .menu-close { display: none; } }
         @media (max-width: 700px) {
-            body { padding: 20px 8px 8px 8px; font-size: 17px; }
+            body { padding: max(28px, env(safe-area-inset-top, 28px)) 8px 8px 8px; font-size: 17px; }
             .container { padding: 0; }
             .card, .client-card, .invoice-row { padding: 14px; }
             .btn { padding: 10px 16px; font-size: 1em; }
@@ -550,7 +580,7 @@
                 <button class="menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
                 <a href="index.html">Dashboard</a>
                 <a href="clients.html">Clients & Pets</a>
-                <a href="invoices.html" class="active">Invoices</a>
+                <a href="invoices.html" class="active">Finances</a>
                 <button class="logout-btn" onclick="logout()">Sign Out</button>
             </nav>
         </div>
@@ -588,6 +618,23 @@
                 </div>
             </div>
             <div class="income-breakdown-body" id="incomeBreakdownBody"></div>
+        </div>
+
+        <div class="card mileage-card">
+            <div class="card-title income-breakdown-title">
+                <span>Mileage <span class="mileage-rate-note" id="mileageRateNote"></span></span>
+                <div class="income-range-tabs" id="mileageRangeTabs">
+                    <button class="income-range-tab active" data-range="month" onclick="setMileageRange('month')">This Month</button>
+                    <button class="income-range-tab" data-range="year" onclick="setMileageRange('year')">This Year</button>
+                    <button class="income-range-tab" data-range="all" onclick="setMileageRange('all')">All Time</button>
+                </div>
+            </div>
+            <div class="mileage-actions">
+                <button class="btn btn-primary btn-sm" onclick="openLogMilesModal()">+ Log Miles</button>
+                <button class="btn btn-ghost btn-sm" onclick="openBackfillMilesModal()">Backfill past days</button>
+            </div>
+            <div class="income-breakdown-body" id="mileageSummaryBody"></div>
+            <div id="mileageEntriesList"></div>
         </div>
 
         <div class="card">
@@ -709,16 +756,71 @@
         <div class="modal-body">
             <div id="payMethodAmount" style="font-size: 1.4em; color: var(--accent); text-align: center; margin-bottom: 16px; font-family: 'Cormorant Unicase', serif;"></div>
             <div class="pay-method-grid">
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('venmo')"><span class="pmb-label">Venmo</span><span class="pmb-hint">1.9% + $0.10</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">2.75%</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('stripe')"><span class="pmb-label">Stripe</span><span class="pmb-hint">2.9% + $0.30</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('rover')"><span class="pmb-label">Rover</span><span class="pmb-hint">paid via app</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('cash')"><span class="pmb-label">Cash</span><span class="pmb-hint">no fee</span></button>
-                <button class="pay-method-btn" onclick="confirmPaymentMethod('other')"><span class="pmb-label">Other</span><span class="pmb-hint">no fee tracked</span></button>
+                <button class="pay-method-btn" data-method="venmo" onclick="selectPaymentMethod('venmo')"><span class="pmb-label">Venmo</span><span class="pmb-hint">1.9% + $0.10</span></button>
+                <button class="pay-method-btn" data-method="cashapp" onclick="selectPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">2.75%</span></button>
+                <button class="pay-method-btn" data-method="stripe" onclick="selectPaymentMethod('stripe')"><span class="pmb-label">Stripe</span><span class="pmb-hint">2.9% + $0.30</span></button>
+                <button class="pay-method-btn" data-method="rover" onclick="selectPaymentMethod('rover')"><span class="pmb-label">Rover</span><span class="pmb-hint">paid via app</span></button>
+                <button class="pay-method-btn" data-method="cash" onclick="selectPaymentMethod('cash')"><span class="pmb-label">Cash</span><span class="pmb-hint">no fee</span></button>
+                <button class="pay-method-btn" data-method="other" onclick="selectPaymentMethod('other')"><span class="pmb-label">Other</span><span class="pmb-hint">no fee tracked</span></button>
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="cancelPaymentMethod()">Cancel</button>
+            <button class="btn btn-primary" id="payMethodSaveBtn" onclick="confirmPaymentMethod()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= LOG MILES MODAL ========= -->
+<div class="modal-overlay" id="logMilesModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h2 id="logMilesTitle">Log Miles</h2>
+            <button class="modal-close" onclick="closeModal('logMilesModal')">×</button>
+        </div>
+        <div class="modal-body modal-body-scrollable">
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="logMilesDate">
+            </div>
+            <div class="form-row form-row-compact">
+                <div class="form-group">
+                    <label>Kasey's miles</label>
+                    <input type="number" id="logMilesKasey" min="0" step="0.1" placeholder="0.0">
+                </div>
+                <div class="form-group">
+                    <label>Charlie's miles</label>
+                    <input type="number" id="logMilesCharlie" min="0" step="0.1" placeholder="0.0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <input type="text" id="logMilesNotes" placeholder="e.g. extra trip to vet, supply run">
+            </div>
+            <div id="logMilesVisitContext" class="log-miles-context"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-danger" id="logMilesDeleteBtn" onclick="deleteLoggedMiles()" style="display: none;">Delete</button>
+            <button class="btn btn-ghost" onclick="closeModal('logMilesModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveLoggedMiles()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= BACKFILL MILES MODAL ========= -->
+<div class="modal-overlay" id="backfillMilesModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Backfill Mileage</h2>
+            <button class="modal-close" onclick="closeModal('backfillMilesModal')">×</button>
+        </div>
+        <div class="modal-body modal-body-scrollable">
+            <p style="color: var(--text-faint); margin-bottom: 14px;">Days with completed visits but no mileage logged yet. Type a number to log; leave blank to skip.</p>
+            <div id="backfillMilesList"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('backfillMilesModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveBackfillMiles()">Save All</button>
         </div>
     </div>
 </div>
@@ -864,6 +966,39 @@ function calcNetAmount(method, gross) {
 }
 function paymentMethodLabel(method) {
     return (PAYMENT_METHODS[method] || {}).label || (method ? method : 'Unrecorded');
+}
+
+/* ============================================================
+   MILEAGE / IRS DEDUCTION
+   ============================================================ */
+// IRS standard mileage rates by year (business use, $/mile).
+// Sources: IRS Notice 2026-10 (72.5¢ for 2026, up from 70¢ in 2025).
+const IRS_MILEAGE_RATES = {
+    2022: 0.585,
+    2023: 0.655,
+    2024: 0.670,
+    2025: 0.700,
+    2026: 0.725
+};
+const DEFAULT_MILEAGE_RATE = 0.725;  // fallback for years not listed
+function mileageRateForDate(dateStr) {
+    if (!dateStr) return DEFAULT_MILEAGE_RATE;
+    const year = parseInt(dateStr.slice(0, 4));
+    return IRS_MILEAGE_RATES[year] || DEFAULT_MILEAGE_RATE;
+}
+function calcMileageDeduction(records) {
+    // Sum each record's miles * the rate for that record's year
+    let total = 0;
+    records.forEach(r => {
+        const miles = parseFloat(r.miles) || 0;
+        total += miles * mileageRateForDate(r.date);
+    });
+    return Math.round(total * 100) / 100;
+}
+function driverLabel(d) {
+    if (d === 'kasey') return 'Kasey';
+    if (d === 'charlie') return 'Charlie';
+    return d || '—';
 }
 function invoiceClientDisplayName(inv) {
     if (!inv) return '';
@@ -1208,6 +1343,26 @@ function deleteInvoice(id) {
    QUICK ACTIONS
    ============================================================ */
 let _payMethodContext = null;  // { type: 'invoice', id, gross }
+let _selectedPaymentMethod = null;
+
+function _openPaymentMethodModal(initialMethod) {
+    _selectedPaymentMethod = initialMethod || null;
+    document.querySelectorAll('#paymentMethodModal .pay-method-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.method === _selectedPaymentMethod);
+    });
+    const saveBtn = document.getElementById('payMethodSaveBtn');
+    if (saveBtn) saveBtn.disabled = !_selectedPaymentMethod;
+    openModal('paymentMethodModal');
+}
+
+function selectPaymentMethod(method) {
+    _selectedPaymentMethod = method;
+    document.querySelectorAll('#paymentMethodModal .pay-method-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.method === method);
+    });
+    const saveBtn = document.getElementById('payMethodSaveBtn');
+    if (saveBtn) saveBtn.disabled = false;
+}
 
 function quickMarkPaid(id) {
     const invoices = Store.getInvoices();
@@ -1231,7 +1386,7 @@ function quickMarkPaid(id) {
     _payMethodContext = { type: 'invoice', id, gross };
     document.getElementById('payMethodTitle').textContent = `How was this paid?`;
     document.getElementById('payMethodAmount').textContent = `$${gross.toFixed(2)} — ${inv.invoiceNumber}`;
-    openModal('paymentMethodModal');
+    _openPaymentMethodModal(null);
 }
 
 function invoiceGrossTotal(inv) {
@@ -1239,15 +1394,17 @@ function invoiceGrossTotal(inv) {
     return parseFloat(inv.total) || 0;
 }
 
-function confirmPaymentMethod(method) {
+function confirmPaymentMethod() {
     if (!_payMethodContext) { closeModal('paymentMethodModal'); return; }
+    if (!_selectedPaymentMethod) { showToast('Pick a payment method', 'error'); return; }
+    const method = _selectedPaymentMethod;
     const { type, id, gross } = _payMethodContext;
     if (type === 'invoice') {
         const invoices = Store.getInvoices();
         const inv = invoices.find(i => i.id === id);
-        if (!inv) { _payMethodContext = null; closeModal('paymentMethodModal'); return; }
+        if (!inv) { _payMethodContext = null; _selectedPaymentMethod = null; closeModal('paymentMethodModal'); return; }
         inv.status = 'paid';
-        inv.paidDate = todayYmd();
+        inv.paidDate = inv.paidDate || todayYmd();  // preserve original on method change
         inv.paymentMethod = method;
         inv.paymentFee = calcPaymentFee(method, gross);
         inv.netAmount = calcNetAmount(method, gross);
@@ -1255,16 +1412,19 @@ function confirmPaymentMethod(method) {
         cascadeInvoicePaidToVisits(inv);
         closeModal('paymentMethodModal');
         _payMethodContext = null;
+        _selectedPaymentMethod = null;
         refreshAll();
-        showToast(`${inv.invoiceNumber} marked paid via ${paymentMethodLabel(method)}`);
+        showToast(`${inv.invoiceNumber} saved as ${paymentMethodLabel(method)}`);
     } else {
         closeModal('paymentMethodModal');
         _payMethodContext = null;
+        _selectedPaymentMethod = null;
     }
 }
 
 function cancelPaymentMethod() {
     _payMethodContext = null;
+    _selectedPaymentMethod = null;
     closeModal('paymentMethodModal');
 }
 
@@ -1276,7 +1436,7 @@ function changeInvoicePaymentMethod(id) {
     _payMethodContext = { type: 'invoice', id, gross };
     document.getElementById('payMethodTitle').textContent = `Change payment method`;
     document.getElementById('payMethodAmount').textContent = `$${gross.toFixed(2)} — ${inv.invoiceNumber}`;
-    openModal('paymentMethodModal');
+    _openPaymentMethodModal(inv.paymentMethod);  // pre-select current method
 }
 
 function cascadeInvoicePaidToVisits(inv) {
@@ -1823,11 +1983,278 @@ function renderIncomeBreakdown() {
     `);
 }
 
+/* ============================================================
+   MILEAGE RENDERING + ENTRY
+   ============================================================ */
+let _mileageRange = 'month';
+let _editingMileageDate = null;  // date string when editing an existing entry
+
+function setMileageRange(range) {
+    _mileageRange = range;
+    document.querySelectorAll('#mileageRangeTabs .income-range-tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.range === range);
+    });
+    renderMileage();
+}
+
+function renderMileage() {
+    const today = todayYmd();
+    const thisYM = today.slice(0, 7);
+    const thisY = today.slice(0, 4);
+    const inRange = (dateStr) => {
+        if (!dateStr) return false;
+        if (_mileageRange === 'month') return dateStr.startsWith(thisYM);
+        if (_mileageRange === 'year') return dateStr.startsWith(thisY);
+        return true;
+    };
+    const records = Store.getMileage().filter(r => inRange(r.date));
+
+    // Rate note — show current year's rate
+    const currentRate = mileageRateForDate(today);
+    document.getElementById('mileageRateNote').textContent = `· IRS rate ${(currentRate * 100).toFixed(1)}¢/mi (${thisY})`;
+
+    // Summary
+    const totalMiles = records.reduce((s, r) => s + (parseFloat(r.miles) || 0), 0);
+    const deduction = calcMileageDeduction(records);
+    const kaseyMiles = records.filter(r => r.driver === 'kasey').reduce((s, r) => s + (parseFloat(r.miles) || 0), 0);
+    const charlieMiles = records.filter(r => r.driver === 'charlie').reduce((s, r) => s + (parseFloat(r.miles) || 0), 0);
+
+    const summaryBody = document.getElementById('mileageSummaryBody');
+    if (records.length === 0) {
+        summaryBody.innerHTML = `<div class="income-empty" style="grid-column: 1 / -1;">No miles logged in this range yet. Tap "+ Log Miles" to start.</div>`;
+        document.getElementById('mileageEntriesList').innerHTML = '';
+        return;
+    }
+    summaryBody.innerHTML = `
+        <div class="income-summary-cell">
+            <div class="label">Total Miles</div>
+            <div class="value">${totalMiles.toFixed(1)}</div>
+            <div class="sub">${records.length} ${records.length === 1 ? 'entry' : 'entries'}</div>
+        </div>
+        <div class="income-summary-cell net">
+            <div class="label">Deduction</div>
+            <div class="value">$${deduction.toFixed(2)}</div>
+            <div class="sub">at IRS rate by year</div>
+        </div>
+        <div class="income-summary-cell">
+            <div class="label">By Driver</div>
+            <div class="value" style="font-size: 1em;">K ${kaseyMiles.toFixed(1)} · C ${charlieMiles.toFixed(1)}</div>
+            <div class="sub">miles each</div>
+        </div>
+    `;
+
+    // Group records by date for the entries table (combine same-day K + C rows)
+    const byDate = {};
+    records.forEach(r => {
+        if (!byDate[r.date]) byDate[r.date] = { date: r.date, kasey: 0, charlie: 0, notes: [], ids: [] };
+        const m = parseFloat(r.miles) || 0;
+        if (r.driver === 'kasey') byDate[r.date].kasey += m;
+        else if (r.driver === 'charlie') byDate[r.date].charlie += m;
+        if (r.notes) byDate[r.date].notes.push(r.notes);
+        byDate[r.date].ids.push(r.id);
+    });
+    const days = Object.values(byDate).sort((a, b) => b.date.localeCompare(a.date));
+
+    const rowsHtml = days.map(d => {
+        const total = d.kasey + d.charlie;
+        const dayDeduction = total * mileageRateForDate(d.date);
+        const drivers = [];
+        if (d.kasey > 0) drivers.push(`K ${d.kasey.toFixed(1)}`);
+        if (d.charlie > 0) drivers.push(`C ${d.charlie.toFixed(1)}`);
+        const note = d.notes.length > 0 ? escapeHtml(d.notes.join(' · ')) : '';
+        return `
+            <div class="mileage-entry-row" onclick="openLogMilesModal('${d.date}')" style="cursor: pointer;">
+                <div class="mileage-entry-date">${formatDate(d.date)}</div>
+                <div class="mileage-entry-miles">${total.toFixed(1)} mi</div>
+                <div class="mileage-entry-deduction">$${dayDeduction.toFixed(2)}</div>
+                <div class="mileage-entry-meta">${drivers.join(' · ')}${note ? ' · ' + note : ''}</div>
+                <div style="color: var(--text-faint); font-size: 0.85em;">edit →</div>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('mileageEntriesList').innerHTML = `
+        <div class="mileage-entries-title">Entries</div>
+        <div class="mileage-entry-row header">
+            <div>Date</div>
+            <div class="mileage-entry-miles">Miles</div>
+            <div class="mileage-entry-deduction">Deduction</div>
+            <div class="mileage-entry-meta">By Driver / Notes</div>
+            <div></div>
+        </div>
+        ${rowsHtml}
+    `;
+}
+
+function openLogMilesModal(prefillDate) {
+    const date = prefillDate || todayYmd();
+    _editingMileageDate = prefillDate || null;
+    document.getElementById('logMilesDate').value = date;
+    _prefillLogMilesForDate(date);
+    // When user changes the date, update prefills + visit context
+    document.getElementById('logMilesDate').onchange = (e) => _prefillLogMilesForDate(e.target.value);
+    openModal('logMilesModal');
+}
+
+function _prefillLogMilesForDate(date) {
+    const existing = Store.getMileage().filter(r => r.date === date);
+    const k = existing.find(r => r.driver === 'kasey');
+    const c = existing.find(r => r.driver === 'charlie');
+    document.getElementById('logMilesKasey').value = k ? k.miles : '';
+    document.getElementById('logMilesCharlie').value = c ? c.miles : '';
+    document.getElementById('logMilesNotes').value = (k && k.notes) || (c && c.notes) || '';
+    document.getElementById('logMilesTitle').textContent = existing.length > 0
+        ? `Edit Mileage — ${formatDate(date)}`
+        : `Log Miles — ${formatDate(date)}`;
+    document.getElementById('logMilesDeleteBtn').style.display = existing.length > 0 ? '' : 'none';
+    renderLogMilesVisitContext(date);
+}
+
+function renderLogMilesVisitContext(date) {
+    const visits = Store.getVisits().filter(v => v.date === date);
+    const ctx = document.getElementById('logMilesVisitContext');
+    if (visits.length === 0) {
+        ctx.innerHTML = `<strong>No visits scheduled for ${formatDate(date)}</strong><div>You can still log miles for this date.</div>`;
+        return;
+    }
+    visits.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    const lines = visits.map(v => {
+        const client = Store.getClients().find(c => c.id === v.clientId);
+        const addr = (v.address && v.address.trim()) || (client ? [client.address, client.city, client.state, client.zip].filter(Boolean).join(', ') : '');
+        return `• ${v.time ? v.time + ' · ' : ''}${escapeHtml(v.clientName || 'Client')}${addr ? ` <span style="color: var(--text-faint);">— ${escapeHtml(addr)}</span>` : ''}`;
+    }).join('<br>');
+    ctx.innerHTML = `<strong>${visits.length} visit${visits.length === 1 ? '' : 's'} on ${formatDate(date)} (auto-linked for audit trail)</strong><div>${lines}</div>`;
+}
+
+function saveLoggedMiles() {
+    const date = document.getElementById('logMilesDate').value;
+    if (!date) { showToast('Pick a date', 'error'); return; }
+    const kMiles = parseFloat(document.getElementById('logMilesKasey').value) || 0;
+    const cMiles = parseFloat(document.getElementById('logMilesCharlie').value) || 0;
+    const notes = document.getElementById('logMilesNotes').value.trim();
+    if (kMiles <= 0 && cMiles <= 0) { showToast('Enter miles for at least one driver', 'error'); return; }
+
+    // Linked visit IDs (snapshot for audit trail)
+    const visitIds = Store.getVisits().filter(v => v.date === date).map(v => v.id);
+
+    let records = Store.getMileage();
+    // Drop any existing entries for this date — we replace
+    records = records.filter(r => r.date !== date);
+    if (kMiles > 0) {
+        records.push({
+            id: `mile_${date}_kasey_${Date.now()}`,
+            date, driver: 'kasey', miles: kMiles, notes,
+            purpose: 'business', visitIds,
+            createdAt: new Date().toISOString()
+        });
+    }
+    if (cMiles > 0) {
+        records.push({
+            id: `mile_${date}_charlie_${Date.now()}`,
+            date, driver: 'charlie', miles: cMiles, notes,
+            purpose: 'business', visitIds,
+            createdAt: new Date().toISOString()
+        });
+    }
+    const ok = Store.saveMileage(records);
+    if (ok === false) { showToast('Could not save — try refreshing', 'error'); return; }
+    closeModal('logMilesModal');
+    _editingMileageDate = null;
+    refreshAll();
+    showToast(`Saved ${(kMiles + cMiles).toFixed(1)} miles for ${formatDate(date)}`);
+}
+
+function deleteLoggedMiles() {
+    const date = document.getElementById('logMilesDate').value;
+    if (!date) return;
+    if (!confirm(`Delete all mileage entries for ${formatDate(date)}?`)) return;
+    const records = Store.getMileage().filter(r => r.date !== date);
+    const ok = Store.saveMileage(records);
+    if (ok === false) { showToast('Could not save', 'error'); return; }
+    closeModal('logMilesModal');
+    _editingMileageDate = null;
+    refreshAll();
+    showToast('Mileage entries deleted');
+}
+
+/* ============================================================
+   BACKFILL MILEAGE
+   ============================================================ */
+function openBackfillMilesModal() {
+    // Find every past date that had completed visits but no mileage record yet
+    const today = todayYmd();
+    const visits = Store.getVisits().filter(v => v.date && v.date <= today && (v.status === 'completed' || (v.date < today)));
+    const loggedDates = new Set(Store.getMileage().map(r => r.date));
+    const byDate = {};
+    visits.forEach(v => {
+        if (loggedDates.has(v.date)) return;
+        if (!byDate[v.date]) byDate[v.date] = { date: v.date, visits: [] };
+        byDate[v.date].visits.push(v);
+    });
+    const days = Object.values(byDate).sort((a, b) => b.date.localeCompare(a.date));
+
+    const list = document.getElementById('backfillMilesList');
+    if (days.length === 0) {
+        list.innerHTML = `<div class="income-empty">All past days with visits already have mileage logged. 🎉</div>`;
+    } else {
+        list.innerHTML = days.map(d => {
+            const clientNames = d.visits.map(v => v.clientName || 'Client').filter((v, i, a) => a.indexOf(v) === i).join(', ');
+            return `
+                <div class="backfill-day-row" data-date="${d.date}">
+                    <div class="backfill-day-info">
+                        <div class="backfill-day-date">${formatDate(d.date)}</div>
+                        <div class="backfill-day-visits">${d.visits.length} visit${d.visits.length === 1 ? '' : 's'} · ${escapeHtml(clientNames)}</div>
+                    </div>
+                    <input type="number" min="0" step="0.1" placeholder="Kasey mi" class="backfill-kasey">
+                    <input type="number" min="0" step="0.1" placeholder="Charlie mi" class="backfill-charlie">
+                </div>
+            `;
+        }).join('');
+    }
+    openModal('backfillMilesModal');
+}
+
+function saveBackfillMiles() {
+    const rows = document.querySelectorAll('#backfillMilesList .backfill-day-row');
+    let records = Store.getMileage();
+    let added = 0;
+    rows.forEach(row => {
+        const date = row.dataset.date;
+        const k = parseFloat(row.querySelector('.backfill-kasey').value) || 0;
+        const c = parseFloat(row.querySelector('.backfill-charlie').value) || 0;
+        if (k <= 0 && c <= 0) return;
+        const visitIds = Store.getVisits().filter(v => v.date === date).map(v => v.id);
+        if (k > 0) {
+            records.push({
+                id: `mile_${date}_kasey_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                date, driver: 'kasey', miles: k, notes: '', purpose: 'business', visitIds,
+                createdAt: new Date().toISOString()
+            });
+            added++;
+        }
+        if (c > 0) {
+            records.push({
+                id: `mile_${date}_charlie_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                date, driver: 'charlie', miles: c, notes: '', purpose: 'business', visitIds,
+                createdAt: new Date().toISOString()
+            });
+            added++;
+        }
+    });
+    if (added === 0) { showToast('No miles entered', 'error'); return; }
+    const ok = Store.saveMileage(records);
+    if (ok === false) { showToast('Could not save', 'error'); return; }
+    closeModal('backfillMilesModal');
+    refreshAll();
+    showToast(`Added ${added} mileage ${added === 1 ? 'entry' : 'entries'}`);
+}
+
 function refreshAll() {
     renderStats();
     renderFilterTabs();
     renderInvoiceList();
     renderIncomeBreakdown();
+    renderMileage();
 }
 
 function init() {
@@ -1855,7 +2282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </a>
         <a href="invoices.html" class="active">
             <span class="tab-icon">$</span>
-            <span class="tab-label">Invoices</span>
+            <span class="tab-label">Finances</span>
         </a>
     </nav>
 </body>

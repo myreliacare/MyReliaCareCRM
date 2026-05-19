@@ -64,6 +64,7 @@ window.STORAGE_KEYS = {
     personalEvents: 'myreliacare_personal_events',
     invoices: 'myreliacare_invoices',
     quickNotes: 'myreliacare_quick_notes',
+    mileage: 'myreliacare_mileage',
     logo: 'myreliacare_logo'  // logo stays per-device; not synced (large base64)
 };
 
@@ -73,12 +74,13 @@ const COLLECTIONS = [
     { name: 'visits',         stateKey: 'visits',         storageKey: STORAGE_KEYS.visits },
     { name: 'personalEvents', stateKey: 'personalEvents', storageKey: STORAGE_KEYS.personalEvents },
     { name: 'invoices',       stateKey: 'invoices',       storageKey: STORAGE_KEYS.invoices },
-    { name: 'quickNotes',     stateKey: 'quickNotes',     storageKey: STORAGE_KEYS.quickNotes }
+    { name: 'quickNotes',     stateKey: 'quickNotes',     storageKey: STORAGE_KEYS.quickNotes },
+    { name: 'mileage',        stateKey: 'mileage',        storageKey: STORAGE_KEYS.mileage }
 ];
 
 // --- In-memory state ---
 const _state = {
-    clients: [], visits: [], personalEvents: [], invoices: [], quickNotes: []
+    clients: [], visits: [], personalEvents: [], invoices: [], quickNotes: [], mileage: []
 };
 
 // Hydrate _state from localStorage cache for instant first paint
@@ -200,10 +202,12 @@ window.Store = {
     getVisits() { return _deepClone(_state.visits); },
     getPersonalEvents() { return _deepClone(_state.personalEvents); },
     getInvoices() { return _deepClone(_state.invoices); },
+    getMileage() { return _deepClone(_state.mileage); },
     saveClients(arr) { return _saveCollection(COLLECTIONS[0], arr); },
     saveVisits(arr) { return _saveCollection(COLLECTIONS[1], arr); },
     savePersonalEvents(arr) { return _saveCollection(COLLECTIONS[2], arr); },
-    saveInvoices(arr) { return _saveCollection(COLLECTIONS[3], arr); }
+    saveInvoices(arr) { return _saveCollection(COLLECTIONS[3], arr); },
+    saveMileage(arr) { return _saveCollection(COLLECTIONS[5], arr); }
 };
 
 function _saveCollection(coll, newArr) {
