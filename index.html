@@ -792,20 +792,29 @@
         .assignee-badge.charlie { background: rgba(138, 168, 156, 0.2); color: var(--charlie); border: 1px solid var(--charlie); }
         .assignee-badge.both    { background: rgba(212, 197, 201, 0.15); color: var(--accent-light); border: 1px solid var(--accent-light); }
 
-        .map-links { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .map-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
         .addr-line { display: block; }
         .map-link {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 14px;
-            font-size: 0.85em;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.95em;
+            font-weight: 500;
             background: var(--bg-input);
-            color: var(--text-dim);
-            border: 1px solid var(--border);
+            color: var(--accent);
+            border: 1px solid var(--accent);
             text-decoration: none;
             transition: all 0.15s;
         }
-        .map-link:hover { color: var(--accent); border-color: var(--accent); }
+        .map-link::before { content: '➤'; font-size: 0.85em; }
+        .map-link:hover { background: var(--accent); color: white; }
+        .map-link:active { transform: scale(0.97); }
+        @media (max-width: 700px) {
+            .map-links { gap: 10px; }
+            .map-link { flex: 1; justify-content: center; padding: 12px 16px; font-size: 1em; }
+        }
         .empty-state {
             text-align: center;
             padding: 30px 20px;
@@ -840,6 +849,13 @@
             box-shadow: 0 25px 80px rgba(0,0,0,0.6);
             overflow: hidden;
         }
+        .modal.modal-sm { max-width: 440px; }
+        .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .pay-method-btn { padding: 14px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-align: left; font-family: inherit; font-size: 1em; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: all 0.15s; }
+        .pay-method-btn:hover { border-color: var(--accent); background: var(--bg-card); }
+        .pay-method-btn.pay-method-btn-wide { grid-column: 1 / -1; }
+        .pmb-label { font-weight: 600; color: var(--text); }
+        .pmb-hint { color: var(--text-faint); font-size: 0.78em; }
         .modal-header { flex-shrink: 0; min-width: 0; }
         .modal-header h2 { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
         .modal-body-scrollable { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
@@ -1264,6 +1280,7 @@
         .plan-day-gap { text-align: center; color: var(--text-faint); font-size: 0.85em; padding: 4px 0; font-style: italic; }
         .plan-day-link { color: var(--accent); text-decoration: none; font-size: 0.9em; }
         .plan-day-link:hover { color: var(--accent-light); text-decoration: underline; }
+        .plan-day-map-links { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; align-items: flex-end; }
         .plan-day-summary { background: var(--bg-card-light); padding: 12px 16px; border-radius: 8px; margin-bottom: 14px; color: var(--text-dim); font-size: 0.95em; }
 
         /* === EVENT DETAIL === */
@@ -1904,7 +1921,7 @@
 </div>
 
 <!-- ========= ADD TIP MODAL ========= -->
-<div class="modal-overlay" id="addTipModal">
+<div class="modal-overlay" id="addTipModal" style="z-index: 1100;">
     <div class="modal">
         <div class="modal-header">
             <h2>Add Tip — <span id="addTipClientName"></span></h2>
@@ -1929,6 +1946,30 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('addTipModal')">Cancel</button>
             <button class="btn btn-primary" onclick="saveTip()">Add Tip</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= PAYMENT METHOD MODAL ========= -->
+<div class="modal-overlay" id="paymentMethodModal" style="z-index: 1100;">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h2 id="payMethodTitle">How was this paid?</h2>
+            <button class="modal-close" onclick="cancelPaymentMethod()">×</button>
+        </div>
+        <div class="modal-body">
+            <div id="payMethodAmount" style="font-size: 1.4em; color: var(--accent); text-align: center; margin-bottom: 16px; font-family: 'Cormorant Unicase', serif;"></div>
+            <div class="pay-method-grid">
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('venmo')"><span class="pmb-label">Venmo</span><span class="pmb-hint">1.9% + $0.10</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">2.75%</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('stripe')"><span class="pmb-label">Stripe</span><span class="pmb-hint">2.9% + $0.30</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('rover')"><span class="pmb-label">Rover</span><span class="pmb-hint">paid via app</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('cash')"><span class="pmb-label">Cash</span><span class="pmb-hint">no fee</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('other')"><span class="pmb-label">Other</span><span class="pmb-hint">no fee tracked</span></button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="cancelPaymentMethod()">Cancel</button>
         </div>
     </div>
 </div>
@@ -2242,6 +2283,31 @@ function monthsBetween(d1, d2) {
     const a = parseYmd(typeof d1 === 'string' ? d1 : ymd(d1));
     const b = parseYmd(typeof d2 === 'string' ? d2 : ymd(d2));
     return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+}
+
+/* ============================================================
+   PAYMENT METHODS / FEE TRACKING
+   ============================================================ */
+const PAYMENT_METHODS = {
+    venmo:   { label: 'Venmo',   pct: 0.019,  flat: 0.10, hint: '1.9% + $0.10' },
+    cashapp: { label: 'CashApp', pct: 0.0275, flat: 0,    hint: '2.75%' },
+    stripe:  { label: 'Stripe',  pct: 0.029,  flat: 0.30, hint: '2.9% + $0.30' },
+    rover:   { label: 'Rover',   pct: 0,      flat: 0,    hint: 'paid via app' },
+    cash:    { label: 'Cash',    pct: 0,      flat: 0,    hint: 'no fee' },
+    other:   { label: 'Other',   pct: 0,      flat: 0,    hint: 'no fee tracked' },
+};
+function calcPaymentFee(method, gross) {
+    const m = PAYMENT_METHODS[method];
+    if (!m || !gross || gross <= 0) return 0;
+    const fee = (gross * m.pct) + m.flat;
+    return Math.round(fee * 100) / 100;
+}
+function calcNetAmount(method, gross) {
+    const g = parseFloat(gross) || 0;
+    return Math.round((g - calcPaymentFee(method, g)) * 100) / 100;
+}
+function paymentMethodLabel(method) {
+    return (PAYMENT_METHODS[method] || {}).label || (method ? method : 'Unrecorded');
 }
 
 /* ============================================================
@@ -2935,6 +3001,15 @@ function openEventDetail(eventId, eventType) {
         const petNames = (linkedClient && linkedClient.pets && linkedClient.pets.length > 0)
             ? linkedClient.pets.map(p => escapeHtml(p.name || '')).filter(Boolean).join(', ')
             : '';
+        // Fall back to client record for address/access if the visit itself doesn't have them
+        let displayAddress = v.address;
+        if ((!displayAddress || !displayAddress.trim()) && linkedClient) {
+            displayAddress = [linkedClient.address, linkedClient.city, linkedClient.state, linkedClient.zip].filter(Boolean).join(', ');
+        }
+        let displayAccess = v.accessInstructions;
+        if ((!displayAccess || !displayAccess.trim()) && linkedClient) {
+            displayAccess = linkedClient.accessInstructions || '';
+        }
         document.getElementById('detailTitle').innerHTML = `${t.label} — ${escapeHtml(v.clientName || 'Client')} ${paidBadge}`;
         const isComplete = v.status === 'completed';
         const isPaid = !!v.paid;
@@ -2951,17 +3026,21 @@ function openEventDetail(eventId, eventType) {
             </div>
             <div class="event-callout">
                 <div class="event-callout-label">Address</div>
-                <div class="event-callout-value">${renderAddressWithMaps(v.address)}</div>
+                <div class="event-callout-value">${renderAddressWithMaps(displayAddress)}</div>
             </div>
             <div class="event-callout access">
                 <div class="event-callout-label">Access</div>
-                <div class="event-callout-value">${escapeHtml(v.accessInstructions || '—')}</div>
+                <div class="event-callout-value">${escapeHtml(displayAccess || '—')}</div>
             </div>
             <div class="event-detail-row"><div class="event-detail-label">When</div><div class="event-detail-value">${formatDateLong(v.date)} · ${formatTime12(v.time)}</div></div>
             <div class="event-detail-row"><div class="event-detail-label">Type</div><div class="event-detail-value">${t.label}</div></div>
             ${petNames ? `<div class="event-detail-row"><div class="event-detail-label">Pets</div><div class="event-detail-value">${petNames}</div></div>` : ''}
             <div class="event-detail-row"><div class="event-detail-label">Assigned</div><div class="event-detail-value">${assigneeFullLabel(v.assignedTo)}</div></div>
             <div class="event-detail-row"><div class="event-detail-label">Price</div><div class="event-detail-value">$${(v.price || 0).toFixed(2)}${v.paid ? ` <span style="color: var(--success); font-size: 0.9em;">· paid ${v.paidDate ? formatDateLong(v.paidDate) : ''}</span>` : ''}${v.invoiced ? ' <span style="color: var(--accent); font-size: 0.9em;">· on an invoice</span>' : ''}</div></div>
+            ${v.paid ? `<div class="event-detail-row"><div class="event-detail-label">Payment</div><div class="event-detail-value">
+                <div>${paymentMethodLabel(v.paymentMethod)}${v.paymentMethod && v.paymentMethod !== 'cash' && v.paymentMethod !== 'other' && v.paymentMethod !== 'rover' ? ` <span style="color: var(--text-faint); font-size: 0.85em;">· fee $${(v.paymentFee || 0).toFixed(2)} · net $${(v.netAmount != null ? v.netAmount : (v.price || 0)).toFixed(2)}</span>` : ''}</div>
+                <button class="btn btn-ghost btn-sm" onclick="changeVisitPaymentMethod('${v.id}')" style="margin-top: 6px;">Change method</button>
+            </div></div>` : ''}
             ${v.recurringGroupId ? `<div class="event-detail-row"><div class="event-detail-label">Recurring</div><div class="event-detail-value" style="color: var(--text-faint); font-style: italic;">part of a recurring schedule</div></div>` : ''}
             ${v.notes ? `<div class="event-detail-row"><div class="event-detail-label">Notes</div><div class="event-detail-value" style="white-space: pre-wrap;">${escapeHtml(v.notes)}</div></div>` : ''}
             <div class="event-detail-row" style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 6px;">
@@ -3007,16 +3086,70 @@ function toggleVisitComplete(id) {
     openEventDetail(id, 'visit');
     showToast(v.status === 'completed' ? 'Marked complete' : 'Marked incomplete');
 }
+// Payment method modal state — what we're marking paid
+let _payMethodContext = null;  // { type: 'visit', id, gross }
+
 function toggleVisitPaid(id) {
     const visits = Store.getVisits();
     const v = visits.find(x => x.id === id);
     if (!v) return;
-    v.paid = !v.paid;
-    v.paidDate = v.paid ? todayYmd() : null;
-    Store.saveVisits(visits);
-    refreshAll();
-    openEventDetail(id, 'visit');
-    showToast(v.paid ? 'Marked paid' : 'Marked unpaid');
+    if (!v.paid) {
+        // Marking paid: open method modal first
+        _payMethodContext = { type: 'visit', id, gross: v.price || 0 };
+        document.getElementById('payMethodTitle').textContent = `How was this paid?`;
+        document.getElementById('payMethodAmount').textContent = `$${(v.price || 0).toFixed(2)} — ${v.clientName || 'Client'}`;
+        openModal('paymentMethodModal');
+    } else {
+        // Unmarking paid: clear method/fee/net
+        v.paid = false;
+        v.paidDate = null;
+        v.paymentMethod = null;
+        v.paymentFee = 0;
+        v.netAmount = 0;
+        Store.saveVisits(visits);
+        refreshAll();
+        openEventDetail(id, 'visit');
+        showToast('Marked unpaid');
+    }
+}
+
+function confirmPaymentMethod(method) {
+    if (!_payMethodContext) { closeModal('paymentMethodModal'); return; }
+    const { type, id, gross } = _payMethodContext;
+    if (type === 'visit') {
+        const visits = Store.getVisits();
+        const v = visits.find(x => x.id === id);
+        if (!v) { _payMethodContext = null; closeModal('paymentMethodModal'); return; }
+        v.paid = true;
+        v.paidDate = todayYmd();
+        v.paymentMethod = method;
+        v.paymentFee = calcPaymentFee(method, gross);
+        v.netAmount = calcNetAmount(method, gross);
+        Store.saveVisits(visits);
+        closeModal('paymentMethodModal');
+        _payMethodContext = null;
+        refreshAll();
+        openEventDetail(id, 'visit');
+        showToast(`Marked paid via ${paymentMethodLabel(method)}`);
+    } else {
+        closeModal('paymentMethodModal');
+        _payMethodContext = null;
+    }
+}
+
+function cancelPaymentMethod() {
+    _payMethodContext = null;
+    closeModal('paymentMethodModal');
+}
+
+// Change the payment method on an already-paid visit
+function changeVisitPaymentMethod(id) {
+    const v = Store.getVisits().find(x => x.id === id);
+    if (!v || !v.paid) return;
+    _payMethodContext = { type: 'visit', id, gross: v.price || 0 };
+    document.getElementById('payMethodTitle').textContent = `Change payment method`;
+    document.getElementById('payMethodAmount').textContent = `$${(v.price || 0).toFixed(2)} — ${v.clientName || 'Client'}`;
+    openModal('paymentMethodModal');
 }
 
 // Legacy names — kept as no-ops/aliases in case anything still references them
@@ -3027,12 +3160,10 @@ function markVisitCompleteAndPaid(id) {
     const v = visits.find(x => x.id === id);
     if (!v) return;
     v.status = 'completed';
-    v.paid = true;
-    v.paidDate = todayYmd();
     Store.saveVisits(visits);
     refreshAll();
-    openEventDetail(id, 'visit');
-    showToast('Visit completed & paid');
+    // Trigger paid flow with method modal
+    toggleVisitPaid(id);
 }
 function markVisitComplete(id) { toggleVisitComplete(id); }
 function markVisitScheduled(id) { toggleVisitComplete(id); }
@@ -3169,8 +3300,18 @@ function editVisit(id) {
     document.getElementById('editVisitDate').value = v.date || '';
     document.getElementById('editVisitTime').value = v.time || '';
     document.getElementById('editVisitPrice').value = v.price != null ? v.price : 0;
-    document.getElementById('editVisitAddress').value = v.address || '';
-    document.getElementById('editVisitAccess').value = v.accessInstructions || '';
+    // Fall back to client record if visit doesn't have address/access
+    const editLinkedClient = Store.getClients().find(c => c.id === v.clientId);
+    let editAddress = v.address || '';
+    if (!editAddress.trim() && editLinkedClient) {
+        editAddress = [editLinkedClient.address, editLinkedClient.city, editLinkedClient.state, editLinkedClient.zip].filter(Boolean).join(', ');
+    }
+    let editAccess = v.accessInstructions || '';
+    if (!editAccess.trim() && editLinkedClient) {
+        editAccess = editLinkedClient.accessInstructions || '';
+    }
+    document.getElementById('editVisitAddress').value = editAddress;
+    document.getElementById('editVisitAccess').value = editAccess;
     document.getElementById('editVisitNotes').value = v.notes || '';
 
     // Set assigned-to radio
@@ -3747,7 +3888,13 @@ function renderPlanDay(dateStr, events) {
         stopNum++;
         const v = e;
         const t = VISIT_TYPES[v.visitType] || { label: 'Visit' };
-        const zip = zipOf(v.address);
+        const client = Store.getClients().find(c => c.id === v.clientId);
+        // Effective address: visit's own override, or fall back to client record
+        let effAddr = v.address || '';
+        if (!effAddr.trim() && client) {
+            effAddr = [client.address, client.city, client.state, client.zip].filter(Boolean).join(', ');
+        }
+        const zip = zipOf(effAddr);
         const cluster = zip && zip === prevZip;
 
         // Time gap from previous stop
@@ -3761,7 +3908,6 @@ function renderPlanDay(dateStr, events) {
         prevZip = zip;
 
         // window check
-        const client = Store.getClients().find(c => c.id === v.clientId);
         let windowFlag = '';
         if (client && (client.timeWindows || []).length > 0 && v.time) {
             const dow = parseYmd(v.date).getDay();
@@ -3774,7 +3920,11 @@ function renderPlanDay(dateStr, events) {
             }
         }
 
-        const mapsLink = v.address ? `<a href="https://maps.apple.com/?q=${encodeURIComponent(v.address)}" target="_blank" class="plan-day-link" onclick="event.stopPropagation()">Open in Maps</a>` : '';
+        const mapsQ = effAddr ? encodeURIComponent(normalizeAddressForMaps(effAddr)) : '';
+        const mapsLinks = effAddr ? `<div class="plan-day-map-links">
+            <a href="https://maps.apple.com/?q=${mapsQ}" target="_blank" class="plan-day-link" onclick="event.stopPropagation()">Apple Maps</a>
+            <a href="https://waze.com/ul?q=${mapsQ}&navigate=yes" target="_blank" class="plan-day-link" onclick="event.stopPropagation()">Waze</a>
+        </div>` : '';
         const assigneeBadge = `<span class="assignee-badge ${v.assignedTo || 'both'}">${assigneeBadgeText(v.assignedTo)}</span>`;
         const paidBadge = v.status === 'completed'
             ? (v.paid ? '<span class="paid-badge" style="margin-left: 0;">PAID</span>' : '<span class="paid-badge unpaid" style="margin-left: 0;">UNPAID</span>')
@@ -3786,12 +3936,12 @@ function renderPlanDay(dateStr, events) {
                 <div>
                     <div class="plan-day-time">${formatTime12(v.time)} · ${t.label} ${assigneeBadge} ${paidBadge}</div>
                     <div class="plan-day-name">${escapeHtml(v.clientName || 'Client')}</div>
-                    ${v.address ? `<div class="plan-day-addr">${escapeHtml(v.address)}${zip ? ` · ${zip}` : ''}${cluster ? ' · same area as previous' : ''}</div>` : ''}
+                    ${effAddr ? `<div class="plan-day-addr">${escapeHtml(effAddr)}${zip ? ` · ${zip}` : ''}${cluster ? ' · same area as previous' : ''}</div>` : ''}
                     ${windowFlag}
                 </div>
                 <div style="text-align: right;">
                     <div style="color: var(--accent-light); font-weight: 600;">$${(v.price || 0).toFixed(2)}</div>
-                    ${mapsLink}
+                    ${mapsLinks}
                 </div>
             </div>
         `;
@@ -3902,11 +4052,37 @@ function cancelTip(visitId) {
     if (cell) cell.innerHTML = renderTipUI(v);
 }
 
+function normalizeAddressForMaps(raw) {
+    if (!raw) return '';
+    // Collapse whitespace, fix spacing around commas, strip leading/trailing junk
+    let s = String(raw).replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').trim();
+    s = s.replace(/^,+|,+$/g, '').replace(/,\s*,/g, ',').trim();
+    // Find a 5-digit zip anywhere in the string. If found mid-string, move it to the end.
+    // (Handles cases like "123 Main St 41048 Florence KY" or zip in the wrong client field.)
+    const zipMatch = s.match(/\b(\d{5})(?:-\d{4})?\b/);
+    if (zipMatch) {
+        const zip = zipMatch[0];
+        const idx = s.lastIndexOf(zip);
+        const isAtEnd = idx + zip.length >= s.length - 2; // allow trailing punct
+        if (!isAtEnd) {
+            // Remove the zip from its current spot, clean up the resulting double-comma/space, append at the end
+            s = (s.slice(0, idx) + s.slice(idx + zip.length))
+                .replace(/\s+/g, ' ')
+                .replace(/\s*,\s*/g, ', ')
+                .replace(/,\s*,/g, ',')
+                .replace(/^,+|,+$/g, '')
+                .trim();
+            s = s + ' ' + zip;
+        }
+    }
+    return s;
+}
+
 function renderAddressWithMaps(address) {
     if (!address || !address.trim()) return '—';
-    const q = encodeURIComponent(address);
+    const q = encodeURIComponent(normalizeAddressForMaps(address));
     const safe = escapeHtml(address);
-    return `<span class="addr-line">${safe}</span><span class="map-links"><a class="map-link" href="https://maps.apple.com/?q=${q}" target="_blank" rel="noopener">Apple Maps</a><a class="map-link" href="https://waze.com/ul?q=${q}" target="_blank" rel="noopener">Waze</a></span>`;
+    return `<span class="addr-line">${safe}</span><span class="map-links"><a class="map-link" href="https://maps.apple.com/?q=${q}" target="_blank" rel="noopener">Apple Maps</a><a class="map-link" href="https://waze.com/ul?q=${q}&navigate=yes" target="_blank" rel="noopener">Waze</a></span>`;
 }
 
 /* ============================================================
@@ -4157,7 +4333,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="tab-label">Dashboard</span>
         </a>
         <a href="clients.html">
-            <span class="tab-icon">◷</span>
+            <span class="tab-icon"><svg viewBox="0 0 24 24" fill="currentColor" style="width:1em;height:1em;display:block;" aria-hidden="true"><circle cx="6" cy="9" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="9" r="2"/><path d="M12 11c-3.5 0-6 3-6 6 0 1.6 1.1 3 3 3h6c1.9 0 3-1.4 3-3 0-3-2.5-6-6-6z"/></svg></span>
             <span class="tab-label">Clients</span>
         </a>
         <a href="invoices.html">

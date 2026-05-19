@@ -181,6 +181,41 @@
             box-shadow: 0 25px 80px rgba(0,0,0,0.6);
             overflow: hidden;
         }
+        .modal.modal-sm { max-width: 440px; }
+        .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .pay-method-btn { padding: 14px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-align: left; font-family: inherit; font-size: 1em; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: all 0.15s; }
+        .pay-method-btn:hover { border-color: var(--accent); background: var(--bg-card); }
+        .pay-method-btn.pay-method-btn-wide { grid-column: 1 / -1; }
+        .pmb-label { font-weight: 600; color: var(--text); }
+        .pmb-hint { color: var(--text-faint); font-size: 0.78em; }
+
+        /* Income breakdown */
+        .income-breakdown-card { margin-bottom: 18px; }
+        .income-breakdown-title { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .income-range-tabs { display: inline-flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
+        .income-range-tab { background: transparent; border: none; padding: 6px 12px; color: var(--text-faint); font-family: inherit; font-size: 0.9em; cursor: pointer; border-radius: 6px; transition: all 0.15s; }
+        .income-range-tab.active { background: var(--bg-card); color: var(--accent); }
+        .income-breakdown-body { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 14px; }
+        .income-summary-cell { background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border); }
+        .income-summary-cell .label { color: var(--text-faint); font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .income-summary-cell .value { color: var(--accent); font-size: 1.5em; font-weight: 600; font-family: 'Cormorant Unicase', serif; }
+        .income-summary-cell.fee .value { color: var(--warn); }
+        .income-summary-cell.net .value { color: var(--success); }
+        .income-summary-cell .sub { color: var(--text-faint); font-size: 0.8em; margin-top: 2px; }
+        .income-method-list { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .income-method-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.95em; }
+        .income-method-row:last-child { border-bottom: none; }
+        .income-method-row.header { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; }
+        .income-method-row .imr-amt { text-align: right; font-variant-numeric: tabular-nums; }
+        .income-method-row .imr-fee { color: var(--warn); }
+        .income-method-row .imr-net { color: var(--success); }
+        .income-empty { color: var(--text-faint); font-size: 0.95em; padding: 14px 0; text-align: center; }
+        @media (max-width: 700px) {
+            .income-breakdown-body { grid-template-columns: 1fr; }
+            .income-method-row { grid-template-columns: 1.5fr 1fr 1fr; }
+            .income-method-row .imr-fee { display: none; }
+            .income-method-row.header .imr-fee { display: none; }
+        }
         .modal-header { flex-shrink: 0; min-width: 0; }
         .modal-header h2 { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
         .modal-body-scrollable { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
@@ -543,6 +578,18 @@
             </div>
         </div>
 
+        <div class="card income-breakdown-card">
+            <div class="card-title income-breakdown-title">
+                <span>Income Breakdown</span>
+                <div class="income-range-tabs" id="incomeRangeTabs">
+                    <button class="income-range-tab active" data-range="month" onclick="setIncomeRange('month')">This Month</button>
+                    <button class="income-range-tab" data-range="year" onclick="setIncomeRange('year')">This Year</button>
+                    <button class="income-range-tab" data-range="all" onclick="setIncomeRange('all')">All Time</button>
+                </div>
+            </div>
+            <div class="income-breakdown-body" id="incomeBreakdownBody"></div>
+        </div>
+
         <div class="card">
             <div class="card-title">
                 <span>Invoices</span>
@@ -649,6 +696,30 @@
         </div>
         <div class="modal-body" id="viewBody"></div>
         <div class="modal-footer" id="viewFooter"></div>
+    </div>
+</div>
+
+<!-- ========= PAYMENT METHOD MODAL ========= -->
+<div class="modal-overlay" id="paymentMethodModal" style="z-index: 1100;">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h2 id="payMethodTitle">How was this paid?</h2>
+            <button class="modal-close" onclick="cancelPaymentMethod()">×</button>
+        </div>
+        <div class="modal-body">
+            <div id="payMethodAmount" style="font-size: 1.4em; color: var(--accent); text-align: center; margin-bottom: 16px; font-family: 'Cormorant Unicase', serif;"></div>
+            <div class="pay-method-grid">
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('venmo')"><span class="pmb-label">Venmo</span><span class="pmb-hint">1.9% + $0.10</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">2.75%</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('stripe')"><span class="pmb-label">Stripe</span><span class="pmb-hint">2.9% + $0.30</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('rover')"><span class="pmb-label">Rover</span><span class="pmb-hint">paid via app</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('cash')"><span class="pmb-label">Cash</span><span class="pmb-hint">no fee</span></button>
+                <button class="pay-method-btn" onclick="confirmPaymentMethod('other')"><span class="pmb-label">Other</span><span class="pmb-hint">no fee tracked</span></button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="cancelPaymentMethod()">Cancel</button>
+        </div>
     </div>
 </div>
 
@@ -769,6 +840,31 @@ function nextInvoiceNumber() {
 }
 function clientById(id) { return Store.getClients().find(c => c.id === id); }
 function clientName(id) { const c = clientById(id); return c ? c.name : '(client deleted)'; }
+
+/* ============================================================
+   PAYMENT METHODS / FEE TRACKING
+   ============================================================ */
+const PAYMENT_METHODS = {
+    venmo:   { label: 'Venmo',   pct: 0.019,  flat: 0.10, hint: '1.9% + $0.10' },
+    cashapp: { label: 'CashApp', pct: 0.0275, flat: 0,    hint: '2.75%' },
+    stripe:  { label: 'Stripe',  pct: 0.029,  flat: 0.30, hint: '2.9% + $0.30' },
+    rover:   { label: 'Rover',   pct: 0,      flat: 0,    hint: 'paid via app' },
+    cash:    { label: 'Cash',    pct: 0,      flat: 0,    hint: 'no fee' },
+    other:   { label: 'Other',   pct: 0,      flat: 0,    hint: 'no fee tracked' },
+};
+function calcPaymentFee(method, gross) {
+    const m = PAYMENT_METHODS[method];
+    if (!m || !gross || gross <= 0) return 0;
+    const fee = (gross * m.pct) + m.flat;
+    return Math.round(fee * 100) / 100;
+}
+function calcNetAmount(method, gross) {
+    const g = parseFloat(gross) || 0;
+    return Math.round((g - calcPaymentFee(method, g)) * 100) / 100;
+}
+function paymentMethodLabel(method) {
+    return (PAYMENT_METHODS[method] || {}).label || (method ? method : 'Unrecorded');
+}
 function invoiceClientDisplayName(inv) {
     if (!inv) return '';
     const c = clientById(inv.clientId);
@@ -1052,6 +1148,13 @@ function saveInvoice() {
 
         // Preserve existing status (changes via Mark Sent / Mark Paid in view)
         Object.assign(inv, { clientId, clientName, items, subtotal, discount, taxRate, total, notes, issueDate, invoiceNumber: number });
+        // If the invoice is already paid and total changed, recompute fee/net
+        if (inv.status === 'paid' && inv.paymentMethod) {
+            inv.paymentFee = calcPaymentFee(inv.paymentMethod, total);
+            inv.netAmount = calcNetAmount(inv.paymentMethod, total);
+            // Re-cascade to linked visits so their proportional fee/net stays in sync
+            cascadeInvoicePaidToVisits(inv);
+        }
         invoices[idx] = inv;
     } else {
         inv = {
@@ -1104,16 +1207,76 @@ function deleteInvoice(id) {
 /* ============================================================
    QUICK ACTIONS
    ============================================================ */
+let _payMethodContext = null;  // { type: 'invoice', id, gross }
+
 function quickMarkPaid(id) {
     const invoices = Store.getInvoices();
     const inv = invoices.find(i => i.id === id);
     if (!inv) return;
-    inv.status = 'paid';
-    inv.paidDate = todayYmd();
-    Store.saveInvoices(invoices);
-    cascadeInvoicePaidToVisits(inv);
-    refreshAll();
-    showToast(`${inv.invoiceNumber} marked paid`);
+    if (inv.status === 'paid') {
+        // Unmark paid
+        inv.status = 'sent';
+        inv.paidDate = null;
+        inv.paymentMethod = null;
+        inv.paymentFee = 0;
+        inv.netAmount = 0;
+        Store.saveInvoices(invoices);
+        cascadeInvoiceUnpaidToVisits(inv);
+        refreshAll();
+        showToast(`${inv.invoiceNumber} marked unpaid`);
+        return;
+    }
+    // Compute gross from invoice
+    const gross = invoiceGrossTotal(inv);
+    _payMethodContext = { type: 'invoice', id, gross };
+    document.getElementById('payMethodTitle').textContent = `How was this paid?`;
+    document.getElementById('payMethodAmount').textContent = `$${gross.toFixed(2)} — ${inv.invoiceNumber}`;
+    openModal('paymentMethodModal');
+}
+
+function invoiceGrossTotal(inv) {
+    // Use the stored total (already includes discounts/tax)
+    return parseFloat(inv.total) || 0;
+}
+
+function confirmPaymentMethod(method) {
+    if (!_payMethodContext) { closeModal('paymentMethodModal'); return; }
+    const { type, id, gross } = _payMethodContext;
+    if (type === 'invoice') {
+        const invoices = Store.getInvoices();
+        const inv = invoices.find(i => i.id === id);
+        if (!inv) { _payMethodContext = null; closeModal('paymentMethodModal'); return; }
+        inv.status = 'paid';
+        inv.paidDate = todayYmd();
+        inv.paymentMethod = method;
+        inv.paymentFee = calcPaymentFee(method, gross);
+        inv.netAmount = calcNetAmount(method, gross);
+        Store.saveInvoices(invoices);
+        cascadeInvoicePaidToVisits(inv);
+        closeModal('paymentMethodModal');
+        _payMethodContext = null;
+        refreshAll();
+        showToast(`${inv.invoiceNumber} marked paid via ${paymentMethodLabel(method)}`);
+    } else {
+        closeModal('paymentMethodModal');
+        _payMethodContext = null;
+    }
+}
+
+function cancelPaymentMethod() {
+    _payMethodContext = null;
+    closeModal('paymentMethodModal');
+}
+
+// Change payment method on already-paid invoice
+function changeInvoicePaymentMethod(id) {
+    const inv = Store.getInvoices().find(i => i.id === id);
+    if (!inv || inv.status !== 'paid') return;
+    const gross = invoiceGrossTotal(inv);
+    _payMethodContext = { type: 'invoice', id, gross };
+    document.getElementById('payMethodTitle').textContent = `Change payment method`;
+    document.getElementById('payMethodAmount').textContent = `$${gross.toFixed(2)} — ${inv.invoiceNumber}`;
+    openModal('paymentMethodModal');
 }
 
 function cascadeInvoicePaidToVisits(inv) {
@@ -1122,9 +1285,36 @@ function cascadeInvoicePaidToVisits(inv) {
     const visits = Store.getVisits();
     let changed = false;
     visits.forEach(v => {
-        if (visitIds.includes(v.id) && !v.paid) {
+        if (!visitIds.includes(v.id)) return;
+        // Always cascade payment method/fee/net to linked visits when invoice is paid,
+        // even if visit was already marked paid (handles method changes on the invoice)
+        if (!v.paid) {
             v.paid = true;
             v.paidDate = inv.paidDate || todayYmd();
+            changed = true;
+        }
+        if (inv.paymentMethod && v.paymentMethod !== inv.paymentMethod) {
+            v.paymentMethod = inv.paymentMethod;
+            v.paymentFee = calcPaymentFee(inv.paymentMethod, v.price || 0);
+            v.netAmount = calcNetAmount(inv.paymentMethod, v.price || 0);
+            changed = true;
+        }
+    });
+    if (changed) Store.saveVisits(visits);
+}
+
+function cascadeInvoiceUnpaidToVisits(inv) {
+    const visitIds = (inv.items || []).map(i => i.visitId).filter(Boolean);
+    if (visitIds.length === 0) return;
+    const visits = Store.getVisits();
+    let changed = false;
+    visits.forEach(v => {
+        if (visitIds.includes(v.id) && v.paid) {
+            v.paid = false;
+            v.paidDate = null;
+            v.paymentMethod = null;
+            v.paymentFee = 0;
+            v.netAmount = 0;
             changed = true;
         }
     });
@@ -1483,6 +1673,10 @@ function viewInvoice(id) {
         <div class="detail-row"><div class="detail-label">Client</div><div class="detail-value">${escapeHtml(invoiceClientDisplayName(inv))}</div></div>
         <div class="detail-row"><div class="detail-label">Issued</div><div class="detail-value">${formatDateLong(inv.issueDate)}</div></div>
         ${inv.paidDate ? `<div class="detail-row"><div class="detail-label">Paid</div><div class="detail-value" style="color: var(--success);">${formatDateLong(inv.paidDate)}</div></div>` : ''}
+        ${inv.status === 'paid' ? `<div class="detail-row"><div class="detail-label">Payment</div><div class="detail-value">
+            <div>${paymentMethodLabel(inv.paymentMethod)}${inv.paymentMethod && inv.paymentMethod !== 'cash' && inv.paymentMethod !== 'other' && inv.paymentMethod !== 'rover' ? ` <span style="color: var(--text-faint); font-size: 0.85em;">· fee $${(inv.paymentFee || 0).toFixed(2)} · net $${(inv.netAmount != null ? inv.netAmount : (inv.total || 0)).toFixed(2)}</span>` : ''}</div>
+            <button class="btn btn-ghost btn-sm" onclick="changeInvoicePaymentMethod('${inv.id}')" style="margin-top: 6px;">Change method</button>
+        </div></div>` : ''}
         <div style="margin: 18px 0 8px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px;">Line Items</div>
         ${itemsHtml}
         ${showBreakdownView ? `
@@ -1503,6 +1697,7 @@ function viewInvoice(id) {
     let actionButtons = '';
     if (inv.status === 'draft') actionButtons += `<button class="btn btn-secondary btn-sm" onclick="quickMarkSent('${inv.id}')">Mark Sent</button>`;
     if (inv.status === 'sent') actionButtons += `<button class="btn btn-success btn-sm" onclick="quickMarkPaid('${inv.id}')">Mark Paid</button>`;
+    if (inv.status === 'paid') actionButtons += `<button class="btn btn-ghost btn-sm" onclick="quickMarkPaid('${inv.id}')">Mark Unpaid</button>`;
 
     footer.innerHTML = `
         <button class="btn btn-danger btn-sm" onclick="deleteInvoice('${inv.id}')">Delete</button>
@@ -1518,10 +1713,121 @@ function viewInvoice(id) {
 /* ============================================================
    REFRESH + INIT
    ============================================================ */
+let _incomeRange = 'month';
+function setIncomeRange(range) {
+    _incomeRange = range;
+    document.querySelectorAll('.income-range-tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.range === range);
+    });
+    renderIncomeBreakdown();
+}
+
+function renderIncomeBreakdown() {
+    const today = todayYmd();
+    const thisYM = today.slice(0, 7);
+    const thisY = today.slice(0, 4);
+    const inRange = (dateStr) => {
+        if (!dateStr) return false;
+        if (_incomeRange === 'month') return dateStr.startsWith(thisYM);
+        if (_incomeRange === 'year') return dateStr.startsWith(thisY);
+        return true; // all time
+    };
+
+    // Collect paid invoices in range
+    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(i.paidDate));
+    // Collect direct-paid visits (not linked to any invoice) in range — avoid double-counting
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && inRange(v.paidDate));
+
+    // Aggregate by method
+    const byMethod = {}; // method -> { gross, fee, net, count }
+    function add(method, gross, fee, net) {
+        const key = method || 'unrecorded';
+        if (!byMethod[key]) byMethod[key] = { gross: 0, fee: 0, net: 0, count: 0 };
+        byMethod[key].gross += gross;
+        byMethod[key].fee += fee;
+        byMethod[key].net += net;
+        byMethod[key].count += 1;
+    }
+
+    paidInvoices.forEach(inv => {
+        const g = parseFloat(inv.total) || 0;
+        const f = inv.paymentFee != null ? parseFloat(inv.paymentFee) : (inv.paymentMethod ? calcPaymentFee(inv.paymentMethod, g) : 0);
+        const n = inv.netAmount != null ? parseFloat(inv.netAmount) : (g - f);
+        add(inv.paymentMethod, g, f, n);
+    });
+    directVisits.forEach(v => {
+        const g = parseFloat(v.price) || 0;
+        const f = v.paymentFee != null ? parseFloat(v.paymentFee) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
+        const n = v.netAmount != null ? parseFloat(v.netAmount) : (g - f);
+        add(v.paymentMethod, g, f, n);
+    });
+
+    // Totals
+    let totalGross = 0, totalFee = 0, totalNet = 0, totalCount = 0;
+    Object.values(byMethod).forEach(m => {
+        totalGross += m.gross; totalFee += m.fee; totalNet += m.net; totalCount += m.count;
+    });
+
+    const body = document.getElementById('incomeBreakdownBody');
+    if (totalCount === 0) {
+        body.innerHTML = `<div class="income-empty" style="grid-column: 1 / -1;">No payments in this range yet.</div>`;
+        return;
+    }
+
+    const feePct = totalGross > 0 ? (totalFee / totalGross * 100) : 0;
+    body.innerHTML = `
+        <div class="income-summary-cell">
+            <div class="label">Gross</div>
+            <div class="value">$${totalGross.toFixed(2)}</div>
+            <div class="sub">${totalCount} payment${totalCount === 1 ? '' : 's'}</div>
+        </div>
+        <div class="income-summary-cell fee">
+            <div class="label">Fees</div>
+            <div class="value">$${totalFee.toFixed(2)}</div>
+            <div class="sub">${feePct.toFixed(2)}% of gross</div>
+        </div>
+        <div class="income-summary-cell net">
+            <div class="label">Net Deposited</div>
+            <div class="value">$${totalNet.toFixed(2)}</div>
+            <div class="sub">what hit your bank</div>
+        </div>
+    `;
+
+    // By-method breakdown table
+    const methodOrder = ['venmo', 'cashapp', 'stripe', 'rover', 'cash', 'other', 'unrecorded'];
+    const methodRows = methodOrder
+        .filter(k => byMethod[k])
+        .map(k => {
+            const m = byMethod[k];
+            const label = k === 'unrecorded' ? 'Unrecorded' : paymentMethodLabel(k);
+            return `
+                <div class="income-method-row">
+                    <div>${label} <span style="color: var(--text-faint); font-size: 0.85em;">· ${m.count}</span></div>
+                    <div class="imr-amt">$${m.gross.toFixed(2)}</div>
+                    <div class="imr-amt imr-fee">$${m.fee.toFixed(2)}</div>
+                    <div class="imr-amt imr-net">$${m.net.toFixed(2)}</div>
+                </div>
+            `;
+        }).join('');
+
+    body.insertAdjacentHTML('beforeend', `
+        <div class="income-method-list" style="grid-column: 1 / -1;">
+            <div class="income-method-row header">
+                <div>Method</div>
+                <div class="imr-amt">Gross</div>
+                <div class="imr-amt imr-fee">Fees</div>
+                <div class="imr-amt imr-net">Net</div>
+            </div>
+            ${methodRows}
+        </div>
+    `);
+}
+
 function refreshAll() {
     renderStats();
     renderFilterTabs();
     renderInvoiceList();
+    renderIncomeBreakdown();
 }
 
 function init() {
@@ -1544,7 +1850,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="tab-label">Dashboard</span>
         </a>
         <a href="clients.html">
-            <span class="tab-icon">◷</span>
+            <span class="tab-icon"><svg viewBox="0 0 24 24" fill="currentColor" style="width:1em;height:1em;display:block;" aria-hidden="true"><circle cx="6" cy="9" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="9" r="2"/><path d="M12 11c-3.5 0-6 3-6 6 0 1.6 1.1 3 3 3h6c1.9 0 3-1.4 3-3 0-3-2.5-6-6-6z"/></svg></span>
             <span class="tab-label">Clients</span>
         </a>
         <a href="invoices.html" class="active">
