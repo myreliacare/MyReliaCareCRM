@@ -280,6 +280,12 @@
         .backfill-day-date { color: var(--text); font-weight: 500; margin-bottom: 2px; }
         .backfill-day-visits { color: var(--text-faint); font-size: 0.85em; }
         .backfill-day-row input { padding: 6px 8px; font-size: 0.95em; }
+        .backfill-day-row input.user-edited { border-color: var(--accent); }
+        .backfill-day-bd-toggle { background: none; border: none; color: var(--text-faint); font-size: 0.8em; cursor: pointer; padding: 2px 0 0 0; text-decoration: underline; font-family: inherit; }
+        .backfill-day-bd { grid-column: 1 / -1; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 0.82em; color: var(--text-dim); margin-top: 4px; }
+        .backfill-day-bd-row { display: flex; justify-content: space-between; padding: 3px 0; font-variant-numeric: tabular-nums; }
+        .backfill-day-bd-row .bf-bd-reason { color: var(--text-faint); font-style: italic; font-size: 0.92em; }
+        .backfill-miles-warning { background: rgba(220, 150, 50, 0.12); border: 1px solid rgba(220, 150, 50, 0.4); color: var(--warn, #d99); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.88em; line-height: 1.4; }
         @media (max-width: 700px) {
             .mileage-entry-row { grid-template-columns: 1.4fr 1fr 1fr auto; }
             .mileage-entry-row .mileage-entry-meta { display: none; }
@@ -406,7 +412,7 @@
     
         /* === MOBILE / HAMBURGER (appended at end so it wins the CSS cascade) === */
         html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-        body { overscroll-behavior-y: contain; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+        body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
         body.menu-open { overflow: hidden; }
         body.modal-open { overflow: hidden; }
         @media (max-width: 700px) {
@@ -867,12 +873,28 @@
             <button class="modal-close" onclick="closeModal('backfillMilesModal')">×</button>
         </div>
         <div class="modal-body modal-body-scrollable">
-            <p style="color: var(--text-faint); margin-bottom: 14px;">Days with completed visits but no mileage logged yet. Type a number to log; leave blank to skip.</p>
+            <p style="color: var(--text-faint); margin-bottom: 14px;">Days with completed visits but no mileage logged yet. Suggested miles auto-calculated using the 60-min gap rule (if visits are 60+ min apart, assumes home trip between). Edit any value, or leave blank to skip.</p>
+            <div id="backfillMilesWarning" class="backfill-miles-warning" style="display: none;"></div>
             <div id="backfillMilesList"></div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('backfillMilesModal')">Cancel</button>
             <button class="btn btn-primary" onclick="saveBackfillMiles()">Save All</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========= MILEAGE MISSING-DRIVER CONFIRM MODAL ========= -->
+<div class="modal-overlay" id="bfMissingDriverModal" style="z-index: 1100;">
+    <div class="modal" style="max-width: 480px;">
+        <div class="modal-header">
+            <h2>Other driver also drove?</h2>
+            <button class="modal-close" onclick="bfmMissingDriverCancel()">×</button>
+        </div>
+        <div class="modal-body" id="bfmMissingDriverBody"></div>
+        <div class="modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-ghost" onclick="bfmMissingDriverCancel()">Cancel — let me add miles</button>
+            <button class="btn btn-primary" onclick="bfmMissingDriverProceed()">Save anyway</button>
         </div>
     </div>
 </div>
@@ -953,7 +975,9 @@ let _modalScrollY = 0;
 function openModal(id) {
     if (!document.querySelector('.modal-overlay.active')) {
         _modalScrollY = window.scrollY || window.pageYOffset || 0;
-        document.body.style.top = `-${_modalScrollY}px`;
+        if (window.matchMedia('(max-width: 700px)').matches) {
+            document.body.style.top = `-${_modalScrollY}px`;
+        }
     }
     document.body.classList.add('modal-open');
     document.getElementById(id).classList.add('active');
@@ -962,11 +986,12 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
     if (!document.querySelector('.modal-overlay.active')) {
         document.body.classList.remove('modal-open');
+        const wasPinned = document.body.style.top !== '';
         document.body.style.top = '';
-        if (_modalScrollY) {
+        if (wasPinned && _modalScrollY) {
             window.scrollTo(0, _modalScrollY);
-            _modalScrollY = 0;
         }
+        _modalScrollY = 0;
     }
 }
 // click outside to close — drag-aware (prevents accidental close from iOS spurious clicks)
@@ -2202,6 +2227,27 @@ function saveLoggedMiles() {
     const notes = document.getElementById('logMilesNotes').value.trim();
     if (kMiles <= 0 && cMiles <= 0) { showToast('Enter miles for at least one driver', 'error'); return; }
 
+    // Cross-driver gap detection — only relevant when exactly one driver is being saved
+    // and the other had visits but no existing record on this date
+    const onlyKasey = kMiles > 0 && cMiles <= 0;
+    const onlyCharlie = cMiles > 0 && kMiles <= 0;
+    if (onlyKasey || onlyCharlie) {
+        const otherDriver = onlyKasey ? 'charlie' : 'kasey';
+        const allVisits = Store.getVisits();
+        const otherVisitCount = allVisits.filter(v => v.date === date && (v.assignedTo || 'kasey') === otherDriver).length;
+        const existingMileage = Store.getMileage();
+        const otherAlreadyLogged = existingMileage.some(r => r.date === date && r.driver === otherDriver);
+        if (otherVisitCount > 0 && !otherAlreadyLogged) {
+            _bfmPendingSave = { kind: 'log', date, kMiles, cMiles, notes };
+            _bfmShowMissingDriverModal([{ date, missingDriver: otherDriver, visitCount: otherVisitCount }]);
+            return;
+        }
+    }
+
+    _bfmDoLogSave(date, kMiles, cMiles, notes);
+}
+
+function _bfmDoLogSave(date, kMiles, cMiles, notes) {
     // Linked visit IDs (snapshot for audit trail)
     const visitIds = Store.getVisits().filter(v => v.date === date).map(v => v.id);
 
@@ -2246,10 +2292,74 @@ function deleteLoggedMiles() {
 }
 
 /* ============================================================
-   BACKFILL MILEAGE
+   BACKFILL MILEAGE — auto-calculated using 60-min gap rule
+   - Per (date, driver): if visits 60+ min apart, infers home trip between
+   - Pre-fills inputs with suggested miles; user can edit any value
+   - Kept in sync with the calc in index.html's Backfill Workspace
    ============================================================ */
+const _BFM_VISIT_DURATION = { 'meet-greet': 15, '30min': 30, '60min': 60 };
+let _bfmBdOpen = {};    // { 'date|driver': true } — breakdown open state
+
+function _bfmTimeToMin(t) {
+    if (!t) return 0;
+    const [h, m] = t.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+}
+
+function _bfmCalcDayDriverMiles(visits, clientsById) {
+    if (!visits || visits.length === 0) return { miles: 0, breakdown: [], missing: [] };
+    const sorted = visits.slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    const missing = new Set();
+    const milesFor = (cid) => {
+        const c = clientsById[cid];
+        if (!c || c.milesFromHome == null || c.milesFromHome === '') { missing.add(cid); return null; }
+        return parseFloat(c.milesFromHome) || 0;
+    };
+    let total = 0;
+    const breakdown = [];
+    let prevClient = null;
+    let prevEndMin = null;
+    for (const v of sorted) {
+        const startMin = _bfmTimeToMin(v.time);
+        const dur = _BFM_VISIT_DURATION[v.visitType] || 30;
+        const cMiles = milesFor(v.clientId);
+        const cName = (v.clientName || 'Client').slice(0, 18);
+        if (prevClient === null) {
+            if (cMiles != null) { total += cMiles; breakdown.push({ label: `Home → ${cName}`, miles: cMiles }); }
+            else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
+        } else {
+            const gap = startMin - (prevEndMin || startMin);
+            const prevMiles = milesFor(prevClient);
+            if (gap >= 60) {
+                if (prevMiles != null) { total += prevMiles; breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: prevMiles }); }
+                else { breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: null }); }
+                if (cMiles != null) { total += cMiles; breakdown.push({ label: `Home → ${cName}`, miles: cMiles }); }
+                else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
+            } else if (v.clientId === prevClient) {
+                breakdown.push({ label: `at ${cName} (${gap}min · no drive)`, miles: 0 });
+            } else {
+                if (prevMiles != null && cMiles != null) {
+                    const direct = Math.round(((prevMiles + cMiles) / 2) * 10) / 10;
+                    total += direct;
+                    breakdown.push({ label: `prev → ${cName} (${gap}min · direct)`, miles: direct });
+                } else {
+                    breakdown.push({ label: `prev → ${cName} (${gap}min · direct)`, miles: null });
+                }
+            }
+        }
+        prevClient = v.clientId;
+        prevEndMin = startMin + dur;
+    }
+    if (prevClient) {
+        const lastMiles = milesFor(prevClient);
+        if (lastMiles != null) { total += lastMiles; breakdown.push({ label: `last → Home`, miles: lastMiles }); }
+        else { breakdown.push({ label: `last → Home`, miles: null }); }
+    }
+    return { miles: Math.round(total * 10) / 10, breakdown, missing: [...missing] };
+}
+
 function openBackfillMilesModal() {
-    // Find every past date that had completed visits but no mileage record yet
+    _bfmBdOpen = {};
     const today = todayYmd();
     const visits = Store.getVisits().filter(v => v.date && v.date <= today && (v.status === 'completed' || (v.date < today)));
     const loggedDates = new Set(Store.getMileage().map(r => r.date));
@@ -2261,60 +2371,214 @@ function openBackfillMilesModal() {
     });
     const days = Object.values(byDate).sort((a, b) => b.date.localeCompare(a.date));
 
+    // Build client index for calc
+    const clients = Store.getClients();
+    const clientsById = {};
+    clients.forEach(c => { clientsById[c.id] = c; });
+
+    // Collect any clients in pending days that are missing milesFromHome
+    const warningEl = document.getElementById('backfillMilesWarning');
+    const pendingClientIds = new Set();
+    days.forEach(d => d.visits.forEach(v => pendingClientIds.add(v.clientId)));
+    const missing = [...pendingClientIds]
+        .map(id => clientsById[id])
+        .filter(c => c && (c.milesFromHome == null || c.milesFromHome === ''));
+    if (missing.length > 0 && warningEl) {
+        warningEl.style.display = 'block';
+        warningEl.innerHTML = `<strong>Missing miles-from-home for:</strong> ${missing.map(c => escapeHtml(c.name || 'Unnamed')).join(', ')}. Auto-calc skips those segments. Add the values on each client's edit page for full accuracy.`;
+    } else if (warningEl) {
+        warningEl.style.display = 'none';
+    }
+
     const list = document.getElementById('backfillMilesList');
     if (days.length === 0) {
         list.innerHTML = `<div class="income-empty">All past days with visits already have mileage logged. 🎉</div>`;
-    } else {
-        list.innerHTML = days.map(d => {
-            const clientNames = d.visits.map(v => v.clientName || 'Client').filter((v, i, a) => a.indexOf(v) === i).join(', ');
-            return `
-                <div class="backfill-day-row" data-date="${d.date}">
-                    <div class="backfill-day-info">
-                        <div class="backfill-day-date">${formatDate(d.date)}</div>
-                        <div class="backfill-day-visits">${d.visits.length} visit${d.visits.length === 1 ? '' : 's'} · ${escapeHtml(clientNames)}</div>
-                    </div>
-                    <input type="number" min="0" step="0.1" placeholder="Kasey mi" class="backfill-kasey">
-                    <input type="number" min="0" step="0.1" placeholder="Charlie mi" class="backfill-charlie">
-                </div>
-            `;
-        }).join('');
+        openModal('backfillMilesModal');
+        return;
     }
+
+    list.innerHTML = days.map(d => _bfmRenderDayRow(d, clientsById)).join('');
     openModal('backfillMilesModal');
 }
 
-function saveBackfillMiles() {
-    const rows = document.querySelectorAll('#backfillMilesList .backfill-day-row');
-    let records = Store.getMileage();
-    let added = 0;
-    rows.forEach(row => {
-        const date = row.dataset.date;
-        const k = parseFloat(row.querySelector('.backfill-kasey').value) || 0;
-        const c = parseFloat(row.querySelector('.backfill-charlie').value) || 0;
-        if (k <= 0 && c <= 0) return;
-        const visitIds = Store.getVisits().filter(v => v.date === date).map(v => v.id);
-        if (k > 0) {
-            records.push({
-                id: `mile_${date}_kasey_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                date, driver: 'kasey', miles: k, notes: '', purpose: 'business', visitIds,
-                createdAt: new Date().toISOString()
-            });
-            added++;
-        }
-        if (c > 0) {
-            records.push({
-                id: `mile_${date}_charlie_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                date, driver: 'charlie', miles: c, notes: '', purpose: 'business', visitIds,
-                createdAt: new Date().toISOString()
-            });
-            added++;
+function _bfmRenderDayRow(d, clientsById) {
+    const clientNames = d.visits.map(v => v.clientName || 'Client').filter((v, i, a) => a.indexOf(v) === i).join(', ');
+    const kVisits = d.visits.filter(v => (v.assignedTo || 'kasey') === 'kasey');
+    const cVisits = d.visits.filter(v => (v.assignedTo || 'kasey') === 'charlie');
+    const kCalc = _bfmCalcDayDriverMiles(kVisits, clientsById);
+    const cCalc = _bfmCalcDayDriverMiles(cVisits, clientsById);
+    const kKey = `${d.date}|kasey`;
+    const cKey = `${d.date}|charlie`;
+    const kBdOpen = !!_bfmBdOpen[kKey];
+    const cBdOpen = !!_bfmBdOpen[cKey];
+
+    const renderBd = (calc) => `
+        <div class="backfill-day-bd">${calc.breakdown.map(b => `
+            <div class="backfill-day-bd-row">
+                <span class="bf-bd-reason">${escapeHtml(b.label)}</span>
+                <span>${b.miles == null ? '—' : b.miles.toFixed(1) + ' mi'}</span>
+            </div>
+        `).join('')}</div>
+    `;
+
+    return `
+        <div class="backfill-day-row" data-date="${d.date}">
+            <div class="backfill-day-info">
+                <div class="backfill-day-date">${formatDate(d.date)}</div>
+                <div class="backfill-day-visits">${d.visits.length} visit${d.visits.length === 1 ? '' : 's'} · ${escapeHtml(clientNames)}</div>
+                <div style="display:flex; gap:10px; margin-top:4px;">
+                    ${kVisits.length > 0 ? `<button class="backfill-day-bd-toggle" onclick="bfmToggleBd('${kKey}')">${kBdOpen ? 'hide' : 'show'} Kasey breakdown</button>` : ''}
+                    ${cVisits.length > 0 ? `<button class="backfill-day-bd-toggle" onclick="bfmToggleBd('${cKey}')">${cBdOpen ? 'hide' : 'show'} Charlie breakdown</button>` : ''}
+                </div>
+            </div>
+            <input type="number" min="0" step="0.1" placeholder="Kasey mi" class="backfill-kasey"
+                   value="${kVisits.length > 0 && kCalc.miles > 0 ? kCalc.miles.toFixed(1) : ''}"
+                   ${kVisits.length === 0 ? 'disabled' : ''}
+                   oninput="this.classList.add('user-edited')">
+            <input type="number" min="0" step="0.1" placeholder="Charlie mi" class="backfill-charlie"
+                   value="${cVisits.length > 0 && cCalc.miles > 0 ? cCalc.miles.toFixed(1) : ''}"
+                   ${cVisits.length === 0 ? 'disabled' : ''}
+                   oninput="this.classList.add('user-edited')">
+            ${kBdOpen ? renderBd(kCalc) : ''}
+            ${cBdOpen ? renderBd(cCalc) : ''}
+        </div>
+    `;
+}
+
+function bfmToggleBd(key) {
+    _bfmBdOpen[key] = !_bfmBdOpen[key];
+    // Re-render the modal but preserve any user-edited input values
+    const inputs = document.querySelectorAll('#backfillMilesList .backfill-day-row input');
+    const edits = {};
+    inputs.forEach(inp => {
+        if (inp.classList.contains('user-edited')) {
+            const row = inp.closest('.backfill-day-row');
+            const driver = inp.classList.contains('backfill-kasey') ? 'kasey' : 'charlie';
+            edits[`${row.dataset.date}|${driver}`] = inp.value;
         }
     });
-    if (added === 0) { showToast('No miles entered', 'error'); return; }
+    // Re-render
+    const clients = Store.getClients();
+    const clientsById = {};
+    clients.forEach(c => { clientsById[c.id] = c; });
+    const list = document.getElementById('backfillMilesList');
+    const rows = list.querySelectorAll('.backfill-day-row');
+    const days = [];
+    rows.forEach(row => {
+        const date = row.dataset.date;
+        const dayVisits = Store.getVisits().filter(v => v.date === date);
+        days.push({ date, visits: dayVisits });
+    });
+    list.innerHTML = days.map(d => _bfmRenderDayRow(d, clientsById)).join('');
+    // Restore user edits
+    Object.entries(edits).forEach(([k, val]) => {
+        const [date, driver] = k.split('|');
+        const row = list.querySelector(`.backfill-day-row[data-date="${date}"]`);
+        if (!row) return;
+        const inp = row.querySelector(driver === 'kasey' ? '.backfill-kasey' : '.backfill-charlie');
+        if (inp) { inp.value = val; inp.classList.add('user-edited'); }
+    });
+}
+
+let _bfmPendingSave = null;  // pending save context: { kind: 'backfill'|'log', toSave, allVisits, extras? }
+
+function saveBackfillMiles() {
+    const rows = document.querySelectorAll('#backfillMilesList .backfill-day-row');
+    const allVisits = Store.getVisits();
+    const toSave = [];   // { date, driver, miles }
+    rows.forEach(row => {
+        const date = row.dataset.date;
+        const k = parseFloat(row.querySelector('.backfill-kasey').value);
+        const c = parseFloat(row.querySelector('.backfill-charlie').value);
+        if (!isNaN(k) && k > 0) toSave.push({ date, driver: 'kasey', miles: k });
+        if (!isNaN(c) && c > 0) toSave.push({ date, driver: 'charlie', miles: c });
+    });
+    if (toSave.length === 0) { showToast('No miles entered', 'error'); return; }
+
+    // Cross-driver gap detection
+    const existingMileage = Store.getMileage();
+    const existingByKey = {};
+    existingMileage.forEach(r => { existingByKey[`${r.date}|${r.driver}`] = r; });
+    const warnings = [];
+    const seenDates = new Set();
+    toSave.forEach(({ date, driver }) => {
+        const otherDriver = driver === 'kasey' ? 'charlie' : 'kasey';
+        const dateKey = `${date}|${otherDriver}`;
+        if (seenDates.has(dateKey)) return;
+        if (toSave.some(s => s.date === date && s.driver === otherDriver)) return;
+        if (existingByKey[dateKey]) return;
+        const otherVisitCount = allVisits.filter(v => v.date === date && (v.assignedTo || 'kasey') === otherDriver).length;
+        if (otherVisitCount > 0) {
+            warnings.push({ date, missingDriver: otherDriver, visitCount: otherVisitCount });
+            seenDates.add(dateKey);
+        }
+    });
+
+    if (warnings.length > 0) {
+        _bfmPendingSave = { kind: 'backfill', toSave, allVisits };
+        _bfmShowMissingDriverModal(warnings);
+        return;
+    }
+
+    _bfmDoBackfillSave(toSave, allVisits);
+}
+
+function _bfmShowMissingDriverModal(warnings) {
+    const body = document.getElementById('bfmMissingDriverBody');
+    const driverLabel = (d) => d === 'kasey' ? 'Kasey' : 'Charlie';
+    body.innerHTML = `
+        <p style="color: var(--text-dim); margin-bottom: 12px; line-height: 1.5;">
+            On ${warnings.length === 1 ? 'this day' : 'these days'}, the other driver also had visits but no miles are about to be saved for them:
+        </p>
+        <ul style="margin: 0 0 14px 18px; padding: 0; color: var(--text); line-height: 1.7;">
+            ${warnings.map(w => `<li><strong>${formatDate(w.date)}</strong> — ${driverLabel(w.missingDriver)} had ${w.visitCount} visit${w.visitCount === 1 ? '' : 's'}</li>`).join('')}
+        </ul>
+        <p style="color: var(--text-faint); font-size: 0.88em; line-height: 1.5;">
+            Once a day has any mileage logged, this backfill tool won't surface it again — you'd have to add the other driver's miles via "+ Log Miles" later.
+        </p>
+    `;
+    openModal('bfMissingDriverModal');
+}
+
+function bfmMissingDriverCancel() {
+    closeModal('bfMissingDriverModal');
+    _bfmPendingSave = null;
+}
+
+function bfmMissingDriverProceed() {
+    closeModal('bfMissingDriverModal');
+    if (!_bfmPendingSave) return;
+    const ctx = _bfmPendingSave;
+    _bfmPendingSave = null;
+    if (ctx.kind === 'backfill') {
+        _bfmDoBackfillSave(ctx.toSave, ctx.allVisits);
+    } else if (ctx.kind === 'log') {
+        _bfmDoLogSave(ctx.date, ctx.kMiles, ctx.cMiles, ctx.notes);
+    }
+}
+
+function _bfmDoBackfillSave(toSave, allVisits) {
+    let records = Store.getMileage();
+    // Group by date for visitIds lookup
+    const dateDriversTouched = new Set();
+    const toAdd = toSave.map(({ date, driver, miles }) => {
+        dateDriversTouched.add(`${date}|${driver}`);
+        const visitIds = allVisits.filter(v => v.date === date && (v.assignedTo || 'kasey') === driver).map(v => v.id);
+        return {
+            id: `mile_${date}_${driver}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            date, driver, miles,
+            notes: 'auto-calc from backfill (60-min rule)',
+            purpose: 'business', visitIds,
+            createdAt: new Date().toISOString()
+        };
+    });
+    records = records.filter(r => !dateDriversTouched.has(`${r.date}|${r.driver}`));
+    records = records.concat(toAdd);
     const ok = Store.saveMileage(records);
     if (ok === false) { showToast('Could not save', 'error'); return; }
     closeModal('backfillMilesModal');
     refreshAll();
-    showToast(`Added ${added} mileage ${added === 1 ? 'entry' : 'entries'}`);
+    showToast(`Added ${toAdd.length} mileage ${toAdd.length === 1 ? 'entry' : 'entries'}`);
 }
 
 /* ============================================================

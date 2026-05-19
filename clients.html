@@ -272,7 +272,7 @@
     
         /* === MOBILE / HAMBURGER (appended at end so it wins the CSS cascade) === */
         html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-        body { overscroll-behavior-y: contain; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+        body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
         body.menu-open { overflow: hidden; }
         body.modal-open { overflow: hidden; }
         @media (max-width: 700px) {
@@ -626,6 +626,11 @@
 
             <div class="form-group"><label>Access Instructions</label><textarea id="cAccess" rows="2" placeholder="Gate code, lockbox, key location…"></textarea></div>
 
+            <div class="form-group">
+                <label>Miles from Home <span style="color: var(--text-faint); font-weight: 400; font-size: 0.85em; text-transform: none; letter-spacing: 0;">one-way · used for mileage auto-calc</span></label>
+                <input type="number" id="cMilesFromHome" min="0" step="0.1" placeholder="e.g. 4.2">
+            </div>
+
             <h3 class="form-section-title">Pricing</h3>
             <p style="color: var(--text-faint); font-size: 0.92em; margin-bottom: 10px;">Per-visit pricing for this client. Auto-fills when scheduling visits.</p>
             <div class="form-row">
@@ -799,7 +804,9 @@ let _modalScrollY = 0;
 function openModal(id) {
     if (!document.querySelector('.modal-overlay.active')) {
         _modalScrollY = window.scrollY || window.pageYOffset || 0;
-        document.body.style.top = `-${_modalScrollY}px`;
+        if (window.matchMedia('(max-width: 700px)').matches) {
+            document.body.style.top = `-${_modalScrollY}px`;
+        }
     }
     document.body.classList.add('modal-open');
     document.getElementById(id).classList.add('active');
@@ -808,11 +815,12 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
     if (!document.querySelector('.modal-overlay.active')) {
         document.body.classList.remove('modal-open');
+        const wasPinned = document.body.style.top !== '';
         document.body.style.top = '';
-        if (_modalScrollY) {
+        if (wasPinned && _modalScrollY) {
             window.scrollTo(0, _modalScrollY);
-            _modalScrollY = 0;
         }
+        _modalScrollY = 0;
     }
 }
 // click outside to close — drag-aware (prevents accidental close from iOS spurious clicks)
@@ -1068,6 +1076,7 @@ function openClientModal() {
     document.getElementById('clientModalTitle').textContent = 'Add Client';
     document.getElementById('saveClientBtn').textContent = 'Save Client';
     ['cName','cPhone','cEmail','cAddress','cCity','cState','cZip','cAccess','cNotes',
+     'cMilesFromHome',
      'cEmergencyName','cEmergencyPhone','cEmergencyRel','cVetClinic','cVetPhone','cVetAddress',
      'cPrice30','cPrice60'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('cPreferredContact').value = '';
@@ -1092,6 +1101,7 @@ function editClient(clientId) {
     document.getElementById('cState').value = c.state || '';
     document.getElementById('cZip').value = c.zip || '';
     document.getElementById('cAccess').value = c.accessInstructions || '';
+    document.getElementById('cMilesFromHome').value = (c.milesFromHome != null && c.milesFromHome !== '') ? c.milesFromHome : '';
     document.getElementById('cNotes').value = c.notes || '';
     document.getElementById('cPrice30').value = c.pricing?.['30min'] || '';
     document.getElementById('cPrice60').value = c.pricing?.['60min'] || '';
@@ -1234,6 +1244,10 @@ function saveClient() {
         state: document.getElementById('cState').value.trim(),
         zip: document.getElementById('cZip').value.trim(),
         accessInstructions: document.getElementById('cAccess').value.trim(),
+        milesFromHome: (() => {
+            const v = parseFloat(document.getElementById('cMilesFromHome').value);
+            return (isNaN(v) || v < 0) ? null : v;
+        })(),
         notes: document.getElementById('cNotes').value.trim(),
         pricing, pets,
         timeWindows: collectTimeWindows(),
@@ -1405,6 +1419,7 @@ function viewClient(clientId) {
             ${c.email ? `<div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">${escapeHtml(c.email)}</div></div>` : ''}
             ${c.preferredContact ? `<div class="detail-row"><div class="detail-label">Preferred</div><div class="detail-value">${escapeHtml(c.preferredContact)}</div></div>` : ''}
             ${addressLine ? `<div class="detail-row"><div class="detail-label">Address</div><div class="detail-value">${escapeHtml(addressLine)}</div></div>` : ''}
+            ${(c.milesFromHome != null && c.milesFromHome !== '') ? `<div class="detail-row"><div class="detail-label">Miles from Home</div><div class="detail-value">${c.milesFromHome} mi (one-way)</div></div>` : ''}
             ${c.accessInstructions ? `<div class="detail-row"><div class="detail-label">Access</div><div class="detail-value">${escapeHtml(c.accessInstructions)}</div></div>` : ''}
         </div>`;
     if ((c.pets || []).length > 0) {
