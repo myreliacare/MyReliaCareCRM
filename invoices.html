@@ -197,7 +197,7 @@
         .income-range-tabs { display: inline-flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
         .income-range-tab { background: transparent; border: none; padding: 6px 12px; color: var(--text-faint); font-family: inherit; font-size: 0.9em; cursor: pointer; border-radius: 6px; transition: all 0.15s; }
         .income-range-tab.active { background: var(--bg-card); color: var(--accent); }
-        .income-breakdown-body { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 14px; }
+        .income-breakdown-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-top: 14px; }
         .income-summary-cell { background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border); }
         .income-summary-cell .label { color: var(--text-faint); font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
         .income-summary-cell .value { color: var(--accent); font-size: 1.5em; font-weight: 600; font-family: 'Cormorant Unicase', serif; }
@@ -222,6 +222,41 @@
         /* Mileage section */
         .mileage-card { margin-bottom: 18px; }
         .mileage-rate-note { color: var(--text-faint); font-size: 0.6em; font-weight: 400; font-family: 'Cormorant', serif; text-transform: none; letter-spacing: 0; margin-left: 4px; }
+
+        /* Tax Projection */
+        .tax-projection-card { margin-bottom: 18px; }
+        .tax-section { margin-top: 14px; }
+        .tax-section-label { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+        .tax-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 10px; align-items: baseline; padding: 6px 0; font-size: 0.98em; }
+        .tax-row .tax-label { color: var(--text-dim); }
+        .tax-row .tax-label small { color: var(--text-faint); font-size: 0.82em; }
+        .tax-row .tax-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 500; }
+        .tax-row.deduction .tax-value { color: var(--warn); }
+        .tax-row.income .tax-value { color: var(--accent-light); font-weight: 600; }
+        .tax-row.subtotal { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 10px; }
+        .tax-row.subtotal .tax-label { color: var(--text); font-weight: 600; }
+        .tax-row.subtotal .tax-value { font-weight: 700; font-size: 1.05em; }
+        .tax-row.total { border-top: 2px solid var(--accent); margin-top: 8px; padding-top: 12px; }
+        .tax-row.total .tax-label { color: var(--accent); font-weight: 700; font-family: 'Cormorant Unicase', serif; text-transform: uppercase; letter-spacing: 1px; font-size: 0.95em; }
+        .tax-row.total .tax-value { color: var(--accent); font-size: 1.4em; font-weight: 700; font-family: 'Cormorant Unicase', serif; }
+        .tax-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.9em; }
+        .tax-controls label { color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+        .tax-controls select { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-family: inherit; font-size: 0.95em; }
+        .tax-caveat { color: var(--text-faint); font-size: 0.82em; font-style: italic; margin-top: 10px; padding: 10px 12px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--text-faint); }
+        .tax-settings-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-top: 12px; margin-bottom: 4px; }
+        .tax-settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .tax-settings-field { display: flex; flex-direction: column; gap: 4px; }
+        .tax-settings-field label { color: var(--text-faint); font-size: 0.82em; text-transform: uppercase; letter-spacing: 1px; }
+        .tax-settings-field label small { text-transform: none; letter-spacing: 0; font-size: 0.9em; color: var(--text-faint); font-style: italic; }
+        .tax-settings-field input, .tax-settings-field select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); padding: 8px 10px; border-radius: 6px; font-family: inherit; font-size: 0.98em; }
+        .tax-settings-field input:focus, .tax-settings-field select:focus { outline: none; border-color: var(--accent); }
+        @media (max-width: 700px) {
+            .tax-settings-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 700px) {
+            .tax-row { font-size: 0.92em; }
+            .tax-row.total .tax-value { font-size: 1.2em; }
+        }
         .mileage-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
         .mileage-entry-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.5fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: 0.95em; }
         .mileage-entry-row:last-child { border-bottom: none; }
@@ -618,6 +653,15 @@
                 </div>
             </div>
             <div class="income-breakdown-body" id="incomeBreakdownBody"></div>
+        </div>
+
+        <div class="card tax-projection-card">
+            <div class="card-title income-breakdown-title">
+                <span>Tax Projection <span class="mileage-rate-note" id="taxYearNote"></span></span>
+                <button class="btn btn-ghost btn-sm" onclick="toggleTaxSettings()" id="taxSettingsToggle">Tax Settings ▾</button>
+            </div>
+            <div id="taxSettingsPanel" class="tax-settings-panel" style="display: none;"></div>
+            <div id="taxProjectionBody"></div>
         </div>
 
         <div class="card mileage-card">
@@ -1935,11 +1979,17 @@ function renderIncomeBreakdown() {
     }
 
     const feePct = totalGross > 0 ? (totalFee / totalGross * 100) : 0;
+    const salesTaxOwed = Math.round((totalGross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE))) * 100) / 100;
     body.innerHTML = `
         <div class="income-summary-cell">
             <div class="label">Gross</div>
             <div class="value">$${totalGross.toFixed(2)}</div>
             <div class="sub">${totalCount} payment${totalCount === 1 ? '' : 's'}</div>
+        </div>
+        <div class="income-summary-cell fee">
+            <div class="label">KY Sales Tax</div>
+            <div class="value">$${salesTaxOwed.toFixed(2)}</div>
+            <div class="sub">6% incl. in prices · owed to state</div>
         </div>
         <div class="income-summary-cell fee">
             <div class="label">Fees</div>
@@ -2249,12 +2299,345 @@ function saveBackfillMiles() {
     showToast(`Added ${added} mileage ${added === 1 ? 'entry' : 'entries'}`);
 }
 
+/* ============================================================
+   TAX PROJECTION
+   ============================================================ */
+// 2026 federal tax constants (sources: IRS Rev. Proc. 2025-32, KY DOR).
+// Update annually if rates change.
+const TAX_CONSTANTS = {
+    KY_SALES_RATE: 0.06,
+    KY_INCOME_RATE: 0.035,         // KY flat individual income tax for 2026
+    SE_TAX_RATE: 0.153,            // 12.4% SS + 2.9% Medicare
+    SE_INCOME_ADJ: 0.9235,         // Only 92.35% of net SE earnings subject to SE tax
+    SS_WAGE_BASE_2026: 184500,     // Social Security cap for 2026
+};
+
+// 2026 standard deduction by filing status
+const STANDARD_DEDUCTION_2026 = {
+    single: 16100,
+    mfj:    32200,   // Married Filing Jointly
+    hoh:    24150,
+    mfs:    16100,
+};
+
+// KY 2026 standard deduction (KRS 141.081, per-filer, applies to all filing statuses)
+const KY_STANDARD_DEDUCTION_2026 = 3360;
+
+// 2026 federal income tax brackets (taxable income, after standard deduction)
+// Each entry: [upper_bound_or_Infinity, rate]
+const FEDERAL_BRACKETS_2026 = {
+    single: [
+        [12400,   0.10],
+        [50400,   0.12],
+        [105700,  0.22],
+        [201775,  0.24],
+        [256225,  0.32],
+        [640600,  0.35],
+        [Infinity, 0.37],
+    ],
+    mfj: [
+        [24800,   0.10],
+        [100800,  0.12],
+        [211400,  0.22],
+        [403550,  0.24],
+        [512450,  0.32],
+        [768700,  0.35],
+        [Infinity, 0.37],
+    ],
+    hoh: [
+        [17700,   0.10],
+        [67450,   0.12],
+        [105700,  0.22],
+        [201775,  0.24],
+        [256225,  0.32],
+        [640600,  0.35],
+        [Infinity, 0.37],
+    ],
+    mfs: [
+        [12400,   0.10],
+        [50400,   0.12],
+        [105700,  0.22],
+        [201775,  0.24],
+        [256225,  0.32],
+        [384350,  0.35],
+        [Infinity, 0.37],
+    ],
+};
+
+function applyFederalBrackets(taxableIncome, filingStatus) {
+    if (taxableIncome <= 0) return 0;
+    const brackets = FEDERAL_BRACKETS_2026[filingStatus] || FEDERAL_BRACKETS_2026.mfj;
+    let tax = 0, prevBound = 0;
+    for (const [bound, rate] of brackets) {
+        if (taxableIncome <= bound) {
+            tax += (taxableIncome - prevBound) * rate;
+            return Math.round(tax * 100) / 100;
+        }
+        tax += (bound - prevBound) * rate;
+        prevBound = bound;
+    }
+    return Math.round(tax * 100) / 100;
+}
+
+function getTaxSettings() {
+    try {
+        const raw = localStorage.getItem('myreliacare_tax_settings');
+        if (!raw) return { filingStatus: 'mfj', otherSeIncome: 0, otherTaxableIncome: 0, healthInsurance: 0, retirementContributions: 0 };
+        const s = JSON.parse(raw);
+        return {
+            filingStatus: s.filingStatus || 'mfj',
+            otherSeIncome: parseFloat(s.otherSeIncome) || 0,
+            otherTaxableIncome: parseFloat(s.otherTaxableIncome) || 0,
+            healthInsurance: parseFloat(s.healthInsurance) || 0,
+            retirementContributions: parseFloat(s.retirementContributions) || 0,
+        };
+    } catch {
+        return { filingStatus: 'mfj', otherSeIncome: 0, otherTaxableIncome: 0, healthInsurance: 0, retirementContributions: 0 };
+    }
+}
+function saveTaxSettings(patch) {
+    const current = getTaxSettings();
+    const merged = { ...current, ...patch };
+    localStorage.setItem('myreliacare_tax_settings', JSON.stringify(merged));
+    renderTaxSettings();
+    renderTaxProjection();
+}
+
+function toggleTaxSettings() {
+    const panel = document.getElementById('taxSettingsPanel');
+    const toggle = document.getElementById('taxSettingsToggle');
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    toggle.textContent = isOpen ? 'Tax Settings ▾' : 'Tax Settings ▴';
+    if (!isOpen) renderTaxSettings();
+}
+
+function renderTaxSettings() {
+    const s = getTaxSettings();
+    document.getElementById('taxSettingsPanel').innerHTML = `
+        <div class="tax-settings-grid">
+            <div class="tax-settings-field">
+                <label>Filing Status</label>
+                <select onchange="saveTaxSettings({ filingStatus: this.value })">
+                    <option value="mfj"${s.filingStatus === 'mfj' ? ' selected' : ''}>Married Filing Jointly</option>
+                    <option value="single"${s.filingStatus === 'single' ? ' selected' : ''}>Single</option>
+                    <option value="hoh"${s.filingStatus === 'hoh' ? ' selected' : ''}>Head of Household</option>
+                    <option value="mfs"${s.filingStatus === 'mfs' ? ' selected' : ''}>Married Filing Separately</option>
+                </select>
+            </div>
+            <div class="tax-settings-field">
+                <label>Other Self-Employment Income <small>(this year, e.g. DoorDash)</small></label>
+                <input type="number" min="0" step="100" value="${s.otherSeIncome || ''}" placeholder="0"
+                       onchange="saveTaxSettings({ otherSeIncome: parseFloat(this.value) || 0 })">
+            </div>
+            <div class="tax-settings-field">
+                <label>Other Taxable Income <small>(this year, e.g. spouse W-2)</small></label>
+                <input type="number" min="0" step="100" value="${s.otherTaxableIncome || ''}" placeholder="0"
+                       onchange="saveTaxSettings({ otherTaxableIncome: parseFloat(this.value) || 0 })">
+            </div>
+            <div class="tax-settings-field">
+                <label>Self-Employed Health Insurance <small>(annual premiums you pay yourself)</small></label>
+                <input type="number" min="0" step="100" value="${s.healthInsurance || ''}" placeholder="0"
+                       onchange="saveTaxSettings({ healthInsurance: parseFloat(this.value) || 0 })">
+            </div>
+            <div class="tax-settings-field" style="grid-column: 1 / -1;">
+                <label>Retirement Contributions <small>(annual SEP IRA / Solo 401k / Traditional IRA — both spouses combined)</small></label>
+                <input type="number" min="0" step="100" value="${s.retirementContributions || ''}" placeholder="0"
+                       onchange="saveTaxSettings({ retirementContributions: parseFloat(this.value) || 0 })">
+            </div>
+        </div>
+    `;
+}
+
+// Compute SE tax accurately, respecting the Social Security wage base cap
+function calcSelfEmploymentTax(seIncome) {
+    if (seIncome <= 0) return 0;
+    const adjustedSE = seIncome * TAX_CONSTANTS.SE_INCOME_ADJ;
+    const ssPortion = Math.min(adjustedSE, TAX_CONSTANTS.SS_WAGE_BASE_2026) * 0.124;
+    const medicarePortion = adjustedSE * 0.029;
+    return Math.round((ssPortion + medicarePortion) * 100) / 100;
+}
+
+function renderTaxProjection() {
+    // Tax projection is locked to the current year (annual settings need annual scope)
+    const thisY = todayYmd().slice(0, 4);
+    const inRange = (dateStr) => dateStr && dateStr.startsWith(thisY);
+    document.getElementById('taxYearNote').textContent = `· ${thisY} estimate, rough — not tax advice`;
+
+    // ─── Gross collected ──────────────────────────────────────
+    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(i.paidDate));
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && inRange(v.paidDate));
+    let gross = 0;
+    let totalFees = 0;
+    paidInvoices.forEach(inv => {
+        const g = parseFloat(inv.total) || 0;
+        gross += g;
+        totalFees += inv.paymentFee != null ? parseFloat(inv.paymentFee) : (inv.paymentMethod ? calcPaymentFee(inv.paymentMethod, g) : 0);
+    });
+    directVisits.forEach(v => {
+        const g = parseFloat(v.price) || 0;
+        gross += g;
+        totalFees += v.paymentFee != null ? parseFloat(v.paymentFee) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
+    });
+
+    // ─── Sales tax extracted (tax-inclusive pricing: 6/106 of gross) ──
+    const salesTaxOwed = Math.round((gross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE))) * 100) / 100;
+    const netServiceRevenue = Math.round((gross - salesTaxOwed) * 100) / 100;
+
+    // ─── Tips (taxable income, but NOT subject to sales tax) ────
+    const tips = Store.getClients().reduce((sum, c) => {
+        if (!Array.isArray(c.tips)) return sum;
+        return sum + c.tips.filter(t => inRange(t.date)).reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+    }, 0);
+
+    // ─── Mileage deduction ──────────────────────────────────
+    const mileageRecords = Store.getMileage().filter(r => inRange(r.date));
+    const mileageDeduction = calcMileageDeduction(mileageRecords);
+    const totalMiles = mileageRecords.reduce((s, r) => s + (parseFloat(r.miles) || 0), 0);
+
+    // ─── Net business income from MyReliaCare ────────────────
+    const netBusinessIncome = Math.max(0, Math.round((netServiceRevenue + tips - totalFees - mileageDeduction) * 100) / 100);
+
+    // ─── Settings (filing status, other income, above-the-line deductions) ──
+    const settings = getTaxSettings();
+    const otherSe = settings.otherSeIncome;
+    const otherTaxable = settings.otherTaxableIncome;
+    const healthInsurance = settings.healthInsurance;
+    const retirementContrib = settings.retirementContributions;
+    const stdDeduction = STANDARD_DEDUCTION_2026[settings.filingStatus];
+
+    // ─── SE tax on combined SE income ────────────────────────
+    const combinedSeIncome = netBusinessIncome + otherSe;
+    const seTax = calcSelfEmploymentTax(combinedSeIncome);
+    const seTaxDeduction = seTax / 2;  // Half SE tax is deductible (above-the-line)
+
+    // ─── AGI = combined SE - half SE tax - SE health ins - retirement + other taxable ──
+    // Health insurance deduction is capped at net SE earnings (IRS §162(l))
+    const seEarningsAfterTax = Math.max(0, combinedSeIncome - seTaxDeduction);
+    const allowedHealthIns = Math.min(healthInsurance, seEarningsAfterTax);
+    const agi = Math.max(0, combinedSeIncome - seTaxDeduction - allowedHealthIns - retirementContrib + otherTaxable);
+
+    // ─── Federal taxable income → progressive brackets ───────
+    const federalTaxableIncome = Math.max(0, agi - stdDeduction);
+    const federalTax = applyFederalBrackets(federalTaxableIncome, settings.filingStatus);
+
+    // ─── KY income tax: 3.5% × (AGI - KY std deduction) ──────
+    // KY std deduction is per-filer ($3,360). Couples where both spouses earn income may
+    // file "MFS on combined return" and claim 2x; but with only one earner (Kasey's case),
+    // the unused portion is wasted. Default to 1x (conservative for single-earner couples).
+    const kyStdDed = KY_STANDARD_DEDUCTION_2026;
+    const kyTaxableIncome = Math.max(0, agi - kyStdDed);
+    const kyIncomeTax = Math.round(kyTaxableIncome * TAX_CONSTANTS.KY_INCOME_RATE * 100) / 100;
+
+    // ─── Set aside total ─────────────────────────────────────
+    const setAside = Math.round((salesTaxOwed + seTax + federalTax + kyIncomeTax) * 100) / 100;
+    const effectiveRate = gross > 0 ? (setAside / gross * 100) : 0;
+
+    const body = document.getElementById('taxProjectionBody');
+    if (gross === 0 && otherSe === 0 && otherTaxable === 0) {
+        body.innerHTML = `<div class="income-empty">No paid income for ${thisY} yet.</div>`;
+        return;
+    }
+
+    const fmt = (n) => `$${n.toFixed(2)}`;
+    const filingLabels = { single: 'Single', mfj: 'MFJ', hoh: 'HoH', mfs: 'MFS' };
+    const filingLabel = filingLabels[settings.filingStatus];
+
+    body.innerHTML = `
+        <div class="tax-section">
+            <div class="tax-section-label">Net Business Income (MyReliaCare)</div>
+            <div class="tax-row income">
+                <div class="tax-label">Gross collected</div>
+                <div class="tax-value">${fmt(gross)}</div>
+            </div>
+            <div class="tax-row deduction">
+                <div class="tax-label">− KY sales tax extracted <small>(6% of gross, incl. in prices)</small></div>
+                <div class="tax-value">−${fmt(salesTaxOwed)}</div>
+            </div>
+            <div class="tax-row">
+                <div class="tax-label">Net service revenue</div>
+                <div class="tax-value">${fmt(netServiceRevenue)}</div>
+            </div>
+            ${tips > 0 ? `<div class="tax-row income">
+                <div class="tax-label">+ Tips <small>(not subject to sales tax)</small></div>
+                <div class="tax-value">+${fmt(tips)}</div>
+            </div>` : ''}
+            <div class="tax-row deduction">
+                <div class="tax-label">− Payment processing fees</div>
+                <div class="tax-value">−${fmt(totalFees)}</div>
+            </div>
+            <div class="tax-row deduction">
+                <div class="tax-label">− Mileage deduction <small>(${totalMiles.toFixed(1)} mi)</small></div>
+                <div class="tax-value">−${fmt(mileageDeduction)}</div>
+            </div>
+            <div class="tax-row subtotal">
+                <div class="tax-label">= Net business income</div>
+                <div class="tax-value">${fmt(netBusinessIncome)}</div>
+            </div>
+        </div>
+
+        ${(otherSe > 0 || otherTaxable > 0 || healthInsurance > 0 || retirementContrib > 0) ? `<div class="tax-section">
+            <div class="tax-section-label">Other Income & Above-the-Line Deductions (from Tax Settings)</div>
+            ${otherSe > 0 ? `<div class="tax-row income">
+                <div class="tax-label">+ Other self-employment income</div>
+                <div class="tax-value">+${fmt(otherSe)}</div>
+            </div>` : ''}
+            ${otherTaxable > 0 ? `<div class="tax-row income">
+                <div class="tax-label">+ Other taxable income</div>
+                <div class="tax-value">+${fmt(otherTaxable)}</div>
+            </div>` : ''}
+            ${healthInsurance > 0 ? `<div class="tax-row deduction">
+                <div class="tax-label">− SE health insurance premiums <small>${allowedHealthIns < healthInsurance ? `(capped at SE earnings: ${fmt(allowedHealthIns)})` : ''}</small></div>
+                <div class="tax-value">−${fmt(allowedHealthIns)}</div>
+            </div>` : ''}
+            ${retirementContrib > 0 ? `<div class="tax-row deduction">
+                <div class="tax-label">− Retirement contributions <small>(SEP / Solo 401k / IRA)</small></div>
+                <div class="tax-value">−${fmt(retirementContrib)}</div>
+            </div>` : ''}
+        </div>` : ''}
+
+        <div class="tax-section">
+            <div class="tax-section-label">Estimated Taxes Owed (${filingLabel}, ${thisY})</div>
+            <div class="tax-row">
+                <div class="tax-label">Sales tax <small>(collected, owed to KY)</small></div>
+                <div class="tax-value">${fmt(salesTaxOwed)}</div>
+            </div>
+            <div class="tax-row">
+                <div class="tax-label">Self-employment tax <small>(15.3% × 92.35% of SE income, w/ SS cap)</small></div>
+                <div class="tax-value">${fmt(seTax)}</div>
+            </div>
+            <div class="tax-row">
+                <div class="tax-label">Federal income tax <small>(AGI $${agi.toFixed(0)} − std ded $${stdDeduction.toLocaleString()} → taxable $${federalTaxableIncome.toFixed(0)})</small></div>
+                <div class="tax-value">${fmt(federalTax)}</div>
+            </div>
+            <div class="tax-row">
+                <div class="tax-label">KY income tax <small>(3.5% × (AGI − $${kyStdDed.toLocaleString()} KY std ded))</small></div>
+                <div class="tax-value">${fmt(kyIncomeTax)}</div>
+            </div>
+            <div class="tax-row total">
+                <div class="tax-label">Set aside total</div>
+                <div class="tax-value">${fmt(setAside)}</div>
+            </div>
+            <div style="text-align: right; color: var(--text-faint); font-size: 0.85em; margin-top: 4px;">
+                ${effectiveRate.toFixed(1)}% of gross
+            </div>
+        </div>
+
+        <div class="tax-caveat">
+            <strong>What this gets right:</strong> SE tax (very accurate, includes SS wage base cap), KY sales tax (exact), federal &amp; KY standard deductions, progressive federal brackets, half-SE-tax deduction, SE health insurance deduction (capped at SE earnings per §162(l)), retirement contribution deduction.
+            <br><br>
+            <strong>What it doesn't yet handle:</strong> QBI deduction (20% off qualified business income — for pet care, fully available; but doesn't help unless taxable income exceeds standard deduction). Child Tax Credit / EITC. KY Family Size Tax Credit (could zero out KY tax if household MGI is near federal poverty level — check at tax time). Itemized deductions. Double KY std deduction if both spouses have income (file "MFS on combined return"). A CPA can dial these in.
+        </div>
+    `;
+}
+
 function refreshAll() {
     renderStats();
     renderFilterTabs();
     renderInvoiceList();
     renderIncomeBreakdown();
     renderMileage();
+    renderTaxProjection();
 }
 
 function init() {
