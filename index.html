@@ -59,6 +59,9 @@
         }
         body.menu-open { overflow: hidden; }
         body.modal-open { overflow: hidden; }
+        @media (max-width: 700px) {
+            body.modal-open { position: fixed; left: 0; right: 0; width: 100%; }
+        }
 
         @media (max-width: 700px) {
             body { padding: max(28px, env(safe-area-inset-top, 28px)) 8px 8px 8px; font-size: 17px; }
@@ -1423,6 +1426,49 @@
         ::-webkit-scrollbar-track { background: var(--bg-deep); }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* ============================================================
+           BACKFILL WORKSPACE
+           ============================================================ */
+        .backfill-workspace { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; padding: 24px 20px; -webkit-overflow-scrolling: touch; }
+        .backfill-inner { max-width: 1400px; margin: 0 auto; }
+        .backfill-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .backfill-title { font-family: 'Cormorant Unicase', serif; font-size: 1.6em; color: var(--accent); margin: 0; }
+        .backfill-subtitle { color: var(--text-faint); font-size: 0.85em; margin-top: 4px; font-style: italic; }
+        .backfill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .backfill-card { margin-bottom: 0; }
+        .bf-hint { color: var(--text-faint); font-size: 0.65em; font-weight: 400; font-family: 'Cormorant', serif; text-transform: none; letter-spacing: 0; margin-left: 6px; font-style: italic; }
+        .bf-hint-inline { color: var(--text-faint); font-size: 0.85em; font-style: italic; font-weight: 400; }
+        .bf-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+        .bf-field label { color: var(--text-faint); font-size: 0.82em; text-transform: uppercase; letter-spacing: 1px; }
+        .bf-field input, .bf-field select { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); padding: 9px 11px; border-radius: 6px; font-family: inherit; font-size: 1em; }
+        .bf-field input:focus, .bf-field select:focus { outline: none; border-color: var(--accent); }
+        .bf-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .bf-field-row .bf-field { margin-bottom: 0; }
+        .bf-checkbox { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; font-size: 0.95em; color: var(--text-dim); cursor: pointer; text-transform: none; letter-spacing: 0; }
+        .bf-checkbox input { width: auto; }
+        .bf-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .bf-dow-day { padding: 8px 0; border: 1px solid var(--border); border-radius: 6px; text-align: center; cursor: pointer; background: var(--bg-input); color: var(--text-dim); font-size: 0.9em; user-select: none; transition: all 0.1s; }
+        .bf-dow-day:hover { border-color: var(--accent); }
+        .bf-dow-day.active { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
+        .bf-preview { padding: 10px 12px; background: var(--bg); border-radius: 8px; margin: 10px 0; font-size: 0.9em; color: var(--text-dim); border-left: 3px solid var(--accent); }
+        .bf-preview.empty { color: var(--text-faint); border-left-color: var(--text-faint); font-style: italic; }
+        .bf-session-log { max-height: 360px; overflow-y: auto; }
+        .bf-session-row { display: grid; grid-template-columns: 90px 1fr 90px 70px 70px 36px; gap: 8px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 0.9em; }
+        .bf-session-row:last-child { border-bottom: none; }
+        .bf-session-row .bf-undo { background: transparent; border: 1px solid var(--border); color: var(--warn); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.95em; line-height: 1; }
+        .bf-session-row .bf-undo:hover { background: var(--warn); color: white; border-color: var(--warn); }
+        .bf-session-empty { padding: 20px; text-align: center; color: var(--text-faint); font-style: italic; }
+        @media (max-width: 900px) {
+            .backfill-grid { grid-template-columns: 1fr; }
+            .bf-session-row { grid-template-columns: 80px 1fr 60px 50px 36px; }
+            .bf-session-row .bf-paid { display: none; }
+        }
+        @media (max-width: 700px) {
+            .backfill-workspace { padding: max(16px, env(safe-area-inset-top, 16px)) 8px 80px 8px; }
+            .backfill-title { font-size: 1.3em; }
+            .bf-field-row { grid-template-columns: 1fr; }
+        }
     
         /* === Overflow safety net for mobile === */
         @media (max-width: 700px) {
@@ -1797,6 +1843,7 @@
             <button class="btn btn-primary" onclick="openScheduleModal()">+ Schedule Visit</button>
             <button class="btn btn-personal" onclick="openPersonalEventModal()">+ Personal Event</button>
             <button class="btn btn-note" onclick="openQuickNotes()">+ Quick Notes</button>
+            <button class="btn btn-ghost" onclick="openBackfill()" title="Rapid entry mode for historical visits">⏪ Backfill</button>
         </div>
 
         <!-- Today's Schedule -->
@@ -1964,7 +2011,7 @@
             <div id="payMethodAmount" style="font-size: 1.4em; color: var(--accent); text-align: center; margin-bottom: 16px; font-family: 'Cormorant Unicase', serif;"></div>
             <div class="pay-method-grid">
                 <button class="pay-method-btn" data-method="venmo" onclick="selectPaymentMethod('venmo')"><span class="pmb-label">Venmo</span><span class="pmb-hint">1.9% + $0.10</span></button>
-                <button class="pay-method-btn" data-method="cashapp" onclick="selectPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">2.75%</span></button>
+                <button class="pay-method-btn" data-method="cashapp" onclick="selectPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">0%</span></button>
                 <button class="pay-method-btn" data-method="stripe" onclick="selectPaymentMethod('stripe')"><span class="pmb-label">Stripe</span><span class="pmb-hint">2.9% + $0.30</span></button>
                 <button class="pay-method-btn" data-method="rover" onclick="selectPaymentMethod('rover')"><span class="pmb-label">Rover</span><span class="pmb-hint">paid via app</span></button>
                 <button class="pay-method-btn" data-method="cash" onclick="selectPaymentMethod('cash')"><span class="pmb-label">Cash</span><span class="pmb-hint">no fee</span></button>
@@ -2143,6 +2190,164 @@
     </div>
 </div>
 
+<!-- ============================================================
+     BACKFILL WORKSPACE — full-screen overlay for rapid historical entry
+     ============================================================ -->
+<div id="backfillWorkspace" class="backfill-workspace" style="display: none;">
+    <div class="backfill-inner">
+        <div class="backfill-header">
+            <div>
+                <h2 class="backfill-title">⏪ Backfill Workspace</h2>
+                <div class="backfill-subtitle">Rapid entry mode for historical visits. Stays open across adds.</div>
+            </div>
+            <button class="btn btn-ghost" onclick="closeBackfill()">✕ Exit Backfill Mode</button>
+        </div>
+
+        <div class="backfill-grid">
+            <!-- ─── PATTERN FILL CARD ─── -->
+            <div class="card backfill-card">
+                <h3 class="card-title">Pattern Fill <span class="bf-hint">Generate a batch of recurring visits</span></h3>
+                <div class="bf-field">
+                    <label>Client</label>
+                    <select id="bfPatternClient" onchange="bfPatternRefresh()"></select>
+                </div>
+                <div class="bf-field-row">
+                    <div class="bf-field">
+                        <label>Visit Type</label>
+                        <select id="bfPatternType" onchange="bfPatternAutofillPrice(); bfPatternRefresh()">
+                            <option value="meet-greet">Meet & Greet</option>
+                            <option value="30min" selected>30 min Visit</option>
+                            <option value="60min">1 hour Visit</option>
+                        </select>
+                    </div>
+                    <div class="bf-field">
+                        <label>Price ($)</label>
+                        <input type="number" id="bfPatternPrice" min="0" step="0.01" placeholder="25.00" onchange="bfPatternRefresh()">
+                    </div>
+                </div>
+                <div class="bf-field-row">
+                    <div class="bf-field">
+                        <label>Time</label>
+                        <input type="time" id="bfPatternTime" value="08:00">
+                    </div>
+                    <div class="bf-field">
+                        <label>Assigned To</label>
+                        <select id="bfPatternAssigned">
+                            <option value="kasey" selected>Kasey</option>
+                            <option value="charlie">Charlie</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="bf-field">
+                    <label>Days of Week</label>
+                    <div class="bf-dow-row" id="bfPatternDow"></div>
+                </div>
+                <div class="bf-field-row">
+                    <div class="bf-field">
+                        <label>Start Date</label>
+                        <input type="date" id="bfPatternStart" onchange="bfPatternRefresh()">
+                    </div>
+                    <div class="bf-field">
+                        <label>End Date</label>
+                        <input type="date" id="bfPatternEnd" onchange="bfPatternRefresh()">
+                    </div>
+                </div>
+                <div class="bf-field">
+                    <label class="bf-checkbox">
+                        <input type="checkbox" id="bfPatternCompleted" checked> Mark all as Completed
+                    </label>
+                    <label class="bf-checkbox">
+                        <input type="checkbox" id="bfPatternPaid" onchange="bfPatternTogglePaid()"> Mark all as Paid
+                    </label>
+                </div>
+                <div class="bf-field" id="bfPatternPaymentRow" style="display: none;">
+                    <label>Payment Method (for all)</label>
+                    <select id="bfPatternPaymentMethod">
+                        <option value="venmo">Venmo (1.9%+$0.10)</option>
+                        <option value="cashapp">CashApp (0%)</option>
+                        <option value="stripe">Stripe (2.9%+$0.30)</option>
+                        <option value="rover">Rover (0%)</option>
+                        <option value="cash" selected>Cash (0%)</option>
+                        <option value="other">Other (0%)</option>
+                    </select>
+                </div>
+                <div class="bf-preview" id="bfPatternPreview">Pick a client to preview</div>
+                <button class="btn btn-primary" onclick="bfPatternGenerate()" id="bfPatternGoBtn" style="width: 100%;">Generate Visits</button>
+            </div>
+
+            <!-- ─── QUICK ADD CARD ─── -->
+            <div class="card backfill-card">
+                <h3 class="card-title">Quick Add <span class="bf-hint">Single visit · Enter to submit · auto-increments date</span></h3>
+                <div class="bf-field-row">
+                    <div class="bf-field">
+                        <label>Date</label>
+                        <input type="date" id="bfQuickDate">
+                    </div>
+                    <div class="bf-field">
+                        <label>Time</label>
+                        <input type="time" id="bfQuickTime" value="08:00">
+                    </div>
+                </div>
+                <div class="bf-field">
+                    <label>Client</label>
+                    <select id="bfQuickClient" onchange="bfQuickAutofillPrice()"></select>
+                </div>
+                <div class="bf-field-row">
+                    <div class="bf-field">
+                        <label>Visit Type</label>
+                        <select id="bfQuickType" onchange="bfQuickAutofillPrice()">
+                            <option value="meet-greet">Meet & Greet</option>
+                            <option value="30min" selected>30 min Visit</option>
+                            <option value="60min">1 hour Visit</option>
+                        </select>
+                    </div>
+                    <div class="bf-field">
+                        <label>Price ($)</label>
+                        <input type="number" id="bfQuickPrice" min="0" step="0.01" placeholder="25.00">
+                    </div>
+                </div>
+                <div class="bf-field">
+                    <label>Assigned To</label>
+                    <select id="bfQuickAssigned">
+                        <option value="kasey" selected>Kasey</option>
+                        <option value="charlie">Charlie</option>
+                    </select>
+                </div>
+                <div class="bf-field">
+                    <label class="bf-checkbox">
+                        <input type="checkbox" id="bfQuickCompleted" checked> Completed
+                    </label>
+                    <label class="bf-checkbox">
+                        <input type="checkbox" id="bfQuickPaid" onchange="bfQuickTogglePaid()"> Paid
+                    </label>
+                </div>
+                <div class="bf-field" id="bfQuickPaymentRow" style="display: none;">
+                    <label>Payment Method</label>
+                    <select id="bfQuickPaymentMethod">
+                        <option value="venmo">Venmo</option>
+                        <option value="cashapp">CashApp</option>
+                        <option value="stripe">Stripe</option>
+                        <option value="rover">Rover</option>
+                        <option value="cash" selected>Cash</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="bf-field">
+                    <label>Notes <span class="bf-hint-inline">(cleared after each add)</span></label>
+                    <input type="text" id="bfQuickNotes" placeholder="optional">
+                </div>
+                <button class="btn btn-primary" onclick="bfQuickAdd()" id="bfQuickAddBtn" style="width: 100%;">Add & Next Day →</button>
+            </div>
+        </div>
+
+        <!-- ─── SESSION LOG ─── -->
+        <div class="card backfill-card">
+            <h3 class="card-title">This Session <span class="bf-hint" id="bfSessionCount">0 added</span></h3>
+            <div id="bfSessionLog" class="bf-session-log"></div>
+        </div>
+    </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- Firebase Cloud Sync -->
@@ -2294,7 +2499,7 @@ function monthsBetween(d1, d2) {
    ============================================================ */
 const PAYMENT_METHODS = {
     venmo:   { label: 'Venmo',   pct: 0.019,  flat: 0.10, hint: '1.9% + $0.10' },
-    cashapp: { label: 'CashApp', pct: 0.0275, flat: 0,    hint: '2.75%' },
+    cashapp: { label: 'CashApp', pct: 0,      flat: 0,    hint: '0%' },     // personal CashApp — no business fee
     stripe:  { label: 'Stripe',  pct: 0.029,  flat: 0.30, hint: '2.9% + $0.30' },
     rover:   { label: 'Rover',   pct: 0,      flat: 0,    hint: 'paid via app' },
     cash:    { label: 'Cash',    pct: 0,      flat: 0,    hint: 'no fee' },
@@ -2317,7 +2522,12 @@ function paymentMethodLabel(method) {
 /* ============================================================
    MODAL HELPERS
    ============================================================ */
+let _modalScrollY = 0;
 function openModal(id) {
+    if (!document.querySelector('.modal-overlay.active')) {
+        _modalScrollY = window.scrollY || window.pageYOffset || 0;
+        document.body.style.top = `-${_modalScrollY}px`;
+    }
     document.body.classList.add('modal-open');
     document.getElementById(id).classList.add('active');
 }
@@ -2325,6 +2535,11 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
     if (!document.querySelector('.modal-overlay.active')) {
         document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        if (_modalScrollY) {
+            window.scrollTo(0, _modalScrollY);
+            _modalScrollY = 0;
+        }
     }
 }
 // click outside to close — but only if both mousedown AND mouseup landed on the overlay
@@ -4343,6 +4558,338 @@ function initApp() {
         }, 100);
     }
 }
+
+/* ============================================================
+   BACKFILL WORKSPACE — rapid historical visit entry
+   ============================================================ */
+const BACKFILL_DOW = ['S','M','T','W','T','F','S'];   // label by getDay()
+const BACKFILL_DOW_FULL = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+let _bfPatternSelectedDays = [1, 2, 3, 4, 5];  // default M-F
+let _bfSessionVisitIds = [];                    // visit IDs added this session
+let _bfStickyClientId = null;                   // last-used client (sticky for quick add)
+
+function openBackfill() {
+    document.getElementById('backfillWorkspace').style.display = 'block';
+    document.body.classList.add('modal-open');
+    _bfRefreshClients();
+    _bfRenderDow();
+    _bfRestoreDefaults();
+    _bfRenderSession();
+    bfPatternRefresh();
+}
+function closeBackfill() {
+    document.getElementById('backfillWorkspace').style.display = 'none';
+    document.body.classList.remove('modal-open');
+    // Trigger main app refresh so calendar / today list show the new visits
+    if (typeof refreshAll === 'function') refreshAll();
+    else if (typeof renderAll === 'function') renderAll();
+    else { if (typeof renderCalendar === 'function') renderCalendar(); if (typeof renderToday === 'function') renderToday(); }
+}
+
+function _bfRefreshClients() {
+    const clients = Store.getClients().slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const opts = ['<option value="">— select a client —</option>']
+        .concat(clients.map(c => `<option value="${c.id}">${(c.name || 'Unnamed').replace(/</g, '&lt;')}</option>`))
+        .join('');
+    const pat = document.getElementById('bfPatternClient');
+    const qk  = document.getElementById('bfQuickClient');
+    if (pat) pat.innerHTML = opts;
+    if (qk)  qk.innerHTML  = opts;
+    if (_bfStickyClientId) {
+        if (pat) pat.value = _bfStickyClientId;
+        if (qk)  qk.value  = _bfStickyClientId;
+    }
+}
+
+function _bfRestoreDefaults() {
+    // Set today as default date for quick add
+    const qd = document.getElementById('bfQuickDate');
+    if (qd && !qd.value) qd.value = todayYmd();
+    // Default pattern range: last 90 days
+    const ps = document.getElementById('bfPatternStart');
+    const pe = document.getElementById('bfPatternEnd');
+    if (pe && !pe.value) pe.value = todayYmd();
+    if (ps && !ps.value) {
+        const d = new Date();
+        d.setDate(d.getDate() - 90);
+        ps.value = d.toISOString().slice(0, 10);
+    }
+}
+
+function _bfRenderDow() {
+    const wrap = document.getElementById('bfPatternDow');
+    if (!wrap) return;
+    wrap.innerHTML = BACKFILL_DOW_FULL.map((label, idx) => {
+        const active = _bfPatternSelectedDays.includes(idx) ? 'active' : '';
+        return `<div class="bf-dow-day ${active}" data-dow="${idx}" onclick="bfToggleDow(${idx})">${label.substr(0, 1)}</div>`;
+    }).join('');
+}
+function bfToggleDow(idx) {
+    if (_bfPatternSelectedDays.includes(idx)) {
+        _bfPatternSelectedDays = _bfPatternSelectedDays.filter(d => d !== idx);
+    } else {
+        _bfPatternSelectedDays = [..._bfPatternSelectedDays, idx].sort();
+    }
+    _bfRenderDow();
+    bfPatternRefresh();
+}
+
+function _bfFindLastPriceFor(clientId, visitType) {
+    if (!clientId) return null;
+    const visits = Store.getVisits();
+    const matches = visits.filter(v => v.clientId === clientId && v.visitType === visitType && v.price != null && v.price !== '')
+                          .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if (matches.length > 0) return parseFloat(matches[0].price);
+    return null;
+}
+function bfPatternAutofillPrice() {
+    const cid = document.getElementById('bfPatternClient').value;
+    const type = document.getElementById('bfPatternType').value;
+    const priceEl = document.getElementById('bfPatternPrice');
+    if (priceEl && (!priceEl.value || priceEl.value === '0')) {
+        const last = _bfFindLastPriceFor(cid, type);
+        if (last != null) priceEl.value = last.toFixed(2);
+    }
+}
+function bfQuickAutofillPrice() {
+    const cid = document.getElementById('bfQuickClient').value;
+    const type = document.getElementById('bfQuickType').value;
+    const priceEl = document.getElementById('bfQuickPrice');
+    if (priceEl && (!priceEl.value || priceEl.value === '0')) {
+        const last = _bfFindLastPriceFor(cid, type);
+        if (last != null) priceEl.value = last.toFixed(2);
+    }
+    _bfStickyClientId = cid;
+}
+
+function bfPatternTogglePaid() {
+    const row = document.getElementById('bfPatternPaymentRow');
+    row.style.display = document.getElementById('bfPatternPaid').checked ? 'flex' : 'none';
+}
+function bfQuickTogglePaid() {
+    const row = document.getElementById('bfQuickPaymentRow');
+    row.style.display = document.getElementById('bfQuickPaid').checked ? 'flex' : 'none';
+}
+
+function bfPatternRefresh() {
+    const cid = document.getElementById('bfPatternClient').value;
+    const start = document.getElementById('bfPatternStart').value;
+    const end = document.getElementById('bfPatternEnd').value;
+    const preview = document.getElementById('bfPatternPreview');
+    const btn = document.getElementById('bfPatternGoBtn');
+    if (!cid) {
+        preview.className = 'bf-preview empty';
+        preview.textContent = 'Pick a client to preview';
+        btn.disabled = true;
+        return;
+    }
+    if (!start || !end) {
+        preview.className = 'bf-preview empty';
+        preview.textContent = 'Pick a date range to preview';
+        btn.disabled = true;
+        return;
+    }
+    if (_bfPatternSelectedDays.length === 0) {
+        preview.className = 'bf-preview empty';
+        preview.textContent = 'Pick at least one day of the week';
+        btn.disabled = true;
+        return;
+    }
+    if (start > end) {
+        preview.className = 'bf-preview empty';
+        preview.textContent = 'Start date must be before end date';
+        btn.disabled = true;
+        return;
+    }
+    const startD = new Date(start + 'T00:00:00');
+    const endD = new Date(end + 'T00:00:00');
+    let count = 0;
+    const cursor = new Date(startD);
+    while (cursor <= endD) {
+        if (_bfPatternSelectedDays.includes(cursor.getDay())) count++;
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    const dayLabels = _bfPatternSelectedDays.map(d => BACKFILL_DOW_FULL[d]).join('/');
+    preview.className = 'bf-preview';
+    preview.textContent = `Will generate ${count} visit${count === 1 ? '' : 's'} (${dayLabels}) between ${start} and ${end}`;
+    btn.disabled = count === 0;
+}
+
+function bfPatternGenerate() {
+    const cid = document.getElementById('bfPatternClient').value;
+    if (!cid) { showToast('Pick a client', 'error'); return; }
+    const client = Store.getClients().find(c => c.id === cid);
+    if (!client) { showToast('Client not found', 'error'); return; }
+    const visitType = document.getElementById('bfPatternType').value;
+    const priceVal = parseFloat(document.getElementById('bfPatternPrice').value);
+    if (!priceVal && priceVal !== 0) { showToast('Enter a price', 'error'); return; }
+    const time = document.getElementById('bfPatternTime').value || '08:00';
+    const start = document.getElementById('bfPatternStart').value;
+    const end = document.getElementById('bfPatternEnd').value;
+    if (!start || !end) { showToast('Pick a date range', 'error'); return; }
+    const assignedTo = document.getElementById('bfPatternAssigned').value;
+    const markCompleted = document.getElementById('bfPatternCompleted').checked;
+    const markPaid = document.getElementById('bfPatternPaid').checked;
+    const paymentMethod = markPaid ? document.getElementById('bfPatternPaymentMethod').value : null;
+
+    const startD = new Date(start + 'T00:00:00');
+    const endD = new Date(end + 'T00:00:00');
+    if (startD > endD) { showToast('Start must be before end', 'error'); return; }
+
+    const groupId = generateId('rec');
+    const newVisits = [];
+    const cursor = new Date(startD);
+    while (cursor <= endD) {
+        if (_bfPatternSelectedDays.includes(cursor.getDay())) {
+            const dateStr = cursor.toISOString().slice(0, 10);
+            newVisits.push(_bfBuildVisit({
+                clientId: cid, clientName: client.name, address: client.address || '',
+                access: client.accessInstructions || '', date: dateStr, time,
+                visitType, price: priceVal, assignedTo, notes: '',
+                groupId, completed: markCompleted, paid: markPaid,
+                paymentMethod, paidDate: markPaid ? dateStr : null,
+            }));
+        }
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    if (newVisits.length === 0) { showToast('No matching days in that range', 'error'); return; }
+
+    const existing = Store.getVisits();
+    const ok = Store.saveVisits([...existing, ...newVisits]);
+    if (!ok) { showToast('Save failed', 'error'); return; }
+    _bfSessionVisitIds.push(...newVisits.map(v => v.id));
+    _bfStickyClientId = cid;
+    _bfRenderSession();
+    showToast(`Generated ${newVisits.length} visit${newVisits.length === 1 ? '' : 's'}`);
+}
+
+function bfQuickAdd() {
+    const cid = document.getElementById('bfQuickClient').value;
+    if (!cid) { showToast('Pick a client', 'error'); return; }
+    const client = Store.getClients().find(c => c.id === cid);
+    if (!client) { showToast('Client not found', 'error'); return; }
+    const date = document.getElementById('bfQuickDate').value;
+    if (!date) { showToast('Pick a date', 'error'); return; }
+    const time = document.getElementById('bfQuickTime').value || '08:00';
+    const visitType = document.getElementById('bfQuickType').value;
+    const priceVal = parseFloat(document.getElementById('bfQuickPrice').value);
+    if (!priceVal && priceVal !== 0) { showToast('Enter a price', 'error'); return; }
+    const assignedTo = document.getElementById('bfQuickAssigned').value;
+    const completed = document.getElementById('bfQuickCompleted').checked;
+    const paid = document.getElementById('bfQuickPaid').checked;
+    const paymentMethod = paid ? document.getElementById('bfQuickPaymentMethod').value : null;
+    const notes = document.getElementById('bfQuickNotes').value || '';
+
+    const visit = _bfBuildVisit({
+        clientId: cid, clientName: client.name, address: client.address || '',
+        access: client.accessInstructions || '', date, time,
+        visitType, price: priceVal, assignedTo, notes,
+        groupId: null, completed, paid,
+        paymentMethod, paidDate: paid ? date : null,
+    });
+
+    const existing = Store.getVisits();
+    const ok = Store.saveVisits([...existing, visit]);
+    if (!ok) { showToast('Save failed', 'error'); return; }
+    _bfSessionVisitIds.push(visit.id);
+    _bfStickyClientId = cid;
+    _bfRenderSession();
+    showToast('Added');
+
+    // Auto-increment date for next add, clear notes, keep other fields sticky
+    try {
+        const next = new Date(date + 'T00:00:00');
+        next.setDate(next.getDate() + 1);
+        document.getElementById('bfQuickDate').value = next.toISOString().slice(0, 10);
+    } catch {}
+    document.getElementById('bfQuickNotes').value = '';
+    // Refocus date for keyboard speed
+    document.getElementById('bfQuickDate').focus();
+}
+
+function _bfBuildVisit({ clientId, clientName, address, access, date, time, visitType, price, assignedTo, notes, groupId, completed, paid, paymentMethod, paidDate }) {
+    const v = {
+        id: generateId('visit'),
+        clientId, clientName,
+        date, time, visitType,
+        price, address,
+        accessInstructions: access,
+        notes,
+        status: completed ? 'completed' : 'scheduled',
+        recurringGroupId: groupId,
+        invoiced: false,
+        paid: !!paid,
+        paidDate: paid ? paidDate : null,
+        assignedTo,
+        createdAt: new Date().toISOString(),
+    };
+    if (paid && paymentMethod) {
+        v.paymentMethod = paymentMethod;
+        if (typeof calcPaymentFee === 'function') {
+            const fee = calcPaymentFee(paymentMethod, price);
+            v.paymentFee = fee;
+            v.netAmount = Math.round((price - fee) * 100) / 100;
+        }
+    }
+    return v;
+}
+
+function _bfRenderSession() {
+    const log = document.getElementById('bfSessionLog');
+    const countEl = document.getElementById('bfSessionCount');
+    if (!log) return;
+    const visits = Store.getVisits();
+    const inSession = _bfSessionVisitIds
+        .map(id => visits.find(v => v.id === id))
+        .filter(Boolean)
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    countEl.textContent = `${inSession.length} added`;
+    if (inSession.length === 0) {
+        log.innerHTML = `<div class="bf-session-empty">Nothing added yet in this session. Adds will appear here so you can quickly undo mistakes.</div>`;
+        return;
+    }
+    log.innerHTML = inSession.map(v => {
+        const typeLabel = (VISIT_TYPES[v.visitType] || {}).label || v.visitType;
+        const t12 = v.time ? _bfFmt12(v.time) : '';
+        const paid = v.paid ? '✓' : '';
+        return `<div class="bf-session-row">
+            <div>${v.date}</div>
+            <div>${(v.clientName || '').replace(/</g, '&lt;')}</div>
+            <div>${typeLabel}</div>
+            <div>${t12}</div>
+            <div class="bf-paid">${paid} $${(parseFloat(v.price) || 0).toFixed(0)}</div>
+            <button class="bf-undo" onclick="bfUndoVisit('${v.id}')" title="Undo">✕</button>
+        </div>`;
+    }).join('');
+}
+function _bfFmt12(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'p' : 'a';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')}${ampm}`;
+}
+
+function bfUndoVisit(visitId) {
+    const remaining = Store.getVisits().filter(v => v.id !== visitId);
+    const ok = Store.saveVisits(remaining);
+    if (!ok) { showToast('Undo failed', 'error'); return; }
+    _bfSessionVisitIds = _bfSessionVisitIds.filter(id => id !== visitId);
+    _bfRenderSession();
+    showToast('Removed');
+}
+
+// Keyboard: press Enter in Quick Add fields to submit
+document.addEventListener('keydown', (e) => {
+    const ws = document.getElementById('backfillWorkspace');
+    if (!ws || ws.style.display === 'none') return;
+    if (e.key !== 'Enter') return;
+    const t = e.target;
+    if (t && t.id && t.id.startsWith('bfQuick') && t.tagName !== 'BUTTON') {
+        e.preventDefault();
+        bfQuickAdd();
+    }
+});
 
 // Make initApp accessible to firebase-sync.js
 window.initApp = initApp;

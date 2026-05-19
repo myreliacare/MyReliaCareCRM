@@ -60,7 +60,9 @@
         .logout-btn:hover { color: var(--danger); border-color: var(--danger); }
 
         /* Stats */
-        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card.clickable { cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
+        .stat-card.clickable:hover { transform: translateY(-2px); border-color: var(--accent); }
         .stat-card { background: var(--bg-card); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent); }
         .stat-card.warn { border-left-color: var(--warn); }
         .stat-card.success { border-left-color: var(--success); }
@@ -243,6 +245,9 @@
         .tax-controls label { color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
         .tax-controls select { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-family: inherit; font-size: 0.95em; }
         .tax-caveat { color: var(--text-faint); font-size: 0.82em; font-style: italic; margin-top: 10px; padding: 10px 12px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--text-faint); }
+        .tax-caveat-toggle { margin-top: 10px; text-align: right; }
+        .tax-caveat-btn { background: transparent; border: none; color: var(--text-faint); font-size: 0.78em; font-family: inherit; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-style: italic; }
+        .tax-caveat-btn:hover { color: var(--text-dim); background: var(--bg); }
         .tax-settings-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-top: 12px; margin-bottom: 4px; }
         .tax-settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .tax-settings-field { display: flex; flex-direction: column; gap: 4px; }
@@ -403,7 +408,10 @@
         html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         body { overscroll-behavior-y: contain; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
         body.menu-open { overflow: hidden; }
-        body.modal-open { overflow: hidden; position: fixed; width: 100%; }
+        body.modal-open { overflow: hidden; }
+        @media (max-width: 700px) {
+            body.modal-open { position: fixed; left: 0; right: 0; width: 100%; }
+        }
         .menu-toggle { display: none; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 1.4em; line-height: 1; cursor: pointer; font-family: monospace; }
         .menu-toggle:hover { background: var(--bg-input); }
         .menu-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 8998; }
@@ -801,7 +809,7 @@
             <div id="payMethodAmount" style="font-size: 1.4em; color: var(--accent); text-align: center; margin-bottom: 16px; font-family: 'Cormorant Unicase', serif;"></div>
             <div class="pay-method-grid">
                 <button class="pay-method-btn" data-method="venmo" onclick="selectPaymentMethod('venmo')"><span class="pmb-label">Venmo</span><span class="pmb-hint">1.9% + $0.10</span></button>
-                <button class="pay-method-btn" data-method="cashapp" onclick="selectPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">2.75%</span></button>
+                <button class="pay-method-btn" data-method="cashapp" onclick="selectPaymentMethod('cashapp')"><span class="pmb-label">CashApp</span><span class="pmb-hint">0%</span></button>
                 <button class="pay-method-btn" data-method="stripe" onclick="selectPaymentMethod('stripe')"><span class="pmb-label">Stripe</span><span class="pmb-hint">2.9% + $0.30</span></button>
                 <button class="pay-method-btn" data-method="rover" onclick="selectPaymentMethod('rover')"><span class="pmb-label">Rover</span><span class="pmb-hint">paid via app</span></button>
                 <button class="pay-method-btn" data-method="cash" onclick="selectPaymentMethod('cash')"><span class="pmb-label">Cash</span><span class="pmb-hint">no fee</span></button>
@@ -941,7 +949,12 @@ function showToast(msg, type = 'success') {
     t.textContent = msg; t.className = type; t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 3000);
 }
+let _modalScrollY = 0;
 function openModal(id) {
+    if (!document.querySelector('.modal-overlay.active')) {
+        _modalScrollY = window.scrollY || window.pageYOffset || 0;
+        document.body.style.top = `-${_modalScrollY}px`;
+    }
     document.body.classList.add('modal-open');
     document.getElementById(id).classList.add('active');
 }
@@ -949,6 +962,11 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
     if (!document.querySelector('.modal-overlay.active')) {
         document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        if (_modalScrollY) {
+            window.scrollTo(0, _modalScrollY);
+            _modalScrollY = 0;
+        }
     }
 }
 // click outside to close — drag-aware (prevents accidental close from iOS spurious clicks)
@@ -992,7 +1010,7 @@ function clientName(id) { const c = clientById(id); return c ? c.name : '(client
    ============================================================ */
 const PAYMENT_METHODS = {
     venmo:   { label: 'Venmo',   pct: 0.019,  flat: 0.10, hint: '1.9% + $0.10' },
-    cashapp: { label: 'CashApp', pct: 0.0275, flat: 0,    hint: '2.75%' },
+    cashapp: { label: 'CashApp', pct: 0,      flat: 0,    hint: '0%' },     // personal CashApp — no business fee
     stripe:  { label: 'Stripe',  pct: 0.029,  flat: 0.30, hint: '2.9% + $0.30' },
     rover:   { label: 'Rover',   pct: 0,      flat: 0,    hint: 'paid via app' },
     cash:    { label: 'Cash',    pct: 0,      flat: 0,    hint: 'no fee' },
@@ -1920,7 +1938,7 @@ function viewInvoice(id) {
 let _incomeRange = 'month';
 function setIncomeRange(range) {
     _incomeRange = range;
-    document.querySelectorAll('.income-range-tab').forEach(b => {
+    document.querySelectorAll('#incomeRangeTabs .income-range-tab').forEach(b => {
         b.classList.toggle('active', b.dataset.range === range);
     });
     renderIncomeBreakdown();
@@ -2412,6 +2430,15 @@ function toggleTaxSettings() {
     if (!isOpen) renderTaxSettings();
 }
 
+function toggleTaxCaveat() {
+    const body = document.getElementById('taxCaveatBody');
+    const btn = document.getElementById('taxCaveatBtn');
+    if (!body || !btn) return;
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    btn.textContent = isOpen ? 'ⓘ What\u2019s included & what\u2019s not' : '✕ Hide';
+}
+
 function renderTaxSettings() {
     const s = getTaxSettings();
     document.getElementById('taxSettingsPanel').innerHTML = `
@@ -2623,10 +2650,13 @@ function renderTaxProjection() {
             </div>
         </div>
 
-        <div class="tax-caveat">
-            <strong>What this gets right:</strong> SE tax (very accurate, includes SS wage base cap), KY sales tax (exact), federal &amp; KY standard deductions, progressive federal brackets, half-SE-tax deduction, SE health insurance deduction (capped at SE earnings per §162(l)), retirement contribution deduction.
-            <br><br>
-            <strong>What it doesn't yet handle:</strong> QBI deduction (20% off qualified business income — for pet care, fully available; but doesn't help unless taxable income exceeds standard deduction). Child Tax Credit / EITC. KY Family Size Tax Credit (could zero out KY tax if household MGI is near federal poverty level — check at tax time). Itemized deductions. Double KY std deduction if both spouses have income (file "MFS on combined return"). A CPA can dial these in.
+        <div class="tax-caveat-toggle">
+            <button class="tax-caveat-btn" onclick="toggleTaxCaveat()" id="taxCaveatBtn">ⓘ What's included &amp; what's not</button>
+            <div class="tax-caveat" id="taxCaveatBody" style="display: none;">
+                <strong>What this gets right:</strong> SE tax (very accurate, includes SS wage base cap), KY sales tax (exact), federal &amp; KY standard deductions, progressive federal brackets, half-SE-tax deduction, SE health insurance deduction (capped at SE earnings per §162(l)), retirement contribution deduction.
+                <br><br>
+                <strong>What it doesn't yet handle:</strong> QBI deduction (20% off qualified business income — for pet care, fully available; but doesn't help unless taxable income exceeds standard deduction). Child Tax Credit / EITC. KY Family Size Tax Credit (could zero out KY tax if household MGI is near federal poverty level — check at tax time). Itemized deductions. Double KY std deduction if both spouses have income (file "MFS on combined return"). A CPA can dial these in.
+            </div>
         </div>
     `;
 }

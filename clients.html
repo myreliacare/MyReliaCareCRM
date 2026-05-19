@@ -61,6 +61,8 @@
 
         .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
         .stat-card { background: var(--bg-card); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent); }
+        .stat-card.clickable { cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
+        .stat-card.clickable:hover { transform: translateY(-2px); border-color: var(--accent); }
         .stat-label { color: var(--text-faint); font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px; }
         .stat-value { color: var(--accent); font-size: 2em; font-weight: 600; margin-top: 4px; font-family: 'Cormorant Unicase', serif; }
         @media (max-width: 600px) {
@@ -272,7 +274,10 @@
         html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         body { overscroll-behavior-y: contain; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
         body.menu-open { overflow: hidden; }
-        body.modal-open { overflow: hidden; position: fixed; width: 100%; }
+        body.modal-open { overflow: hidden; }
+        @media (max-width: 700px) {
+            body.modal-open { position: fixed; left: 0; right: 0; width: 100%; }
+        }
         .menu-toggle { display: none; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 1.4em; line-height: 1; cursor: pointer; font-family: monospace; }
         .menu-toggle:hover { background: var(--bg-input); }
         .menu-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 8998; }
@@ -574,9 +579,10 @@
                 <div class="stat-label">Total Pets</div>
                 <div class="stat-value" id="statPets">0</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card clickable" onclick="showActiveClientsModal()" id="statActiveCard">
                 <div class="stat-label">Active This Month</div>
                 <div class="stat-value" id="statActive">0</div>
+                <div class="stat-sub" id="statActiveSub" style="color: var(--text-faint); font-size: 0.78em; font-style: italic; margin-top: 2px;">tap to see who</div>
             </div>
         </div>
 
@@ -718,6 +724,20 @@
     </div>
 </div>
 
+<!-- Active Clients This Month modal -->
+<div class="modal-overlay" id="activeClientsModal">
+    <div class="modal" style="max-width: 560px;">
+        <div class="modal-header">
+            <h2 id="activeClientsTitle">Active Clients</h2>
+            <button class="modal-close" onclick="closeModal('activeClientsModal')">×</button>
+        </div>
+        <div class="modal-body modal-body-scrollable" id="activeClientsBody"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('activeClientsModal')">Close</button>
+        </div>
+    </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- Firebase Cloud Sync -->
@@ -775,7 +795,12 @@ function showToast(msg, type = 'success') {
     setTimeout(() => t.style.display = 'none', 3000);
 }
 
+let _modalScrollY = 0;
 function openModal(id) {
+    if (!document.querySelector('.modal-overlay.active')) {
+        _modalScrollY = window.scrollY || window.pageYOffset || 0;
+        document.body.style.top = `-${_modalScrollY}px`;
+    }
     document.body.classList.add('modal-open');
     document.getElementById(id).classList.add('active');
 }
@@ -783,6 +808,11 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
     if (!document.querySelector('.modal-overlay.active')) {
         document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        if (_modalScrollY) {
+            window.scrollTo(0, _modalScrollY);
+            _modalScrollY = 0;
+        }
     }
 }
 // click outside to close — drag-aware (prevents accidental close from iOS spurious clicks)
@@ -864,6 +894,80 @@ function renderStats() {
         if (s.activeThisMonth) active++;
     });
     document.getElementById('statActive').textContent = active;
+}
+
+function showActiveClientsModal() {
+    const today = new Date();
+    const thisMonthYM = today.toISOString().slice(0, 7);
+    const monthLabel = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    const visits = Store.getVisits().filter(v => (v.date || '').startsWith(thisMonthYM));
+    const byClient = {};
+    visits.forEach(v => {
+        if (!v.clientId) return;
+        if (!byClient[v.clientId]) {
+            byClient[v.clientId] = { id: v.clientId, name: v.clientName || 'Unnamed', visits: 0, paid: 0, revenue: 0 };
+        }
+        byClient[v.clientId].visits += 1;
+        const price = parseFloat(v.price) || 0;
+        if (v.paid) {
+            byClient[v.clientId].paid += 1;
+            byClient[v.clientId].revenue += price;
+        }
+    });
+
+    const sorted = Object.values(byClient).sort((a, b) => b.revenue - a.revenue || b.visits - a.visits);
+
+    document.getElementById('activeClientsTitle').textContent = `Active Clients · ${monthLabel}`;
+    const body = document.getElementById('activeClientsBody');
+    if (sorted.length === 0) {
+        body.innerHTML = `<div style="text-align:center; color: var(--text-faint); padding: 20px; font-style: italic;">No active clients this month yet.</div>`;
+        openModal('activeClientsModal');
+        return;
+    }
+
+    const totalRevenue = sorted.reduce((s, c) => s + c.revenue, 0);
+    const totalVisits = sorted.reduce((s, c) => s + c.visits, 0);
+
+    body.innerHTML = `
+        <div style="background: var(--bg); padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center;">
+            <div><div style="color:var(--text-faint); font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Clients</div><div style="font-size:1.4em; color:var(--accent); font-weight:600;">${sorted.length}</div></div>
+            <div><div style="color:var(--text-faint); font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Visits</div><div style="font-size:1.4em; color:var(--accent); font-weight:600;">${totalVisits}</div></div>
+            <div><div style="color:var(--text-faint); font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Paid</div><div style="font-size:1.4em; color:var(--success); font-weight:600;">$${totalRevenue.toFixed(0)}</div></div>
+        </div>
+        ${sorted.map(c => {
+            const escName = (c.name || '').replace(/</g, '&lt;');
+            return `<div onclick="closeModal('activeClientsModal'); jumpToClient('${c.id}')" style="display:grid; grid-template-columns: 1fr auto; gap:10px; padding: 12px 14px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; align-items:center; cursor:pointer; transition: border-color 0.1s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div>
+                    <div style="color:var(--text); font-size:1.05em; font-weight:500;">${escName}</div>
+                    <div style="color:var(--text-faint); font-size:0.85em; margin-top:2px;">${c.visits} visit${c.visits === 1 ? '' : 's'}${c.paid > 0 ? ` · ${c.paid} paid` : ''}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:${c.revenue > 0 ? 'var(--success)' : 'var(--text-faint)'}; font-size:1.1em; font-weight:600; font-variant-numeric: tabular-nums;">$${c.revenue.toFixed(0)}</div>
+                </div>
+            </div>`;
+        }).join('')}
+    `;
+    openModal('activeClientsModal');
+}
+
+function jumpToClient(id) {
+    // Expand the client card inline and scroll to it
+    _expandedClients.add(id);
+    setTimeout(() => {
+        const card = document.querySelector(`.client-card[data-client-id="${id}"]`);
+        if (card) {
+            const cardBody = card.querySelector('.client-card-body');
+            const btn = card.querySelector('.card-expand-toggle');
+            if (cardBody) cardBody.style.display = '';
+            if (btn) btn.textContent = '▴';
+            card.classList.add('expanded');
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.transition = 'box-shadow 0.4s';
+            card.style.boxShadow = '0 0 0 2px var(--accent)';
+            setTimeout(() => { card.style.boxShadow = ''; }, 1600);
+        }
+    }, 200);
 }
 
 function renderClients() {
@@ -1390,6 +1494,32 @@ function viewClient(clientId) {
 function init() {
     renderLogo();
     renderClients();
+    // If URL contains ?id=clientId, expand & scroll to that client
+    try {
+        const params = new URLSearchParams(location.search);
+        const id = params.get('id');
+        if (id) {
+            _expandedClients.add(id);
+            // Wait for render then scroll into view
+            setTimeout(() => {
+                const card = document.querySelector(`.client-card[data-client-id="${id}"]`);
+                if (card) {
+                    const body = card.querySelector('.client-card-body');
+                    const btn = card.querySelector('.card-expand-toggle');
+                    if (body) body.style.display = '';
+                    if (btn) btn.textContent = '▴';
+                    card.classList.add('expanded');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Brief highlight pulse
+                    card.style.transition = 'box-shadow 0.4s';
+                    card.style.boxShadow = '0 0 0 2px var(--accent)';
+                    setTimeout(() => { card.style.boxShadow = ''; }, 1600);
+                }
+                // Clean URL so refresh doesn't re-trigger
+                history.replaceState({}, '', location.pathname);
+            }, 100);
+        }
+    } catch {}
 }
 window.initApp = init;
 
