@@ -285,7 +285,18 @@
         .backfill-day-bd { grid-column: 1 / -1; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 0.82em; color: var(--text-dim); margin-top: 4px; }
         .backfill-day-bd-row { display: flex; justify-content: space-between; padding: 3px 0; font-variant-numeric: tabular-nums; }
         .backfill-day-bd-row .bf-bd-reason { color: var(--text-faint); font-style: italic; font-size: 0.92em; }
-        .backfill-miles-warning { background: rgba(220, 150, 50, 0.12); border: 1px solid rgba(220, 150, 50, 0.4); color: var(--warn, #d99); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.88em; line-height: 1.4; }
+        .backfill-miles-warning { background: rgba(220, 150, 50, 0.08); border: 1px solid rgba(220, 150, 50, 0.3); color: var(--text); padding: 14px 16px; border-radius: 8px; margin-bottom: 14px; font-size: 0.92em; line-height: 1.5; }
+        .bfm-setup-header { font-weight: 600; color: var(--text); font-size: 1em; margin-bottom: 4px; }
+        .bfm-setup-sub { color: var(--text-dim); font-size: 0.88em; margin-bottom: 12px; line-height: 1.5; }
+        .bfm-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-bottom: 14px; }
+        .bfm-setup-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; }
+        .bfm-setup-client { color: var(--text); font-size: 0.95em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bfm-setup-input { width: 72px; flex-shrink: 0; padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.92em; }
+        .bfm-setup-input:focus { outline: none; border-color: var(--accent); }
+        .bfm-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(220, 150, 50, 0.2); }
+        @media (max-width: 600px) {
+            .bfm-setup-grid { grid-template-columns: 1fr; }
+        }
         @media (max-width: 700px) {
             .mileage-entry-row { grid-template-columns: 1.4fr 1fr 1fr auto; }
             .mileage-entry-row .mileage-entry-meta { display: none; }
@@ -2383,16 +2394,16 @@ function openBackfillMilesModal() {
     const missing = [...pendingClientIds]
         .map(id => clientsById[id])
         .filter(c => c && (c.milesFromHome == null || c.milesFromHome === ''));
-    if (missing.length > 0 && warningEl) {
-        warningEl.style.display = 'block';
-        warningEl.innerHTML = `<strong>Missing miles-from-home for:</strong> ${missing.map(c => escapeHtml(c.name || 'Unnamed')).join(', ')}. Auto-calc skips those segments. Add the values on each client's edit page for full accuracy.`;
-    } else if (warningEl) {
-        warningEl.style.display = 'none';
+    if (warningEl) {
+        _bfmRenderSetupPanel(missing);
     }
 
     const list = document.getElementById('backfillMilesList');
     if (days.length === 0) {
-        list.innerHTML = `<div class="income-empty">All past days with visits already have mileage logged. 🎉</div>`;
+        list.innerHTML = `<div class="income-empty" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M5 8L7 10L11 6"/></svg>
+            <span>All past days with visits already have mileage logged.</span>
+        </div>`;
         openModal('backfillMilesModal');
         return;
     }
@@ -2445,8 +2456,264 @@ function _bfmRenderDayRow(d, clientsById) {
     `;
 }
 
-function bfmToggleBd(key) {
-    _bfmBdOpen[key] = !_bfmBdOpen[key];
+/* ============================================================
+   HOME ADDRESS + GEOCODING (used by mileage auto-calc)
+   - Home address stored in settings collection (synced)
+   - Geocoded via OpenStreetMap Nominatim (free, no API key)
+   - Distance: haversine × 1.3 (road-distance approximation)
+   - Rate-limited: 1.1 sec between requests per Nominatim policy
+   ============================================================ */
+
+function _getHomeSetting() {
+    const arr = Store.getSettings() || [];
+    return arr.find(s => s.id === 'global') || null;
+}
+function _saveHomeSetting(patch) {
+    const arr = Store.getSettings() || [];
+    let g = arr.find(s => s.id === 'global');
+    if (!g) { g = { id: 'global' }; arr.push(g); }
+    Object.assign(g, patch);
+    return Store.saveSettings(arr);
+}
+
+function _haversineMiles(a, b) {
+    const R = 3959; // earth radius, miles
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLon = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+    return 2 * R * Math.asin(Math.sqrt(x));
+}
+
+async function _geocodeAddress(addressStr) {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`;
+    try {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) return null;
+        const data = await r.json();
+        if (!Array.isArray(data) || data.length === 0) return null;
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        return { lat, lng };
+    } catch (e) {
+        console.error('[geocode] error:', e);
+        return null;
+    }
+}
+
+function _clientAddressStr(c) {
+    const parts = [c.address, c.city, c.state, c.zip].map(x => (x || '').trim()).filter(Boolean);
+    if (parts.length < 2) return null;
+    return parts.join(', ');
+}
+
+function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function _bfmRenderSetupPanel(missingClients) {
+    // Renders into #backfillMilesWarning based on current state.
+    // missingClients: array of client objects lacking milesFromHome
+    const el = document.getElementById('backfillMilesWarning');
+    if (!el) return;
+    const home = _getHomeSetting();
+    const homeAddress = (home && home.homeAddress) || '';
+
+    if (!homeAddress) {
+        // No home set yet — collect it first
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div class="bfm-setup-header">Set your home address</div>
+            <div class="bfm-setup-sub">Mileage auto-calc starts from your home. Stored once, used everywhere.</div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="bfmHomeAddressInput" placeholder="123 Main St, Walton KY, 41094" style="flex: 1; min-width: 220px; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 0.95em;">
+                <button class="btn btn-primary btn-sm" onclick="_bfmSaveHomeAddress()">Save home address</button>
+            </div>
+        `;
+        return;
+    }
+
+    if (missingClients.length === 0) {
+        // Home is set, no missing clients — show compact "edit home" row
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div style="color: var(--text-dim); font-size: 0.9em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
+                <button class="btn btn-ghost btn-sm" onclick="_bfmEditHomeAddress()">Edit</button>
+            </div>
+        `;
+        return;
+    }
+
+    // Home set + missing clients → show auto-compute option + manual fallback grid
+    const withAddr = missingClients.filter(c => _clientAddressStr(c));
+    const withoutAddr = missingClients.filter(c => !_clientAddressStr(c));
+    const rows = missingClients.map(c => {
+        const hasAddr = !!_clientAddressStr(c);
+        return `
+            <div class="bfm-setup-row">
+                <span class="bfm-setup-client" title="${escapeHtml(_clientAddressStr(c) || 'no address')}">${escapeHtml(c.name || 'Unnamed')}${hasAddr ? '' : ' <span style="color: var(--text-faint); font-size: 0.85em;">· no address</span>'}</span>
+                <input type="number" min="0" step="0.1" data-cid="${c.id}" placeholder="mi" class="bfm-setup-input">
+            </div>
+        `;
+    }).join('');
+
+    el.style.display = 'block';
+    el.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+            <div style="color: var(--text-dim); font-size: 0.88em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
+            <button class="btn btn-ghost btn-sm" onclick="_bfmEditHomeAddress()" style="padding: 3px 8px;">Edit</button>
+        </div>
+        ${withAddr.length > 0 ? `
+            <div class="bfm-setup-header">Auto-compute miles for ${withAddr.length} client${withAddr.length === 1 ? '' : 's'}</div>
+            <div class="bfm-setup-sub">We'll look up each address and compute distance from your home. Takes about ${Math.ceil(withAddr.length * 1.2)} seconds.</div>
+            <button class="btn btn-primary btn-sm" onclick="_bfmAutoComputeMiles()" id="bfmAutoComputeBtn" style="margin-bottom: 14px;">Auto-compute from addresses</button>
+            <div id="bfmComputeProgress" style="color: var(--text-faint); font-size: 0.88em; margin-bottom: 12px;"></div>
+        ` : ''}
+        ${withoutAddr.length > 0 || withAddr.length > 0 ? `
+            <div class="bfm-setup-header" style="margin-top: 8px;">Or enter manually</div>
+            <div class="bfm-setup-sub">Required for clients without an address; optional override for the rest.</div>
+            <div class="bfm-setup-grid">${rows}</div>
+            <div class="bfm-setup-actions">
+                <button class="btn btn-primary btn-sm" onclick="_bfmSaveMissingMiles()">Save manual values</button>
+                <button class="btn btn-ghost btn-sm" onclick="_bfmDismissSetup()">Skip for now</button>
+            </div>
+        ` : ''}
+    `;
+}
+
+function _bfmSaveHomeAddress() {
+    const inp = document.getElementById('bfmHomeAddressInput');
+    if (!inp) return;
+    const addr = (inp.value || '').trim();
+    if (!addr) { showToast('Enter a home address', 'error'); return; }
+    const ok = _saveHomeSetting({ homeAddress: addr, homeCoords: null });
+    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+    showToast('Home address saved');
+    openBackfillMilesModal();   // re-render
+}
+
+function _bfmEditHomeAddress() {
+    const el = document.getElementById('backfillMilesWarning');
+    if (!el) return;
+    const home = _getHomeSetting();
+    const current = (home && home.homeAddress) || '';
+    el.innerHTML = `
+        <div class="bfm-setup-header">Edit home address</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px;">
+            <input type="text" id="bfmHomeAddressInput" value="${escapeHtml(current)}" style="flex: 1; min-width: 220px; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 0.95em;">
+            <button class="btn btn-primary btn-sm" onclick="_bfmSaveHomeAddress()">Save</button>
+            <button class="btn btn-ghost btn-sm" onclick="openBackfillMilesModal()">Cancel</button>
+        </div>
+    `;
+}
+
+async function _bfmAutoComputeMiles() {
+    const home = _getHomeSetting();
+    if (!home || !home.homeAddress) { showToast('Set home address first', 'error'); return; }
+
+    const btn = document.getElementById('bfmAutoComputeBtn');
+    const progress = document.getElementById('bfmComputeProgress');
+    if (btn) btn.disabled = true;
+
+    // Step 1: ensure home is geocoded
+    let homeCoords = home.homeCoords;
+    if (!homeCoords) {
+        if (progress) progress.textContent = 'Looking up home address…';
+        homeCoords = await _geocodeAddress(home.homeAddress);
+        if (!homeCoords) {
+            showToast('Could not look up home address — check spelling', 'error');
+            if (btn) btn.disabled = false;
+            return;
+        }
+        _saveHomeSetting({ homeCoords });
+    }
+
+    // Step 2: iterate missing clients with addresses
+    const clients = Store.getClients();
+    const targets = clients.filter(c => {
+        if (c.milesFromHome != null && c.milesFromHome !== '') return false;
+        return !!_clientAddressStr(c);
+    });
+    if (targets.length === 0) {
+        if (btn) btn.disabled = false;
+        showToast('Nothing to compute', 'error');
+        return;
+    }
+
+    let done = 0, failed = 0;
+    const failedNames = [];
+    for (const c of targets) {
+        if (progress) progress.textContent = `Geocoding ${done + 1} of ${targets.length}: ${c.name || 'client'}…`;
+        const addr = _clientAddressStr(c);
+        const coords = await _geocodeAddress(addr);
+        if (coords) {
+            const straight = _haversineMiles(homeCoords, coords);
+            const oneway = Math.round(straight * 1.3 * 10) / 10;  // road-distance factor
+            c.milesFromHome = oneway;
+            c.coordsCache = coords;     // cache for future runs
+            done++;
+        } else {
+            failed++;
+            failedNames.push(c.name || 'Unnamed');
+        }
+        await _sleep(1100);   // respect Nominatim 1 req/sec policy
+    }
+
+    const ok = Store.saveClients(clients);
+    if (ok === false) {
+        showToast('Save failed after compute — check connection', 'error');
+        if (btn) btn.disabled = false;
+        return;
+    }
+
+    if (failed > 0) {
+        showToast(`Computed ${done} · ${failed} addresses couldn't be looked up (${failedNames.slice(0,3).join(', ')}${failedNames.length > 3 ? '…' : ''}) — enter those manually`);
+    } else {
+        showToast(`Computed miles for ${done} client${done === 1 ? '' : 's'}`);
+    }
+    openBackfillMilesModal();   // re-render with fresh data
+}
+
+function _bfmSaveMissingMiles() {
+    const inputs = document.querySelectorAll('#backfillMilesWarning .bfm-setup-input');
+    if (inputs.length === 0) return;
+    const updates = [];
+    inputs.forEach(inp => {
+        const cid = inp.dataset.cid;
+        const raw = (inp.value || '').trim();
+        if (raw === '') return;
+        const v = parseFloat(raw);
+        if (isNaN(v) || v < 0) return;
+        updates.push({ cid, miles: v });
+    });
+    if (updates.length === 0) {
+        showToast('Enter at least one value, or use Skip', 'error');
+        return;
+    }
+    const clients = Store.getClients();
+    let touched = 0;
+    updates.forEach(({ cid, miles }) => {
+        const c = clients.find(x => x.id === cid);
+        if (c) { c.milesFromHome = miles; touched++; }
+    });
+    if (touched === 0) {
+        showToast('No matching clients found', 'error');
+        return;
+    }
+    const ok = Store.saveClients(clients);
+    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+    showToast(`Saved miles for ${touched} client${touched === 1 ? '' : 's'} — recalculating`);
+    openBackfillMilesModal();
+}
+
+function _bfmDismissSetup() {
+    const warningEl = document.getElementById('backfillMilesWarning');
+    if (warningEl) warningEl.style.display = 'none';
+}
+
+function bfmToggleBd(key) {    _bfmBdOpen[key] = !_bfmBdOpen[key];
     // Re-render the modal but preserve any user-edited input values
     const inputs = document.querySelectorAll('#backfillMilesList .backfill-day-row input');
     const edits = {};

@@ -404,21 +404,47 @@
         }
         .btn-note:hover { background: var(--warn); color: var(--bg-deep); }
 
-        /* Quick notes list */
-        .qnote {
-            display: flex;
+        /* To-Do list */
+        .todo-card-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .todo-card-header .card-title { margin: 0; }
+        .todo-add-form { background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+        .todo-add-form input[type="text"] { width: 100%; padding: 9px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 1.02em; margin-bottom: 10px; box-sizing: border-box; }
+        .todo-add-form input[type="text"]:focus { outline: none; border-color: var(--accent); }
+        .todo-add-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .todo-add-meta input[type="date"] { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 9px; font-family: inherit; font-size: 0.92em; }
+        .todo-add-meta input[type="date"]:focus { outline: none; border-color: var(--accent); }
+        .todo-priority-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .todo-prio-btn { background: var(--bg); color: var(--text-faint); border: none; padding: 7px 12px; cursor: pointer; font-family: inherit; font-size: 0.85em; font-weight: 600; letter-spacing: 1px; border-right: 1px solid var(--border); transition: all 0.1s; }
+        .todo-prio-btn:last-child { border-right: none; }
+        .todo-prio-btn:hover { background: var(--bg-input); }
+        .todo-prio-btn.high.active { background: var(--danger); color: white; }
+        .todo-prio-btn.med.active { background: var(--accent); color: white; }
+        .todo-prio-btn.low.active { background: var(--text-faint); color: var(--bg-deep); }
+
+        .todo-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .todo-tab { background: transparent; border: none; color: var(--text-faint); padding: 9px 14px; cursor: pointer; font-family: inherit; font-size: 0.92em; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.1s; }
+        .todo-tab:hover { color: var(--text); }
+        .todo-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .todo-tab-count { color: var(--text-faint); font-size: 0.82em; margin-left: 4px; }
+        .todo-tab.active .todo-tab-count { color: var(--accent); }
+
+        .todo-list { display: flex; flex-direction: column; gap: 6px; }
+        .todo-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto auto auto auto;
             align-items: center;
             gap: 10px;
             padding: 10px 12px;
             background: var(--bg-input);
             border: 1px solid var(--border);
             border-radius: 8px;
-            margin-bottom: 8px;
             transition: all 0.15s;
         }
-        .qnote.done { opacity: 0.55; }
-        .qnote.done .qnote-text { text-decoration: line-through; color: var(--text-faint); }
-        .qnote-check {
+        .todo-item.done { opacity: 0.55; }
+        .todo-item.done .todo-text { text-decoration: line-through; color: var(--text-faint); }
+        .todo-item.overdue { border-color: rgba(255, 107, 107, 0.55); }
+        .todo-item.editing { border-color: var(--accent); background: var(--bg); }
+        .todo-check {
             width: 22px; height: 22px;
             border: 2px solid var(--border);
             border-radius: 5px;
@@ -429,12 +455,34 @@
             color: transparent;
             transition: all 0.15s;
         }
-        .qnote.done .qnote-check { background: var(--success); border-color: var(--success); color: white; }
-        .qnote-text { flex: 1; color: var(--text); font-size: 1.02em; word-break: break-word; }
-        .qnote-time { color: var(--text-faint); font-size: 0.85em; white-space: nowrap; }
-        .qnote-del { background: transparent; border: none; color: var(--text-faint); cursor: pointer; font-size: 1.2em; padding: 4px 8px; line-height: 1; }
-        .qnote-del:hover { color: var(--danger); }
-        .qnotes-empty { text-align: center; padding: 20px; color: var(--text-faint); font-style: italic; }
+        .todo-check:hover { border-color: var(--accent); }
+        .todo-item.done .todo-check { background: var(--success); border-color: var(--success); color: white; }
+        .todo-text { color: var(--text); font-size: 1em; word-break: break-word; line-height: 1.4; cursor: pointer; }
+        .todo-text:hover { color: var(--accent); }
+        .todo-prio-badge { font-size: 0.7em; font-weight: 700; letter-spacing: 1px; padding: 3px 7px; border-radius: 4px; text-transform: uppercase; white-space: nowrap; }
+        .todo-prio-badge.high { background: var(--danger); color: white; }
+        .todo-prio-badge.med { background: rgba(181, 145, 151, 0.18); color: var(--accent); }
+        .todo-prio-badge.low { background: rgba(139, 115, 120, 0.18); color: var(--text-faint); }
+        .todo-due { font-size: 0.82em; color: var(--text-faint); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .todo-due.today { color: var(--accent); font-weight: 600; }
+        .todo-due.overdue { color: var(--danger); font-weight: 600; }
+        .todo-edit-btn, .todo-del-btn { background: transparent; border: none; color: var(--text-faint); cursor: pointer; padding: 4px 6px; line-height: 1; font-size: 0.95em; border-radius: 4px; }
+        .todo-edit-btn:hover { color: var(--accent); background: var(--bg); }
+        .todo-del-btn:hover { color: var(--danger); background: var(--bg); }
+        .todo-empty { text-align: center; padding: 20px; color: var(--text-faint); font-style: italic; font-size: 0.95em; }
+        .todo-more-link { display: block; text-align: center; padding: 8px; color: var(--text-faint); font-size: 0.88em; cursor: pointer; background: none; border: none; width: 100%; font-family: inherit; margin-top: 4px; }
+        .todo-more-link:hover { color: var(--accent); }
+
+        @media (max-width: 700px) {
+            .todo-item { grid-template-columns: auto 1fr auto auto auto; gap: 8px; padding: 10px; }
+            .todo-item .todo-due { grid-column: 2 / -1; grid-row: 2; font-size: 0.78em; margin-top: 2px; }
+            .todo-item .todo-prio-badge { grid-row: 1; grid-column: 3; font-size: 0.62em; padding: 2px 5px; }
+            .todo-item .todo-edit-btn { grid-row: 1; grid-column: 4; padding: 2px 4px; }
+            .todo-item .todo-del-btn { grid-row: 1; grid-column: 5; padding: 2px 4px; }
+            .todo-add-meta { gap: 6px; }
+            .todo-add-meta input[type="date"] { flex: 1; min-width: 0; }
+        }
+
 
         /* Weekly snapshot */
         .weekly-summary {
@@ -1459,9 +1507,28 @@
         .bf-session-row .bf-undo { background: transparent; border: 1px solid var(--border); color: var(--warn); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.95em; line-height: 1; }
         .bf-session-row .bf-undo:hover { background: var(--warn); color: white; border-color: var(--warn); }
         .bf-session-empty { padding: 20px; text-align: center; color: var(--text-faint); font-style: italic; }
+        .bf-session-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        .bf-session-header .card-title { margin: 0; }
+        .bf-session-controls { display: flex; gap: 6px; flex-wrap: wrap; }
+        .bf-year-coverage { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+        .bf-year-row { display: flex; align-items: center; gap: 10px; font-size: 0.88em; color: var(--text-dim); }
+        .bf-year-label { width: 48px; flex-shrink: 0; color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+        .bf-year-bar { flex: 1; height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden; min-width: 80px; }
+        .bf-year-bar-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+        .bf-year-stat { color: var(--text-faint); font-size: 0.85em; font-variant-numeric: tabular-nums; white-space: nowrap; }
         /* Daily Mileage panel */
-        .bf-mileage-warning { background: rgba(220, 150, 50, 0.12); border: 1px solid rgba(220, 150, 50, 0.4); color: var(--warn, #d99); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.88em; line-height: 1.4; }
-        .bf-mileage-warning a, .bf-mileage-warning .bf-warn-link { color: inherit; text-decoration: underline; cursor: pointer; }
+        .bf-mileage-warning { background: rgba(220, 150, 50, 0.08); border: 1px solid rgba(220, 150, 50, 0.3); color: var(--text); padding: 14px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 0.92em; line-height: 1.5; }
+        .bf-setup-header { font-weight: 600; color: var(--text); font-size: 1em; margin-bottom: 4px; }
+        .bf-setup-sub { color: var(--text-dim); font-size: 0.88em; margin-bottom: 12px; line-height: 1.5; }
+        .bf-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-bottom: 14px; }
+        .bf-setup-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; }
+        .bf-setup-client { color: var(--text); font-size: 0.95em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bf-setup-input { width: 72px; flex-shrink: 0; padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.92em; }
+        .bf-setup-input:focus { outline: none; border-color: var(--accent); }
+        .bf-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(220, 150, 50, 0.2); }
+        @media (max-width: 600px) {
+            .bf-setup-grid { grid-template-columns: 1fr; }
+        }
         .bf-mileage-list { display: flex; flex-direction: column; gap: 10px; }
         .bf-mileage-empty { padding: 16px; text-align: center; color: var(--text-faint); font-style: italic; font-size: 0.9em; }
         .bf-mileage-row { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
@@ -1869,7 +1936,6 @@
         <div class="action-bar">
             <button class="btn btn-primary" onclick="openScheduleModal()">+ Schedule Visit</button>
             <button class="btn btn-personal" onclick="openPersonalEventModal()">+ Personal Event</button>
-            <button class="btn btn-note" onclick="openQuickNotes()">+ Quick Notes</button>
             <button class="btn btn-ghost" onclick="openBackfill()" title="Rapid entry mode for historical visits">Backfill</button>
         </div>
 
@@ -1877,6 +1943,29 @@
         <div class="card">
             <h2 class="card-title">Today's Schedule</h2>
             <div id="todayList" class="schedule-list"></div>
+        </div>
+
+        <!-- To-Do -->
+        <div class="card">
+            <div class="todo-card-header">
+                <h2 class="card-title">To-Do</h2>
+                <button class="btn btn-ghost btn-sm" onclick="openTodoModal()" id="todoManageBtn">Manage all</button>
+            </div>
+            <div class="todo-add-form" id="todoDashboardForm">
+                <input type="text" id="todoDashText" placeholder="What needs doing?"
+                       onkeydown="if(event.key==='Enter') addOrUpdateTodo('dash')">
+                <div class="todo-add-meta">
+                    <div class="todo-priority-toggle" data-source="dash">
+                        <button type="button" class="todo-prio-btn high" data-prio="high" onclick="setTodoFormPriority('dash','high')" title="High priority">H</button>
+                        <button type="button" class="todo-prio-btn med active" data-prio="med" onclick="setTodoFormPriority('dash','med')" title="Medium priority">M</button>
+                        <button type="button" class="todo-prio-btn low" data-prio="low" onclick="setTodoFormPriority('dash','low')" title="Low priority">L</button>
+                    </div>
+                    <input type="date" id="todoDashDate" title="Due date (optional)">
+                    <button class="btn btn-primary btn-sm" onclick="addOrUpdateTodo('dash')" id="todoDashAddBtn">+ Add</button>
+                    <button class="btn btn-ghost btn-sm" onclick="cancelEditTodo('dash')" id="todoDashCancelBtn" style="display: none;">Cancel</button>
+                </div>
+            </div>
+            <div id="todoDashList" class="todo-list"></div>
         </div>
 
         <!-- Calendar -->
@@ -2172,24 +2261,38 @@
     </div>
 </div>
 
-<!-- ========= QUICK NOTES MODAL ========= -->
-<div class="modal-overlay" id="quickNotesModal">
-    <div class="modal">
+<!-- ========= TO-DO MODAL ========= -->
+<div class="modal-overlay" id="todoModal">
+    <div class="modal modal-wide">
         <div class="modal-header">
-            <h2>Quick Notes & To-Dos</h2>
-            <button class="modal-close" onclick="closeModal('quickNotesModal')">×</button>
+            <h2>To-Do</h2>
+            <button class="modal-close" onclick="closeModal('todoModal')">×</button>
         </div>
-        <div class="modal-body">
-            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                <input type="text" id="quickNoteInput" placeholder="Type a note or to-do, hit Enter…"
-                       onkeydown="if(event.key==='Enter') addQuickNote()"
-                       style="flex: 1; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em;">
-                <button class="btn btn-primary btn-sm" onclick="addQuickNote()">Add</button>
+        <div class="modal-body modal-body-scrollable">
+            <div class="todo-add-form" id="todoModalForm" style="margin-bottom: 16px;">
+                <input type="text" id="todoModalText" placeholder="What needs doing?"
+                       onkeydown="if(event.key==='Enter') addOrUpdateTodo('modal')">
+                <div class="todo-add-meta">
+                    <div class="todo-priority-toggle" data-source="modal">
+                        <button type="button" class="todo-prio-btn high" data-prio="high" onclick="setTodoFormPriority('modal','high')" title="High priority">H</button>
+                        <button type="button" class="todo-prio-btn med active" data-prio="med" onclick="setTodoFormPriority('modal','med')" title="Medium priority">M</button>
+                        <button type="button" class="todo-prio-btn low" data-prio="low" onclick="setTodoFormPriority('modal','low')" title="Low priority">L</button>
+                    </div>
+                    <input type="date" id="todoModalDate" title="Due date (optional)">
+                    <button class="btn btn-primary btn-sm" onclick="addOrUpdateTodo('modal')" id="todoModalAddBtn">+ Add</button>
+                    <button class="btn btn-ghost btn-sm" onclick="cancelEditTodo('modal')" id="todoModalCancelBtn" style="display: none;">Cancel</button>
+                </div>
             </div>
-            <div id="quickNotesList"></div>
+            <div class="todo-tabs">
+                <button class="todo-tab active" data-tab="today" onclick="setTodoTab('today')">Today <span class="todo-tab-count" id="todoCountToday"></span></button>
+                <button class="todo-tab" data-tab="upcoming" onclick="setTodoTab('upcoming')">Upcoming <span class="todo-tab-count" id="todoCountUpcoming"></span></button>
+                <button class="todo-tab" data-tab="all" onclick="setTodoTab('all')">All open <span class="todo-tab-count" id="todoCountAll"></span></button>
+                <button class="todo-tab" data-tab="done" onclick="setTodoTab('done')">Done <span class="todo-tab-count" id="todoCountDone"></span></button>
+            </div>
+            <div id="todoModalList" class="todo-list"></div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-ghost" onclick="closeModal('quickNotesModal')">Close</button>
+            <button class="btn btn-ghost" onclick="closeModal('todoModal')">Close</button>
         </div>
     </div>
 </div>
@@ -2236,12 +2339,12 @@
                 <h3 class="card-title">Pattern Fill <span class="bf-hint">Generate a batch of recurring visits</span></h3>
                 <div class="bf-field">
                     <label>Client</label>
-                    <select id="bfPatternClient" onchange="bfPatternRefresh()"></select>
+                    <select id="bfPatternClient" onchange="bfPatternAutofillPrice(true); bfPatternRefresh()"></select>
                 </div>
                 <div class="bf-field-row">
                     <div class="bf-field">
                         <label>Visit Type</label>
-                        <select id="bfPatternType" onchange="bfPatternAutofillPrice(); bfPatternRefresh()">
+                        <select id="bfPatternType" onchange="bfPatternAutofillPrice(true); bfPatternRefresh()">
                             <option value="meet-greet">Meet & Greet</option>
                             <option value="30min" selected>30 min Visit</option>
                             <option value="60min">1 hour Visit</option>
@@ -2249,7 +2352,7 @@
                     </div>
                     <div class="bf-field">
                         <label>Price ($)</label>
-                        <input type="number" id="bfPatternPrice" min="0" step="0.01" placeholder="25.00" onchange="bfPatternRefresh()">
+                        <input type="number" id="bfPatternPrice" min="0" step="0.01" placeholder="25.00" oninput="_bfMarkPatternPriceEdited()" onchange="bfPatternRefresh()">
                     </div>
                 </div>
                 <div class="bf-field-row">
@@ -2317,12 +2420,12 @@
                 </div>
                 <div class="bf-field">
                     <label>Client</label>
-                    <select id="bfQuickClient" onchange="bfQuickAutofillPrice()"></select>
+                    <select id="bfQuickClient" onchange="bfQuickAutofillPrice(true)"></select>
                 </div>
                 <div class="bf-field-row">
                     <div class="bf-field">
                         <label>Visit Type</label>
-                        <select id="bfQuickType" onchange="bfQuickAutofillPrice()">
+                        <select id="bfQuickType" onchange="bfQuickAutofillPrice(true)">
                             <option value="meet-greet">Meet & Greet</option>
                             <option value="30min" selected>30 min Visit</option>
                             <option value="60min">1 hour Visit</option>
@@ -2330,7 +2433,7 @@
                     </div>
                     <div class="bf-field">
                         <label>Price ($)</label>
-                        <input type="number" id="bfQuickPrice" min="0" step="0.01" placeholder="25.00">
+                        <input type="number" id="bfQuickPrice" min="0" step="0.01" placeholder="25.00" oninput="_bfMarkQuickPriceEdited()">
                     </div>
                 </div>
                 <div class="bf-field">
@@ -2379,8 +2482,15 @@
 
         <!-- ─── SESSION LOG ─── -->
         <div class="card backfill-card">
-            <h3 class="card-title">This Session <span class="bf-hint" id="bfSessionCount">0 added</span></h3>
+            <div class="bf-session-header">
+                <h3 class="card-title">This Session <span class="bf-hint" id="bfSessionCount">0 added</span></h3>
+                <div class="bf-session-controls">
+                    <button class="btn btn-ghost btn-sm" id="bfUndoBatchBtn" onclick="bfPatternUndoBatch()" style="display: none;">Undo last batch</button>
+                    <button class="btn btn-ghost btn-sm" id="bfClearSessionBtn" onclick="bfClearSession()" style="display: none;">Clear log</button>
+                </div>
+            </div>
             <div id="bfSessionLog" class="bf-session-log"></div>
+            <div id="bfYearCoverage" class="bf-year-coverage"></div>
         </div>
 
         <!-- ─── DAILY MILEAGE ─── -->
@@ -2414,6 +2524,26 @@
         <div class="modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button class="btn btn-ghost" onclick="bfMissingDriverCancel()">Cancel — let me add miles</button>
             <button class="btn btn-primary" onclick="bfMissingDriverProceed()">Save anyway</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     PATTERN-FILL DUPLICATE CONFIRMATION MODAL
+     Triggered before generating if any candidate dates collide
+     with existing visits for the same client + time
+     ============================================================ -->
+<div class="modal-overlay" id="bfDupModal" style="z-index: 9700;">
+    <div class="modal" style="max-width: 520px;">
+        <div class="modal-header">
+            <h2>Visits already exist</h2>
+            <button class="modal-close" onclick="bfDupCancel()">×</button>
+        </div>
+        <div class="modal-body" id="bfDupBody"></div>
+        <div class="modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-ghost" onclick="bfDupCancel()">Cancel</button>
+            <button class="btn btn-ghost" onclick="bfDupReplace()">Replace existing</button>
+            <button class="btn btn-primary" onclick="bfDupSkip()">Skip duplicates</button>
         </div>
     </div>
 </div>
@@ -4503,75 +4633,330 @@ function renderWeeklySnapshot() {
 }
 
 /* ============================================================
-   QUICK NOTES
+   TO-DO  (replaces Quick Notes — preserves the quickNotes collection)
+   ============================================================
+   Data shape (backward-compatible with old quick-note items):
+       { id, text, priority: 'high'|'med'|'low', dueDate: 'YYYY-MM-DD'|null,
+         done: bool, doneAt: ISO|null, createdAt: ISO }
+   Old items without priority/dueDate/doneAt are normalized on read with
+   defaults — old data still readable, new shape persists on next save.
    ============================================================ */
-function openQuickNotes() {
-    renderQuickNotesList();
-    openModal('quickNotesModal');
-    setTimeout(() => document.getElementById('quickNoteInput').focus(), 50);
+
+let _todoTab = 'today';           // current modal tab
+let _todoEdit = { dash: null, modal: null };   // editing todo id per form source
+let _todoFormPrio = { dash: 'med', modal: 'med' };
+
+function _todoNormalize(t) {
+    if (!t) return t;
+    return {
+        id: t.id,
+        text: t.text || '',
+        priority: (t.priority === 'high' || t.priority === 'low') ? t.priority : 'med',
+        dueDate: t.dueDate || null,
+        done: !!t.done,
+        doneAt: t.doneAt || null,
+        createdAt: t.createdAt || null,
+    };
+}
+function getTodos() {
+    const raw = Store.getQuickNotes() || [];
+    return raw.map(_todoNormalize);
+}
+function _todoSave(todos) {
+    return Store.saveQuickNotes(todos);
 }
 
-function getQuickNotes() {
-    return Store.load(STORAGE_KEYS.quickNotes, []);
+function _todoIsOverdue(t, today) {
+    return !t.done && t.dueDate && t.dueDate < today;
 }
-function saveQuickNotes(notes) {
-    return Store.save(STORAGE_KEYS.quickNotes, notes);
+function _todoIsToday(t, today) {
+    return !t.done && t.dueDate === today;
+}
+function _todoInTodayView(t, today) {
+    if (t.done) return false;
+    if (t.dueDate && t.dueDate <= today) return true;
+    if (!t.dueDate && t.priority === 'high') return true;
+    return false;
+}
+function _todoInUpcomingView(t, today, weeksOut) {
+    if (t.done || !t.dueDate) return false;
+    return t.dueDate > today && t.dueDate <= weeksOut;
 }
 
-function addQuickNote() {
-    const input = document.getElementById('quickNoteInput');
-    const text = input.value.trim();
-    if (!text) return;
-    const notes = getQuickNotes();
-    notes.unshift({
-        id: 'note_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-        text,
-        done: false,
-        createdAt: new Date().toISOString()
+const _PRIO_RANK = { high: 0, med: 1, low: 2 };
+function _todoSortOpen(a, b) {
+    // Overdue/today first, then by priority, then by date (no-date last), then newest
+    const today = todayYmd();
+    const aOver = _todoIsOverdue(a, today);
+    const bOver = _todoIsOverdue(b, today);
+    if (aOver !== bOver) return aOver ? -1 : 1;
+    if (a.priority !== b.priority) return _PRIO_RANK[a.priority] - _PRIO_RANK[b.priority];
+    if (a.dueDate !== b.dueDate) {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return a.dueDate.localeCompare(b.dueDate);
+    }
+    return (b.createdAt || '').localeCompare(a.createdAt || '');
+}
+function _todoSortDone(a, b) {
+    return (b.doneAt || b.createdAt || '').localeCompare(a.doneAt || a.createdAt || '');
+}
+
+function _todoFilteredFor(tab) {
+    const today = todayYmd();
+    const allOpen = getTodos().filter(t => !t.done);
+    const allDone = getTodos().filter(t => t.done);
+    if (tab === 'today') return allOpen.filter(t => _todoInTodayView(t, today)).sort(_todoSortOpen);
+    if (tab === 'upcoming') {
+        const d = new Date(); d.setDate(d.getDate() + 14);
+        const horizon = d.toISOString().slice(0, 10);
+        return allOpen.filter(t => _todoInUpcomingView(t, today, horizon)).sort(_todoSortOpen);
+    }
+    if (tab === 'done') return allDone.sort(_todoSortDone);
+    return allOpen.sort(_todoSortOpen);  // 'all'
+}
+
+function setTodoFormPriority(source, prio) {
+    _todoFormPrio[source] = prio;
+    const wrap = document.querySelector(`.todo-priority-toggle[data-source="${source}"]`);
+    if (!wrap) return;
+    wrap.querySelectorAll('.todo-prio-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.prio === prio);
     });
-    saveQuickNotes(notes);
-    input.value = '';
-    renderQuickNotesList();
 }
 
-function toggleQuickNote(id) {
-    const notes = getQuickNotes();
-    const n = notes.find(x => x.id === id);
-    if (!n) return;
-    n.done = !n.done;
-    saveQuickNotes(notes);
-    renderQuickNotesList();
+function _todoIdsFor(source) {
+    return source === 'dash'
+        ? { text: 'todoDashText', date: 'todoDashDate', addBtn: 'todoDashAddBtn', cancelBtn: 'todoDashCancelBtn' }
+        : { text: 'todoModalText', date: 'todoModalDate', addBtn: 'todoModalAddBtn', cancelBtn: 'todoModalCancelBtn' };
 }
 
-function deleteQuickNote(id) {
-    saveQuickNotes(getQuickNotes().filter(x => x.id !== id));
-    renderQuickNotesList();
+function addOrUpdateTodo(source) {
+    const ids = _todoIdsFor(source);
+    const text = (document.getElementById(ids.text).value || '').trim();
+    if (!text) return;
+    const dueDate = document.getElementById(ids.date).value || null;
+    const priority = _todoFormPrio[source] || 'med';
+    const editingId = _todoEdit[source];
+
+    const todos = getTodos();
+    if (editingId) {
+        const idx = todos.findIndex(t => t.id === editingId);
+        if (idx === -1) {
+            showToast('Item not found', 'error');
+            cancelEditTodo(source);
+            return;
+        }
+        todos[idx] = { ...todos[idx], text, dueDate, priority };
+    } else {
+        todos.unshift({
+            id: 'note_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+            text, priority, dueDate,
+            done: false, doneAt: null,
+            createdAt: new Date().toISOString(),
+        });
+    }
+    const ok = _todoSave(todos);
+    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+
+    // Reset form for this source
+    document.getElementById(ids.text).value = '';
+    document.getElementById(ids.date).value = '';
+    setTodoFormPriority(source, 'med');
+    _todoEdit[source] = null;
+    document.getElementById(ids.addBtn).textContent = '+ Add';
+    document.getElementById(ids.cancelBtn).style.display = 'none';
+
+    _renderAllTodoUI();
+    // Refocus text input for quick chained adds
+    setTimeout(() => { const el = document.getElementById(ids.text); if (el) el.focus(); }, 30);
 }
 
-function renderQuickNotesList() {
-    const notes = getQuickNotes();
-    const container = document.getElementById('quickNotesList');
-    if (notes.length === 0) {
-        container.innerHTML = '<div class="qnotes-empty">No notes yet. Add one above.</div>';
+function startEditTodo(id, source) {
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (!t) return;
+    // If user is editing from dashboard form but the modal is the only available slot
+    // (e.g., dashboard card hidden on small screens), fall back to modal source
+    const ids = _todoIdsFor(source);
+    document.getElementById(ids.text).value = t.text || '';
+    document.getElementById(ids.date).value = t.dueDate || '';
+    setTodoFormPriority(source, t.priority || 'med');
+    _todoEdit[source] = id;
+    document.getElementById(ids.addBtn).textContent = 'Save';
+    document.getElementById(ids.cancelBtn).style.display = '';
+    // Focus the text input
+    setTimeout(() => document.getElementById(ids.text).focus(), 50);
+    _renderAllTodoUI();
+}
+
+function cancelEditTodo(source) {
+    const ids = _todoIdsFor(source);
+    document.getElementById(ids.text).value = '';
+    document.getElementById(ids.date).value = '';
+    setTodoFormPriority(source, 'med');
+    _todoEdit[source] = null;
+    document.getElementById(ids.addBtn).textContent = '+ Add';
+    document.getElementById(ids.cancelBtn).style.display = 'none';
+    _renderAllTodoUI();
+}
+
+function toggleTodoDone(id) {
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (!t) return;
+    t.done = !t.done;
+    t.doneAt = t.done ? new Date().toISOString() : null;
+    const ok = _todoSave(todos);
+    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+    _renderAllTodoUI();
+}
+
+function deleteTodo(id) {
+    if (!confirm('Delete this task?')) return;
+    const todos = getTodos().filter(t => t.id !== id);
+    const ok = _todoSave(todos);
+    if (ok === false) { showToast('Save failed', 'error'); return; }
+    // If the deleted item was being edited in any form, cancel that edit
+    ['dash', 'modal'].forEach(src => { if (_todoEdit[src] === id) cancelEditTodo(src); });
+    _renderAllTodoUI();
+}
+
+function setTodoTab(tab) {
+    _todoTab = tab;
+    document.querySelectorAll('#todoModal .todo-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    _renderTodoModalList();
+}
+
+function openTodoModal() {
+    openModal('todoModal');
+    setTodoTab(_todoTab || 'today');
+    setTimeout(() => document.getElementById('todoModalText').focus(), 80);
+}
+
+function _todoDueLabel(t, today) {
+    if (!t.dueDate) return '';
+    if (t.dueDate === today) return 'Today';
+    if (t.dueDate < today) {
+        const days = _daysBetween(t.dueDate, today);
+        return `${days}d overdue`;
+    }
+    const days = _daysBetween(today, t.dueDate);
+    if (days === 1) return 'Tmrw';
+    if (days < 7) return `${days}d`;
+    // For >=7 days out, show month/day
+    const d = new Date(t.dueDate + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function _daysBetween(a, b) {
+    // a and b are YYYY-MM-DD; returns abs days
+    const da = new Date(a + 'T00:00:00');
+    const db = new Date(b + 'T00:00:00');
+    return Math.round((db - da) / 86400000);
+}
+function _todoDueClass(t, today) {
+    if (!t.dueDate || t.done) return '';
+    if (t.dueDate < today) return 'overdue';
+    if (t.dueDate === today) return 'today';
+    return '';
+}
+
+function _renderTodoItem(t, today, source) {
+    const dueLabel = _todoDueLabel(t, today);
+    const dueClass = _todoDueClass(t, today);
+    const overdueClass = _todoIsOverdue(t, today) ? 'overdue' : '';
+    const doneClass = t.done ? 'done' : '';
+    const editingClass = (_todoEdit.dash === t.id || _todoEdit.modal === t.id) ? 'editing' : '';
+    const prioLabel = { high: 'High', med: 'Med', low: 'Low' }[t.priority] || 'Med';
+    const safeText = escapeHtml(t.text || '');
+    const checkSvg = t.done
+        ? `<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8L7 12L13 4"/></svg>`
+        : '';
+    const pencilSvg = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5L13.5 5L5 13.5H2.5V11L11 2.5Z"/><path d="M9 4.5L11.5 7"/></svg>`;
+    return `
+        <div class="todo-item ${doneClass} ${overdueClass} ${editingClass}">
+            <div class="todo-check" onclick="toggleTodoDone('${t.id}')" title="${t.done ? 'Mark not done' : 'Mark done'}">${checkSvg}</div>
+            <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
+            <span class="todo-prio-badge ${t.priority}">${prioLabel}</span>
+            <span class="todo-due ${dueClass}">${dueLabel}</span>
+            <button class="todo-edit-btn" onclick="startEditTodo('${t.id}', '${source}')" title="Edit" aria-label="Edit">${pencilSvg}</button>
+            <button class="todo-del-btn" onclick="deleteTodo('${t.id}')" title="Delete">×</button>
+        </div>
+    `;
+}
+
+function renderTodoDashboardCard() {
+    const container = document.getElementById('todoDashList');
+    if (!container) return;
+    const today = todayYmd();
+    const items = _todoFilteredFor('today');
+    const visible = items.slice(0, 5);
+    if (items.length === 0) {
+        container.innerHTML = `<div class="todo-empty">All clear for today.</div>`;
         return;
     }
-    // sort: undone first, then by date desc
-    notes.sort((a, b) => {
-        if (a.done !== b.done) return a.done ? 1 : -1;
-        return (b.createdAt || '').localeCompare(a.createdAt || '');
-    });
-    container.innerHTML = notes.map(n => {
-        const ago = relativeTime(n.createdAt);
-        return `
-            <div class="qnote ${n.done ? 'done' : ''}">
-                <div class="qnote-check" onclick="toggleQuickNote('${n.id}')" title="${n.done ? 'Mark not done' : 'Mark done'}"></div>
-                <div class="qnote-text">${escapeHtml(n.text)}</div>
-                <div class="qnote-time">${ago}</div>
-                <button class="qnote-del" onclick="deleteQuickNote('${n.id}')" title="Delete">×</button>
-            </div>
-        `;
-    }).join('');
+    let html = visible.map(t => _renderTodoItem(t, today, 'dash')).join('');
+    if (items.length > 5) {
+        html += `<button class="todo-more-link" onclick="openTodoModal()">+ ${items.length - 5} more — view all</button>`;
+    }
+    container.innerHTML = html;
 }
+
+function _renderTodoModalList() {
+    const container = document.getElementById('todoModalList');
+    if (!container) return;
+    const today = todayYmd();
+    const items = _todoFilteredFor(_todoTab);
+
+    // Tab counts (computed from current data, not cached)
+    const allTodos = getTodos();
+    const openTodos = allTodos.filter(t => !t.done);
+    const doneTodos = allTodos.filter(t => t.done);
+    const horizonD = new Date(); horizonD.setDate(horizonD.getDate() + 14);
+    const horizon = horizonD.toISOString().slice(0, 10);
+    document.getElementById('todoCountToday').textContent = openTodos.filter(t => _todoInTodayView(t, today)).length || '';
+    document.getElementById('todoCountUpcoming').textContent = openTodos.filter(t => _todoInUpcomingView(t, today, horizon)).length || '';
+    document.getElementById('todoCountAll').textContent = openTodos.length || '';
+    document.getElementById('todoCountDone').textContent = doneTodos.length || '';
+
+    if (items.length === 0) {
+        const emptyMsg = {
+            today: 'Nothing due today and no high-priority items waiting.',
+            upcoming: 'Nothing scheduled in the next two weeks.',
+            all: 'No open tasks.',
+            done: 'No completed tasks yet.'
+        }[_todoTab] || 'Nothing here.';
+        container.innerHTML = `<div class="todo-empty">${emptyMsg}</div>`;
+        return;
+    }
+    container.innerHTML = items.map(t => _renderTodoItem(t, today, 'modal')).join('');
+}
+
+function _renderAllTodoUI() {
+    renderTodoDashboardCard();
+    if (document.getElementById('todoModal') && document.getElementById('todoModal').classList.contains('active')) {
+        _renderTodoModalList();
+    } else {
+        // Even if modal isn't visible, keep tab counts fresh for next open
+        try {
+            const today = todayYmd();
+            const allTodos = getTodos();
+            const openTodos = allTodos.filter(t => !t.done);
+            const horizonD = new Date(); horizonD.setDate(horizonD.getDate() + 14);
+            const horizon = horizonD.toISOString().slice(0, 10);
+            const el = (id) => document.getElementById(id);
+            if (el('todoCountToday')) el('todoCountToday').textContent = openTodos.filter(t => _todoInTodayView(t, today)).length || '';
+            if (el('todoCountUpcoming')) el('todoCountUpcoming').textContent = openTodos.filter(t => _todoInUpcomingView(t, today, horizon)).length || '';
+            if (el('todoCountAll')) el('todoCountAll').textContent = openTodos.length || '';
+            if (el('todoCountDone')) el('todoCountDone').textContent = allTodos.filter(t => t.done).length || '';
+        } catch {}
+    }
+}
+
+// Public alias for compatibility — if anything still calls openQuickNotes
+function openQuickNotes() { openTodoModal(); }
 
 function relativeTime(iso) {
     if (!iso) return '';
@@ -4594,6 +4979,7 @@ function refreshAll() {
     renderCalendar();
     renderToday();
     renderWeeklySnapshot();
+    _renderAllTodoUI();
 }
 
 /* ============================================================
@@ -4640,12 +5026,61 @@ function initApp() {
 const BACKFILL_DOW = ['S','M','T','W','T','F','S'];   // label by getDay()
 const BACKFILL_DOW_FULL = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 let _bfPatternSelectedDays = [1, 2, 3, 4, 5];  // default M-F
-let _bfSessionVisitIds = [];                    // visit IDs added this session
+// Session: visit IDs added across all opens of this Backfill Workspace.
+// Persisted to localStorage so a page refresh / crash doesn't lose context.
+// IDs that no longer exist in the visit store are filtered out at load time.
+const _BF_SESSION_KEY = 'myreliacare_backfill_session';
+const _BF_LAST_BATCH_KEY = 'myreliacare_backfill_last_batch';
+let _bfSessionVisitIds = [];
+
+function _bfPersistSession() {
+    try {
+        localStorage.setItem(_BF_SESSION_KEY, JSON.stringify(_bfSessionVisitIds));
+        localStorage.setItem(_BF_LAST_BATCH_KEY, JSON.stringify({
+            groupId: _bfLastBatchGroupId,
+            count: _bfLastBatchCount
+        }));
+    } catch {}
+}
+function _bfRestoreSession() {
+    try {
+        const raw = localStorage.getItem(_BF_SESSION_KEY);
+        const ids = raw ? JSON.parse(raw) : [];
+        // Filter to IDs still present in Store
+        const knownIds = new Set(Store.getVisits().map(v => v.id));
+        _bfSessionVisitIds = Array.isArray(ids) ? ids.filter(id => knownIds.has(id)) : [];
+        // Last batch
+        const rawBatch = localStorage.getItem(_BF_LAST_BATCH_KEY);
+        if (rawBatch) {
+            const b = JSON.parse(rawBatch);
+            // Only restore if at least one visit with that groupId still exists
+            const stillThere = b.groupId && Store.getVisits().some(v => v.groupId === b.groupId);
+            _bfLastBatchGroupId = stillThere ? b.groupId : null;
+            _bfLastBatchCount = stillThere ? (b.count || 0) : 0;
+        }
+    } catch {
+        _bfSessionVisitIds = [];
+        _bfLastBatchGroupId = null;
+        _bfLastBatchCount = 0;
+    }
+}
+function bfClearSession() {
+    if (_bfSessionVisitIds.length === 0) return;
+    if (!confirm(`Clear the session log (${_bfSessionVisitIds.length} visits)? Your visits stay in the calendar — only the in-modal log is cleared.`)) return;
+    _bfSessionVisitIds = [];
+    _bfLastBatchGroupId = null;
+    _bfLastBatchCount = 0;
+    _bfPersistSession();
+    _bfRenderSession();
+    _bfRenderMileage();
+    showToast('Session log cleared');
+}
 let _bfStickyClientId = null;                   // last-used client (sticky for quick add)
 
 function openBackfill() {
     document.getElementById('backfillWorkspace').style.display = 'block';
     document.body.classList.add('modal-open');
+    _bfRestoreSession();
     _bfRefreshClients();
     _bfRenderDow();
     _bfRestoreDefaults();
@@ -4710,33 +5145,63 @@ function bfToggleDow(idx) {
     bfPatternRefresh();
 }
 
-function _bfFindLastPriceFor(clientId, visitType) {
+function _bfFindDefaultPriceFor(clientId, visitType) {
+    // Priority: 1) client's stored default pricing, 2) last visit price for that client+type, 3) null
     if (!clientId) return null;
+    const client = Store.getClients().find(c => c.id === clientId);
+    if (client && client.pricing && client.pricing[visitType] != null) {
+        const p = parseFloat(client.pricing[visitType]);
+        if (!isNaN(p) && p > 0) return p;
+    }
+    // Fallback: last visit price for this client + type
     const visits = Store.getVisits();
     const matches = visits.filter(v => v.clientId === clientId && v.visitType === visitType && v.price != null && v.price !== '')
                           .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     if (matches.length > 0) return parseFloat(matches[0].price);
     return null;
 }
-function bfPatternAutofillPrice() {
+// Track whether the user has manually overridden the auto-filled price.
+// If they have, don't overwrite their value when client/type changes.
+let _bfPatternPriceUserEdited = false;
+let _bfQuickPriceUserEdited = false;
+
+function bfPatternAutofillPrice(force) {
     const cid = document.getElementById('bfPatternClient').value;
     const type = document.getElementById('bfPatternType').value;
     const priceEl = document.getElementById('bfPatternPrice');
-    if (priceEl && (!priceEl.value || priceEl.value === '0')) {
-        const last = _bfFindLastPriceFor(cid, type);
-        if (last != null) priceEl.value = last.toFixed(2);
+    if (!priceEl) return;
+    if (!force && _bfPatternPriceUserEdited && priceEl.value && parseFloat(priceEl.value) > 0) return;
+    const def = _bfFindDefaultPriceFor(cid, type);
+    if (def != null) {
+        priceEl.value = def.toFixed(2);
+        _bfPatternPriceUserEdited = false;
+    } else if (force) {
+        // Force = client/type changed and no default exists → clear stale value
+        priceEl.value = '';
+        _bfPatternPriceUserEdited = false;
     }
 }
-function bfQuickAutofillPrice() {
+
+function bfQuickAutofillPrice(force) {
     const cid = document.getElementById('bfQuickClient').value;
     const type = document.getElementById('bfQuickType').value;
     const priceEl = document.getElementById('bfQuickPrice');
-    if (priceEl && (!priceEl.value || priceEl.value === '0')) {
-        const last = _bfFindLastPriceFor(cid, type);
-        if (last != null) priceEl.value = last.toFixed(2);
+    if (!priceEl) return;
+    if (!force && _bfQuickPriceUserEdited && priceEl.value && parseFloat(priceEl.value) > 0) return;
+    const def = _bfFindDefaultPriceFor(cid, type);
+    if (def != null) {
+        priceEl.value = def.toFixed(2);
+        _bfQuickPriceUserEdited = false;
+    } else if (force) {
+        priceEl.value = '';
+        _bfQuickPriceUserEdited = false;
     }
     _bfStickyClientId = cid;
 }
+
+// Mark price as user-edited when typed directly
+function _bfMarkPatternPriceEdited() { _bfPatternPriceUserEdited = true; }
+function _bfMarkQuickPriceEdited() { _bfQuickPriceUserEdited = true; }
 
 function bfPatternTogglePaid() {
     const row = document.getElementById('bfPatternPaymentRow');
@@ -4791,6 +5256,10 @@ function bfPatternRefresh() {
     btn.disabled = count === 0;
 }
 
+let _bfPendingPattern = null;   // { candidates, collisions, clientName, groupId, ... } during confirm
+let _bfLastBatchGroupId = null; // groupId of most recent pattern fill batch (for batch undo)
+let _bfLastBatchCount = 0;
+
 function bfPatternGenerate() {
     const cid = document.getElementById('bfPatternClient').value;
     if (!cid) { showToast('Pick a client', 'error'); return; }
@@ -4812,32 +5281,157 @@ function bfPatternGenerate() {
     const endD = new Date(end + 'T00:00:00');
     if (startD > endD) { showToast('Start must be before end', 'error'); return; }
 
-    const groupId = generateId('rec');
-    const newVisits = [];
+    // Build candidate dates first
+    const candidates = [];   // { dateStr }
     const cursor = new Date(startD);
     while (cursor <= endD) {
         if (_bfPatternSelectedDays.includes(cursor.getDay())) {
-            const dateStr = cursor.toISOString().slice(0, 10);
-            newVisits.push(_bfBuildVisit({
-                clientId: cid, clientName: client.name, address: client.address || '',
-                access: client.accessInstructions || '', date: dateStr, time,
-                visitType, price: priceVal, assignedTo, notes: '',
-                groupId, completed: markCompleted, paid: markPaid,
-                paymentMethod, paidDate: markPaid ? dateStr : null,
-            }));
+            candidates.push(cursor.toISOString().slice(0, 10));
         }
         cursor.setDate(cursor.getDate() + 1);
     }
-    if (newVisits.length === 0) { showToast('No matching days in that range', 'error'); return; }
+    if (candidates.length === 0) { showToast('No matching days in that range', 'error'); return; }
 
-    const existing = Store.getVisits();
-    const ok = Store.saveVisits([...existing, ...newVisits]);
+    // Detect collisions: same client + same date + same time already exists
+    const allVisits = Store.getVisits();
+    const existingByDate = {};   // dateStr → array of {id, time}
+    allVisits.forEach(v => {
+        if (v.clientId !== cid) return;
+        if (!existingByDate[v.date]) existingByDate[v.date] = [];
+        existingByDate[v.date].push({ id: v.id, time: v.time });
+    });
+    const collisions = [];
+    const clean = [];
+    candidates.forEach(d => {
+        const sameDay = existingByDate[d] || [];
+        const exactTime = sameDay.find(x => x.time === time);
+        if (exactTime) {
+            collisions.push({ date: d, existingId: exactTime.id });
+        } else {
+            clean.push(d);
+        }
+    });
+
+    const groupId = generateId('rec');
+    const params = {
+        cid, clientName: client.name,
+        address: client.address || '',
+        access: client.accessInstructions || '',
+        time, visitType, price: priceVal, assignedTo,
+        groupId,
+        completed: markCompleted,
+        paid: markPaid,
+        paymentMethod,
+    };
+
+    if (collisions.length > 0) {
+        // Stash pending state, show confirm modal
+        _bfPendingPattern = { params, candidates, clean, collisions };
+        const body = document.getElementById('bfDupBody');
+        const sample = collisions.slice(0, 6).map(c => `<li>${c.date}</li>`).join('');
+        const moreLine = collisions.length > 6 ? `<li style="color: var(--text-faint);">…and ${collisions.length - 6} more</li>` : '';
+        body.innerHTML = `
+            <p style="color: var(--text-dim); line-height: 1.5; margin-bottom: 10px;">
+                <strong>${collisions.length}</strong> of <strong>${candidates.length}</strong> candidate date${candidates.length === 1 ? '' : 's'} already have a visit for ${escapeHtml(client.name)} at <strong>${time}</strong>.
+            </p>
+            <ul style="margin: 0 0 14px 18px; padding: 0; color: var(--text); line-height: 1.6; font-size: 0.92em;">
+                ${sample}${moreLine}
+            </ul>
+            <p style="color: var(--text-faint); font-size: 0.88em; line-height: 1.5;">
+                <strong>Skip duplicates</strong> adds only the ${clean.length} new date${clean.length === 1 ? '' : 's'}. <strong>Replace existing</strong> deletes the old visits on those dates and adds fresh ones (new pricing, payment method, etc.). <strong>Cancel</strong> does nothing.
+            </p>
+        `;
+        openModal('bfDupModal');
+        return;
+    }
+
+    // No collisions — proceed straight to insert
+    _bfDoPatternInsert(params, clean, []);
+}
+
+function bfDupCancel() {
+    closeModal('bfDupModal');
+    _bfPendingPattern = null;
+}
+function bfDupSkip() {
+    closeModal('bfDupModal');
+    if (!_bfPendingPattern) return;
+    const { params, clean, collisions } = _bfPendingPattern;
+    _bfPendingPattern = null;
+    if (clean.length === 0) {
+        showToast('Nothing new to add — all candidate dates were duplicates', 'error');
+        return;
+    }
+    _bfDoPatternInsert(params, clean, []);
+    if (collisions.length > 0) {
+        showToast(`Added ${clean.length} · skipped ${collisions.length} existing`);
+    }
+}
+function bfDupReplace() {
+    closeModal('bfDupModal');
+    if (!_bfPendingPattern) return;
+    const { params, candidates, collisions } = _bfPendingPattern;
+    const idsToDelete = collisions.map(c => c.existingId);
+    _bfPendingPattern = null;
+    _bfDoPatternInsert(params, candidates, idsToDelete);
+    showToast(`Generated ${candidates.length} · replaced ${collisions.length} existing`);
+}
+
+function _bfDoPatternInsert(params, dates, replaceIds) {
+    const newVisits = dates.map(dateStr => _bfBuildVisit({
+        clientId: params.cid, clientName: params.clientName,
+        address: params.address, access: params.access,
+        date: dateStr, time: params.time,
+        visitType: params.visitType, price: params.price,
+        assignedTo: params.assignedTo, notes: '',
+        groupId: params.groupId,
+        completed: params.completed, paid: params.paid,
+        paymentMethod: params.paymentMethod,
+        paidDate: params.paid ? dateStr : null,
+    }));
+
+    let updated = Store.getVisits();
+    if (replaceIds && replaceIds.length > 0) {
+        const dropSet = new Set(replaceIds);
+        updated = updated.filter(v => !dropSet.has(v.id));
+        // Also clean up session refs to deleted IDs
+        _bfSessionVisitIds = _bfSessionVisitIds.filter(id => !dropSet.has(id));
+    }
+    updated = [...updated, ...newVisits];
+
+    const ok = Store.saveVisits(updated);
     if (!ok) { showToast('Save failed', 'error'); return; }
     _bfSessionVisitIds.push(...newVisits.map(v => v.id));
-    _bfStickyClientId = cid;
+    _bfStickyClientId = params.cid;
+    _bfLastBatchGroupId = params.groupId;
+    _bfLastBatchCount = newVisits.length;
+    _bfPersistSession();
     _bfRenderSession();
     _bfRenderMileage();
-    showToast(`Generated ${newVisits.length} visit${newVisits.length === 1 ? '' : 's'}`);
+    if (!replaceIds || replaceIds.length === 0) {
+        showToast(`Generated ${newVisits.length} visit${newVisits.length === 1 ? '' : 's'}`);
+    }
+}
+
+function bfPatternUndoBatch() {
+    if (!_bfLastBatchGroupId) return;
+    const groupId = _bfLastBatchGroupId;
+    if (!confirm(`Undo the last batch of ${_bfLastBatchCount} visits?`)) return;
+    const remaining = Store.getVisits().filter(v => v.groupId !== groupId);
+    const ok = Store.saveVisits(remaining);
+    if (!ok) { showToast('Undo failed', 'error'); return; }
+    _bfSessionVisitIds = _bfSessionVisitIds.filter(id => {
+        // Drop session IDs that were in the deleted batch
+        const stillThere = remaining.some(v => v.id === id);
+        return stillThere;
+    });
+    const oldCount = _bfLastBatchCount;
+    _bfLastBatchGroupId = null;
+    _bfLastBatchCount = 0;
+    _bfPersistSession();
+    _bfRenderSession();
+    _bfRenderMileage();
+    showToast(`Removed ${oldCount} visits from last batch`);
 }
 
 function bfQuickAdd() {
@@ -4894,6 +5488,7 @@ function bfQuickAdd() {
 
     _bfSessionVisitIds.push(visit.id);
     _bfStickyClientId = cid;
+    _bfPersistSession();
     _bfRenderSession();
     _bfRenderMileage();
     if (tipAttempted && !tipSaved) {
@@ -4954,23 +5549,82 @@ function _bfRenderSession() {
         .filter(Boolean)
         .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     countEl.textContent = `${inSession.length} added`;
+
+    // Show / hide control buttons
+    const undoBtn = document.getElementById('bfUndoBatchBtn');
+    const clearBtn = document.getElementById('bfClearSessionBtn');
+    if (undoBtn) {
+        if (_bfLastBatchGroupId && _bfLastBatchCount > 0) {
+            undoBtn.style.display = '';
+            undoBtn.textContent = `Undo last batch (${_bfLastBatchCount})`;
+        } else {
+            undoBtn.style.display = 'none';
+        }
+    }
+    if (clearBtn) clearBtn.style.display = inSession.length > 0 ? '' : 'none';
+
     if (inSession.length === 0) {
         log.innerHTML = `<div class="bf-session-empty">Nothing added yet in this session. Adds will appear here so you can quickly undo mistakes.</div>`;
+    } else {
+        log.innerHTML = inSession.map(v => {
+            const typeLabel = (VISIT_TYPES[v.visitType] || {}).label || v.visitType;
+            const t12 = v.time ? _bfFmt12(v.time) : '';
+            const paid = v.paid ? '✓' : '';
+            return `<div class="bf-session-row">
+                <div>${v.date}</div>
+                <div>${(v.clientName || '').replace(/</g, '&lt;')}</div>
+                <div>${typeLabel}</div>
+                <div>${t12}</div>
+                <div class="bf-paid">${paid} $${(parseFloat(v.price) || 0).toFixed(0)}</div>
+                <button class="bf-undo" onclick="bfUndoVisit('${v.id}')" title="Undo">✕</button>
+            </div>`;
+        }).join('');
+    }
+
+    _bfRenderYearCoverage();
+}
+
+function _bfRenderYearCoverage() {
+    const el = document.getElementById('bfYearCoverage');
+    if (!el) return;
+    const visits = Store.getVisits();
+    if (visits.length === 0) {
+        el.innerHTML = '';
         return;
     }
-    log.innerHTML = inSession.map(v => {
-        const typeLabel = (VISIT_TYPES[v.visitType] || {}).label || v.visitType;
-        const t12 = v.time ? _bfFmt12(v.time) : '';
-        const paid = v.paid ? '✓' : '';
-        return `<div class="bf-session-row">
-            <div>${v.date}</div>
-            <div>${(v.clientName || '').replace(/</g, '&lt;')}</div>
-            <div>${typeLabel}</div>
-            <div>${t12}</div>
-            <div class="bf-paid">${paid} $${(parseFloat(v.price) || 0).toFixed(0)}</div>
-            <button class="bf-undo" onclick="bfUndoVisit('${v.id}')" title="Undo">✕</button>
-        </div>`;
+    // Group by year, count unique dates
+    const byYear = {};
+    visits.forEach(v => {
+        if (!v.date) return;
+        const year = v.date.slice(0, 4);
+        if (!byYear[year]) byYear[year] = new Set();
+        byYear[year].add(v.date);
+    });
+    const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a)).slice(0, 4);   // most recent 4 years
+    if (years.length === 0) { el.innerHTML = ''; return; }
+
+    const todayY = new Date().getFullYear().toString();
+    const rows = years.map(y => {
+        const daysCovered = byYear[y].size;
+        // For past years: 365 days; for current year: days elapsed so far
+        let possibleDays = 365;
+        const numY = parseInt(y, 10);
+        if (!isNaN(numY) && numY % 4 === 0 && (numY % 100 !== 0 || numY % 400 === 0)) possibleDays = 366;
+        if (y === todayY) {
+            const start = new Date(numY, 0, 1);
+            const elapsed = Math.floor((Date.now() - start.getTime()) / 86400000) + 1;
+            possibleDays = Math.max(1, Math.min(possibleDays, elapsed));
+        }
+        const pct = Math.min(100, Math.round((daysCovered / possibleDays) * 100));
+        return `
+            <div class="bf-year-row">
+                <div class="bf-year-label">${y}</div>
+                <div class="bf-year-bar"><div class="bf-year-bar-fill" style="width: ${pct}%;"></div></div>
+                <div class="bf-year-stat">${daysCovered} / ${possibleDays} days · ${pct}%</div>
+            </div>
+        `;
     }).join('');
+    el.innerHTML = `<div class="bf-year-row" style="color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; padding-left: 0;">Coverage</div>${rows}`;
 }
 function _bfFmt12(t) {
     if (!t) return '';
@@ -4985,6 +5639,7 @@ function bfUndoVisit(visitId) {
     const ok = Store.saveVisits(remaining);
     if (!ok) { showToast('Undo failed', 'error'); return; }
     _bfSessionVisitIds = _bfSessionVisitIds.filter(id => id !== visitId);
+    _bfPersistSession();
     _bfRenderSession();
     _bfRenderMileage();
     showToast('Removed');
@@ -5095,8 +5750,9 @@ function _bfRenderMileage() {
 
     if (dates.length === 0) {
         list.innerHTML = `<div class="bf-mileage-empty">Add visits above to see auto-calculated mileage here.</div>`;
-        warningEl.style.display = 'none';
         actionsEl.style.display = 'none';
+        // Still render the setup panel — lets the user configure home address before adding any visits
+        _bfRenderSetupPanel([]);
         return;
     }
 
@@ -5108,11 +5764,12 @@ function _bfRenderMileage() {
     const clientsMissingMiles = sessionClientIds
         .map(id => clientsById[id])
         .filter(c => c && (c.milesFromHome == null || c.milesFromHome === ''));
-    if (clientsMissingMiles.length > 0) {
-        warningEl.style.display = 'block';
-        warningEl.innerHTML = `<strong>Missing miles-from-home:</strong> ${clientsMissingMiles.map(c => escapeHtml(c.name || 'Unnamed')).join(', ')}. Add the value on each client's edit page so auto-calc can include them.`;
+    if (clientsMissingMiles.length > 0 || !(_bfGetHomeSetting() && _bfGetHomeSetting().homeAddress)) {
+        _bfRenderSetupPanel(clientsMissingMiles);
     } else {
-        warningEl.style.display = 'none';
+        // Home is set and every session client has miles — render the compact home line anyway,
+        // so the user can still edit home address if needed
+        _bfRenderSetupPanel([]);
     }
 
     // Existing mileage records (so we don't double-log)
@@ -5223,8 +5880,7 @@ function _bfUpdateSaveBtnLabel() {
     saveBtn.textContent = pendingCount > 0 ? `Save Mileage (${pendingCount} pending)` : 'Save Mileage';
 }
 
-function bfMileageEdit(date, driver, value) {
-    const key = `${date}|${driver}`;
+function bfMileageEdit(date, driver, value) {    const key = `${date}|${driver}`;
     if (value === '' || value == null) {
         delete _bfMileageEdits[key];
     } else {
@@ -5239,6 +5895,247 @@ function bfMileageEdit(date, driver, value) {
 function bfMileageToggleBd(key) {
     _bfMileageOpenBd[key] = !_bfMileageOpenBd[key];
     _bfRenderMileage();
+}
+
+/* ============================================================
+   HOME ADDRESS + GEOCODING — Backfill Workspace mileage panel
+   (Mirrors logic in invoices.html for the Finances backfill modal)
+   ============================================================ */
+
+function _bfGetHomeSetting() {
+    const arr = Store.getSettings() || [];
+    return arr.find(s => s.id === 'global') || null;
+}
+function _bfSaveHomeSetting(patch) {
+    const arr = Store.getSettings() || [];
+    let g = arr.find(s => s.id === 'global');
+    if (!g) { g = { id: 'global' }; arr.push(g); }
+    Object.assign(g, patch);
+    return Store.saveSettings(arr);
+}
+
+function _bfHaversineMiles(a, b) {
+    const R = 3959;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLon = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+    return 2 * R * Math.asin(Math.sqrt(x));
+}
+
+async function _bfGeocodeAddress(addressStr) {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`;
+    try {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) return null;
+        const data = await r.json();
+        if (!Array.isArray(data) || data.length === 0) return null;
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        return { lat, lng };
+    } catch (e) {
+        console.error('[geocode] error:', e);
+        return null;
+    }
+}
+
+function _bfClientAddressStr(c) {
+    const parts = [c.address, c.city, c.state, c.zip].map(x => (x || '').trim()).filter(Boolean);
+    if (parts.length < 2) return null;
+    return parts.join(', ');
+}
+
+function _bfSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function _bfRenderSetupPanel(missingClients) {
+    const el = document.getElementById('bfMileageWarning');
+    if (!el) return;
+    const home = _bfGetHomeSetting();
+    const homeAddress = (home && home.homeAddress) || '';
+
+    if (!homeAddress) {
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div class="bf-setup-header">Set your home address</div>
+            <div class="bf-setup-sub">Mileage auto-calc starts from your home. Stored once, used everywhere.</div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="bfHomeAddressInput" placeholder="123 Main St, Walton KY, 41094" style="flex: 1; min-width: 220px; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 0.95em;">
+                <button class="btn btn-primary btn-sm" onclick="_bfSaveHomeAddress()">Save home address</button>
+            </div>
+        `;
+        return;
+    }
+
+    if (missingClients.length === 0) {
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div style="color: var(--text-dim); font-size: 0.9em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
+                <button class="btn btn-ghost btn-sm" onclick="_bfEditHomeAddress()">Edit</button>
+            </div>
+        `;
+        return;
+    }
+
+    const withAddr = missingClients.filter(c => _bfClientAddressStr(c));
+    const rows = missingClients.map(c => {
+        const hasAddr = !!_bfClientAddressStr(c);
+        return `
+            <div class="bf-setup-row">
+                <span class="bf-setup-client" title="${escapeHtml(_bfClientAddressStr(c) || 'no address')}">${escapeHtml(c.name || 'Unnamed')}${hasAddr ? '' : ' <span style="color: var(--text-faint); font-size: 0.85em;">· no address</span>'}</span>
+                <input type="number" min="0" step="0.1" data-cid="${c.id}" placeholder="mi" class="bf-setup-input">
+            </div>
+        `;
+    }).join('');
+
+    el.style.display = 'block';
+    el.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+            <div style="color: var(--text-dim); font-size: 0.88em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
+            <button class="btn btn-ghost btn-sm" onclick="_bfEditHomeAddress()" style="padding: 3px 8px;">Edit</button>
+        </div>
+        ${withAddr.length > 0 ? `
+            <div class="bf-setup-header">Auto-compute miles for ${withAddr.length} client${withAddr.length === 1 ? '' : 's'}</div>
+            <div class="bf-setup-sub">We'll look up each address and compute distance from your home. Takes about ${Math.ceil(withAddr.length * 1.2)} seconds.</div>
+            <button class="btn btn-primary btn-sm" onclick="_bfAutoComputeMiles()" id="bfAutoComputeBtn" style="margin-bottom: 14px;">Auto-compute from addresses</button>
+            <div id="bfComputeProgress" style="color: var(--text-faint); font-size: 0.88em; margin-bottom: 12px;"></div>
+        ` : ''}
+        <div class="bf-setup-header" style="margin-top: 8px;">Or enter manually</div>
+        <div class="bf-setup-sub">Required for clients without an address; optional override for the rest.</div>
+        <div class="bf-setup-grid">${rows}</div>
+        <div class="bf-setup-actions">
+            <button class="btn btn-primary btn-sm" onclick="_bfSaveMissingMiles()">Save manual values</button>
+            <button class="btn btn-ghost btn-sm" onclick="_bfDismissSetup()">Skip for now</button>
+        </div>
+    `;
+}
+
+function _bfSaveHomeAddress() {
+    const inp = document.getElementById('bfHomeAddressInput');
+    if (!inp) return;
+    const addr = (inp.value || '').trim();
+    if (!addr) { showToast('Enter a home address', 'error'); return; }
+    const ok = _bfSaveHomeSetting({ homeAddress: addr, homeCoords: null });
+    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+    showToast('Home address saved');
+    _bfRenderMileage();
+}
+
+function _bfEditHomeAddress() {
+    const el = document.getElementById('bfMileageWarning');
+    if (!el) return;
+    const home = _bfGetHomeSetting();
+    const current = (home && home.homeAddress) || '';
+    el.innerHTML = `
+        <div class="bf-setup-header">Edit home address</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px;">
+            <input type="text" id="bfHomeAddressInput" value="${escapeHtml(current)}" style="flex: 1; min-width: 220px; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 0.95em;">
+            <button class="btn btn-primary btn-sm" onclick="_bfSaveHomeAddress()">Save</button>
+            <button class="btn btn-ghost btn-sm" onclick="_bfRenderMileage()">Cancel</button>
+        </div>
+    `;
+}
+
+async function _bfAutoComputeMiles() {
+    const home = _bfGetHomeSetting();
+    if (!home || !home.homeAddress) { showToast('Set home address first', 'error'); return; }
+
+    const btn = document.getElementById('bfAutoComputeBtn');
+    const progress = document.getElementById('bfComputeProgress');
+    if (btn) btn.disabled = true;
+
+    let homeCoords = home.homeCoords;
+    if (!homeCoords) {
+        if (progress) progress.textContent = 'Looking up home address…';
+        homeCoords = await _bfGeocodeAddress(home.homeAddress);
+        if (!homeCoords) {
+            showToast('Could not look up home address — check spelling', 'error');
+            if (btn) btn.disabled = false;
+            return;
+        }
+        _bfSaveHomeSetting({ homeCoords });
+    }
+
+    const clients = Store.getClients();
+    const targets = clients.filter(c => {
+        if (c.milesFromHome != null && c.milesFromHome !== '') return false;
+        return !!_bfClientAddressStr(c);
+    });
+    if (targets.length === 0) {
+        if (btn) btn.disabled = false;
+        showToast('Nothing to compute', 'error');
+        return;
+    }
+
+    let done = 0, failed = 0;
+    const failedNames = [];
+    for (const c of targets) {
+        if (progress) progress.textContent = `Geocoding ${done + 1} of ${targets.length}: ${c.name || 'client'}…`;
+        const addr = _bfClientAddressStr(c);
+        const coords = await _bfGeocodeAddress(addr);
+        if (coords) {
+            const straight = _bfHaversineMiles(homeCoords, coords);
+            const oneway = Math.round(straight * 1.3 * 10) / 10;
+            c.milesFromHome = oneway;
+            c.coordsCache = coords;
+            done++;
+        } else {
+            failed++;
+            failedNames.push(c.name || 'Unnamed');
+        }
+        await _bfSleep(1100);
+    }
+
+    const ok = Store.saveClients(clients);
+    if (ok === false) {
+        showToast('Save failed after compute — check connection', 'error');
+        if (btn) btn.disabled = false;
+        return;
+    }
+
+    if (failed > 0) {
+        showToast(`Computed ${done} · ${failed} couldn't be looked up (${failedNames.slice(0,3).join(', ')}${failedNames.length > 3 ? '…' : ''}) — enter those manually`);
+    } else {
+        showToast(`Computed miles for ${done} client${done === 1 ? '' : 's'}`);
+    }
+    _bfRenderMileage();
+}
+
+function _bfSaveMissingMiles() {
+    const inputs = document.querySelectorAll('#bfMileageWarning .bf-setup-input');
+    if (inputs.length === 0) return;
+    const updates = [];
+    inputs.forEach(inp => {
+        const cid = inp.dataset.cid;
+        const raw = (inp.value || '').trim();
+        if (raw === '') return;
+        const v = parseFloat(raw);
+        if (isNaN(v) || v < 0) return;
+        updates.push({ cid, miles: v });
+    });
+    if (updates.length === 0) {
+        showToast('Enter at least one value, or use Skip', 'error');
+        return;
+    }
+    const clients = Store.getClients();
+    let touched = 0;
+    updates.forEach(({ cid, miles }) => {
+        const c = clients.find(x => x.id === cid);
+        if (c) { c.milesFromHome = miles; touched++; }
+    });
+    if (touched === 0) { showToast('No matching clients found', 'error'); return; }
+    const ok = Store.saveClients(clients);
+    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+    showToast(`Saved miles for ${touched} client${touched === 1 ? '' : 's'} — recalculating`);
+    _bfRenderMileage();
+}
+
+function _bfDismissSetup() {
+    const warningEl = document.getElementById('bfMileageWarning');
+    if (warningEl) warningEl.style.display = 'none';
 }
 
 function bfRecalcMileage() {

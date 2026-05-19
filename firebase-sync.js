@@ -75,12 +75,13 @@ const COLLECTIONS = [
     { name: 'personalEvents', stateKey: 'personalEvents', storageKey: STORAGE_KEYS.personalEvents },
     { name: 'invoices',       stateKey: 'invoices',       storageKey: STORAGE_KEYS.invoices },
     { name: 'quickNotes',     stateKey: 'quickNotes',     storageKey: STORAGE_KEYS.quickNotes },
-    { name: 'mileage',        stateKey: 'mileage',        storageKey: STORAGE_KEYS.mileage }
+    { name: 'mileage',        stateKey: 'mileage',        storageKey: STORAGE_KEYS.mileage },
+    { name: 'settings',       stateKey: 'settings',       storageKey: 'myreliacare_settings' }
 ];
 
 // --- In-memory state ---
 const _state = {
-    clients: [], visits: [], personalEvents: [], invoices: [], quickNotes: [], mileage: []
+    clients: [], visits: [], personalEvents: [], invoices: [], quickNotes: [], mileage: [], settings: []
 };
 
 // Hydrate _state from localStorage cache for instant first paint
@@ -138,7 +139,15 @@ function attachListeners() {
             const newJson = JSON.stringify(merged);
             if (oldJson === newJson) return;
             _state[c.stateKey] = merged;
-            try { localStorage.setItem(c.storageKey, newJson); } catch {}
+            try { localStorage.setItem(c.storageKey, newJson); }
+            catch (e) {
+                if (e && e.name === 'QuotaExceededError') {
+                    console.error(`[storage] listener cache write failed (quota) for ${c.name}`);
+                    if (typeof showToast === 'function') {
+                        showToast('Browser storage full — clear cache', 'error');
+                    }
+                }
+            }
             _scheduleNotify();
         }, err => {
             console.error(`[sync] listener error on ${c.name}:`, err);
@@ -202,17 +211,98 @@ window.Store = {
     getVisits() { return _deepClone(_state.visits); },
     getPersonalEvents() { return _deepClone(_state.personalEvents); },
     getInvoices() { return _deepClone(_state.invoices); },
+    getQuickNotes() { return _deepClone(_state.quickNotes); },
     getMileage() { return _deepClone(_state.mileage); },
+    getSettings() { return _deepClone(_state.settings); },
     saveClients(arr) { return _saveCollection(COLLECTIONS[0], arr); },
     saveVisits(arr) { return _saveCollection(COLLECTIONS[1], arr); },
     savePersonalEvents(arr) { return _saveCollection(COLLECTIONS[2], arr); },
     saveInvoices(arr) { return _saveCollection(COLLECTIONS[3], arr); },
-    saveMileage(arr) { return _saveCollection(COLLECTIONS[5], arr); }
+    saveQuickNotes(arr) { return _saveCollection(COLLECTIONS[4], arr); },
+    saveMileage(arr) { return _saveCollection(COLLECTIONS[5], arr); },
+    saveSettings(arr) { return _saveCollection(COLLECTIONS[6], arr); }
+};
+
+/* =============================================================
+   SYNC STATUS — visible feedback for save success/failure
+   - Tracks pending Firestore writes by op count
+   - Tracks unrecoverable failures (storage quota, persistent network)
+   - Injects a top banner when something needs attention
+   - Exposes window.SyncStatus.retry() for manual retry of failed writes
+============================================================= */
+let _syncPendingOps = 0;        // ops in flight to Firestore
+let _syncFailures = [];          // [{ coll, oldArr, newArr, ts, err }]
+let _bannerEl = null;
+
+function _ensureBanner() {
+    if (_bannerEl) return _bannerEl;
+    const el = document.createElement('div');
+    el.id = 'syncStatusBanner';
+    el.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
+        background: #C0392B; color: white;
+        padding: 10px 16px; font-family: inherit; font-size: 0.92em;
+        display: none; align-items: center; justify-content: space-between;
+        gap: 12px; flex-wrap: wrap;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    `;
+    el.innerHTML = `
+        <span id="syncStatusMsg">Save failed</span>
+        <span style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="syncRetryBtn" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-family: inherit;">Retry</button>
+            <button id="syncDismissBtn" style="background: transparent; color: white; border: 1px solid rgba(255,255,255,0.4); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-family: inherit;">Dismiss</button>
+        </span>
+    `;
+    document.body.appendChild(el);
+    el.querySelector('#syncRetryBtn').addEventListener('click', () => window.SyncStatus.retry());
+    el.querySelector('#syncDismissBtn').addEventListener('click', () => { _syncFailures = []; _refreshBanner(); });
+    _bannerEl = el;
+    return el;
+}
+
+function _refreshBanner() {
+    const el = _ensureBanner();
+    const msg = el.querySelector('#syncStatusMsg');
+    if (_syncFailures.length === 0) {
+        el.style.display = 'none';
+        return;
+    }
+    el.style.display = 'flex';
+    const collCounts = {};
+    _syncFailures.forEach(f => { collCounts[f.coll.name] = (collCounts[f.coll.name] || 0) + 1; });
+    const summary = Object.entries(collCounts).map(([n, c]) => `${c} ${n}`).join(', ');
+    msg.textContent = `Save failed — ${summary} not synced to cloud. Click Retry to try again.`;
+}
+
+window.SyncStatus = {
+    get pending() { return _syncPendingOps; },
+    get failureCount() { return _syncFailures.length; },
+    async retry() {
+        if (_syncFailures.length === 0) return;
+        const toRetry = _syncFailures.slice();
+        _syncFailures = [];
+        _refreshBanner();
+        for (const f of toRetry) {
+            try {
+                _syncPendingOps++;
+                await _persistToFirestore(f.coll, f.oldArr, f.newArr);
+            } catch (err) {
+                _syncFailures.push({ ...f, err, ts: Date.now() });
+            } finally {
+                _syncPendingOps--;
+            }
+        }
+        _refreshBanner();
+        if (_syncFailures.length === 0 && typeof showToast === 'function') {
+            showToast('All saves synced');
+        }
+    }
 };
 
 function _saveCollection(coll, newArr) {
     if (!auth.currentUser) {
         console.warn('[sync] save attempted while signed out — discarded');
+        if (typeof showToast === 'function') showToast('Not signed in — change not saved', 'error');
         return false;
     }
     const oldArr = _state[coll.stateKey].slice();
@@ -234,13 +324,32 @@ function _saveCollection(coll, newArr) {
 
     // Optimistic local update — caller's next get*() returns fresh data
     _state[coll.stateKey] = JSON.parse(JSON.stringify(newArr));
-    try { localStorage.setItem(coll.storageKey, JSON.stringify(newArr)); } catch {}
+    // localStorage cache write — surface quota / corruption failures
+    try {
+        localStorage.setItem(coll.storageKey, JSON.stringify(newArr));
+    } catch (e) {
+        console.error(`[storage] localStorage write failed for ${coll.name}:`, e);
+        if (e && e.name === 'QuotaExceededError') {
+            if (typeof showToast === 'function') {
+                showToast('Browser storage full — data still saving to cloud, but clear browser cache soon', 'error');
+            }
+        }
+        // Don't return false — _state is still updated and Firestore write proceeds
+    }
 
-    // Push to Firestore (async, fire and forget). Listener will reconcile.
-    _persistToFirestore(coll, oldArr, newArr).catch(err => {
-        console.error(`[sync] persist error on ${coll.name}:`, err);
-        if (typeof showToast === 'function') showToast('Save failed — check connection', 'error');
-    });
+    // Push to Firestore (async). Listener will reconcile.
+    _syncPendingOps++;
+    _persistToFirestore(coll, oldArr, newArr)
+        .then(() => { _syncPendingOps--; })
+        .catch(err => {
+            _syncPendingOps--;
+            console.error(`[sync] persist error on ${coll.name}:`, err);
+            _syncFailures.push({ coll, oldArr, newArr, err, ts: Date.now() });
+            _refreshBanner();
+            if (typeof showToast === 'function') {
+                showToast(`Save failed — see banner at top to retry`, 'error');
+            }
+        });
     return true;
 }
 
