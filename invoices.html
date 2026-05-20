@@ -342,6 +342,100 @@
         @media (max-width: 700px) { .form-row, .form-row-3 { grid-template-columns: 1fr; } }
 
         /* Line items */
+        /* === Visit picker: click visits to add as line items === */
+        .visit-picker {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 4px;
+        }
+        .visit-picker-header {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; flex-wrap: wrap; margin-bottom: 10px;
+        }
+        .visit-picker-title {
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .visit-picker-title > span:first-child {
+            color: var(--accent-light); font-size: 0.85em; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.07em;
+        }
+        .visit-picker-summary {
+            color: var(--text-dim); font-size: 0.88em;
+        }
+        .visit-picker-controls {
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+        }
+        .visit-picker-range {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px;
+            color: var(--text); padding: 5px 8px; font-size: 0.88em; font-family: inherit;
+        }
+        .visit-picker-list {
+            display: flex; flex-direction: column; gap: 4px;
+            max-height: 280px; overflow-y: auto;
+            border-top: 1px solid var(--border); padding-top: 8px;
+        }
+        .visit-picker-row {
+            display: grid; grid-template-columns: auto 130px 1fr 80px;
+            gap: 10px; align-items: center;
+            padding: 8px 10px; background: var(--bg-card);
+            border: 1px solid transparent; border-radius: 6px;
+            cursor: pointer; transition: background 0.12s, border-color 0.12s;
+            font-size: 0.93em;
+        }
+        .visit-picker-row:hover {
+            background: rgba(181, 145, 151, 0.08);
+            border-color: rgba(181, 145, 151, 0.3);
+        }
+        .visit-picker-row.checked {
+            background: rgba(181, 145, 151, 0.15);
+            border-color: var(--accent);
+        }
+        .visit-picker-row input[type="checkbox"] {
+            width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent);
+        }
+        .visit-picker-date { color: var(--text); font-weight: 500; }
+        .visit-picker-type { color: var(--text-dim); }
+        .visit-picker-tag {
+            display: inline-block; padding: 1px 6px; margin-left: 4px;
+            background: rgba(181, 145, 151, 0.2); border-radius: 3px;
+            font-size: 0.75em; color: var(--accent-light);
+        }
+        .visit-picker-tag-upcoming {
+            background: rgba(139, 195, 240, 0.18);
+            color: #8BC3F0;
+        }
+        .visit-picker-tag-done {
+            background: rgba(127, 176, 105, 0.18);
+            color: var(--success, #7FB069);
+        }
+        .visit-picker-price { text-align: right; color: var(--accent); font-weight: 600; }
+        .visit-picker-empty {
+            background: rgba(181, 145, 151, 0.05);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: var(--text-faint); font-size: 0.92em;
+        }
+        .btn-link {
+            background: transparent; border: none; color: var(--accent);
+            cursor: pointer; font-family: inherit; font-size: inherit;
+            padding: 0; margin-left: 4px;
+        }
+        .btn-link:hover { text-decoration: underline; }
+        @media (max-width: 700px) {
+            .visit-picker-row {
+                grid-template-columns: auto 1fr auto;
+                grid-template-rows: auto auto;
+                gap: 4px 10px;
+            }
+            .visit-picker-row > input[type="checkbox"] { grid-column: 1; grid-row: 1 / span 2; }
+            .visit-picker-date { grid-column: 2; grid-row: 1; }
+            .visit-picker-price { grid-column: 3; grid-row: 1; }
+            .visit-picker-type { grid-column: 2 / span 2; grid-row: 2; font-size: 0.88em; }
+        }
+
         .line-items-section { background: var(--bg-input); padding: 16px; border-radius: 8px; margin: 16px 0; border: 1px solid var(--border); }
         .line-items-header { color: var(--accent-light); font-size: 1.05em; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .line-item { display: grid; grid-template-columns: 1fr 2.7fr 0.75fr auto; gap: 8px; align-items: center; padding: 6px; background: var(--bg-card); border-radius: 6px; margin-bottom: 8px; }
@@ -1108,51 +1202,202 @@ function invoiceClientDisplayName(inv) {
 }
 
 /* ============================================================
-   UNPAID VISIT BUNDLING (used by in-modal "Pull unpaid visits" button)
+   VISIT PICKER (in-modal): click visits to add them as line items
+   Replaces the older all-or-nothing "Pull into invoice" button.
+   Shows BOTH completed-unpaid visits AND future-scheduled visits —
+   pet sitters typically bill before service, sometimes after.
    ============================================================ */
-function getUnpaidVisitsForClient(clientId) {
-    return Store.getVisits()
-        .filter(v => v.clientId === clientId && v.status === 'completed' && !v.paid && !v.invoiced && (v.price || 0) > 0)
-        .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+
+// Persists across re-renders within a single invoice editor session;
+// reset to default whenever the editor opens (see openInvoiceEditor / editInvoice).
+let _invoicePickerFilter = { range: 'rolling-60', showInvoiced: false };
+
+// Compute [start, end] date bounds (YYYY-MM-DD inclusive) for each range key.
+// Returns { startStr, endStr } — either bound may be empty string meaning "no limit".
+function _invoiceRangeBounds(range) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const ymd = (d) => d.toISOString().slice(0, 10);
+
+    if (range === 'this-month') {
+        const start = new Date(today.getFullYear(), today.getMonth(), 1);
+        const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        return { startStr: ymd(start), endStr: ymd(end) };
+    }
+    if (range === 'rolling-60') {
+        const start = new Date(today); start.setDate(start.getDate() - 30);
+        const end = new Date(today); end.setDate(end.getDate() + 30);
+        return { startStr: ymd(start), endStr: ymd(end) };
+    }
+    if (range === 'past-90') {
+        const start = new Date(today); start.setDate(start.getDate() - 90);
+        return { startStr: ymd(start), endStr: ymd(today) };
+    }
+    if (range === 'next-60') {
+        const end = new Date(today); end.setDate(end.getDate() + 60);
+        return { startStr: ymd(today), endStr: ymd(end) };
+    }
+    return { startStr: '', endStr: '' }; // 'all'
 }
 
-function renderPullVisitsHint() {
+function getEligibleVisitsForInvoice(clientId, opts = {}) {
+    if (!clientId) return [];
+    const showInvoiced = !!opts.showInvoiced;
+    const { startStr, endStr } = _invoiceRangeBounds(opts.range || 'rolling-60');
+
+    return Store.getVisits()
+        .filter(v => v.clientId === clientId
+                  && v.status !== 'cancelled'      // exclude cancelled only
+                  && !v.paid                       // exclude already-paid
+                  && (showInvoiced || !v.invoiced) // exclude already-invoiced (unless editing)
+                  && (v.price || 0) > 0
+                  && (!startStr || (v.date || '') >= startStr)
+                  && (!endStr   || (v.date || '') <= endStr))
+        // Newest first so today's and upcoming visits are right at the top
+        .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+}
+
+function renderVisitPicker() {
     const slot = document.getElementById('pullVisitsSlot');
     if (!slot) return;
-    const clientId = document.getElementById('invClient').value;
+    const { clientId } = resolveInvClient();
     if (!clientId) { slot.innerHTML = ''; return; }
-    const unpaid = getUnpaidVisitsForClient(clientId);
-    if (unpaid.length === 0) { slot.innerHTML = ''; return; }
-    const total = unpaid.reduce((s, v) => s + (v.price || 0), 0);
+
+    const visits = getEligibleVisitsForInvoice(clientId, _invoicePickerFilter);
+    const rangeLabel = ({
+        'this-month': 'this month',
+        'rolling-60': 'past 30 + next 30 days',
+        'past-90': 'past 90 days',
+        'next-60': 'next 60 days',
+        'all': 'all time'
+    })[_invoicePickerFilter.range];
+
+    if (visits.length === 0) {
+        slot.innerHTML = `
+            <div class="visit-picker-empty">
+                No billable visits for this client in the ${rangeLabel}.
+                <button type="button" class="btn-link" onclick="_setPickerRange('all')">Try all time →</button>
+            </div>`;
+        return;
+    }
+
+    // Which visit IDs are currently represented as line items?
+    const checkedIds = new Set(
+        Array.from(document.querySelectorAll('#invItems .line-item'))
+            .map(li => li.dataset.visitId)
+            .filter(Boolean)
+    );
+    const checkedCount = visits.filter(v => checkedIds.has(v.id)).length;
+    const allChecked = checkedCount === visits.length;
+    const selectedTotal = visits.filter(v => checkedIds.has(v.id)).reduce((s, v) => s + (v.price || 0), 0);
+    const todayStr = new Date().toISOString().slice(0, 10);
+
     slot.innerHTML = `
-        <div style="background: rgba(181, 145, 151, 0.1); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-            <span style="color: var(--text-dim); font-size: 0.95em;">
-                ${unpaid.length} unpaid visit${unpaid.length === 1 ? '' : 's'} for this client · $${total.toFixed(2)}
-            </span>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="pullUnpaidVisitsIntoEditor()">Pull into invoice</button>
+        <div class="visit-picker">
+            <div class="visit-picker-header">
+                <div class="visit-picker-title">
+                    <span>Visits to invoice</span>
+                    <span class="visit-picker-summary">${checkedCount} of ${visits.length} selected · $${selectedTotal.toFixed(2)}</span>
+                </div>
+                <div class="visit-picker-controls">
+                    <select class="visit-picker-range" onchange="_setPickerRange(this.value)">
+                        <option value="this-month" ${_invoicePickerFilter.range === 'this-month' ? 'selected' : ''}>This month</option>
+                        <option value="rolling-60" ${_invoicePickerFilter.range === 'rolling-60' ? 'selected' : ''}>Past 30 + next 30 days</option>
+                        <option value="past-90" ${_invoicePickerFilter.range === 'past-90' ? 'selected' : ''}>Past 90 days</option>
+                        <option value="next-60" ${_invoicePickerFilter.range === 'next-60' ? 'selected' : ''}>Next 60 days</option>
+                        <option value="all" ${_invoicePickerFilter.range === 'all' ? 'selected' : ''}>All time</option>
+                    </select>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="_togglePickerAll(${!allChecked})">${allChecked ? 'Deselect all' : 'Select all'}</button>
+                </div>
+            </div>
+            <div class="visit-picker-list">
+                ${visits.map(v => {
+                    const t = VISIT_TYPES[v.visitType] || { label: v.visitType };
+                    const isChecked = checkedIds.has(v.id);
+                    const isUpcoming = (v.date || '') >= todayStr && v.status !== 'completed';
+                    const statusTag = isUpcoming
+                        ? '<span class="visit-picker-tag visit-picker-tag-upcoming">upcoming</span>'
+                        : (v.status === 'completed' ? '<span class="visit-picker-tag visit-picker-tag-done">done</span>' : '');
+                    const invoicedTag = v.invoiced ? '<span class="visit-picker-tag">already invoiced</span>' : '';
+                    return `
+                        <label class="visit-picker-row ${isChecked ? 'checked' : ''}" data-visit-id="${v.id}">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="_toggleVisitInInvoice('${v.id}', this.checked)">
+                            <div class="visit-picker-date">${formatDate(v.date)}${v.time ? ' · ' + formatTime12(v.time) : ''}</div>
+                            <div class="visit-picker-type">${escapeHtml(t.label)} ${statusTag} ${invoicedTag}</div>
+                            <div class="visit-picker-price">$${(v.price || 0).toFixed(2)}</div>
+                        </label>
+                    `;
+                }).join('')}
+            </div>
         </div>
     `;
 }
 
-function pullUnpaidVisitsIntoEditor() {
-    const clientId = document.getElementById('invClient').value;
-    if (!clientId) return;
-    const unpaid = getUnpaidVisitsForClient(clientId);
-    if (unpaid.length === 0) { showToast('No unpaid visits for this client', 'error'); return; }
-    // Clear existing items first (to avoid duplicates from earlier pulls)
-    document.getElementById('invItems').innerHTML = '';
-    unpaid.forEach(v => {
-        const t = VISIT_TYPES[v.visitType] || { label: 'Visit' };
-        addLineItem({
-            description: `${formatDate(v.date)} — ${t.label}`,
-            amount: v.price || 0,
-            visitId: v.id,
-            date: v.date
+window._setPickerRange = function(range) {
+    _invoicePickerFilter.range = range;
+    renderVisitPicker();
+};
+
+window._toggleVisitInInvoice = function(visitId, isChecked) {
+    if (isChecked) {
+        const visit = Store.getVisits().find(v => v.id === visitId);
+        if (!visit) return;
+        // Avoid duplicate add (if somehow already in line items)
+        const existing = Array.from(document.querySelectorAll('#invItems .line-item'))
+            .find(li => li.dataset.visitId === visitId);
+        if (existing) return;
+        const t = VISIT_TYPES[visit.visitType] || { label: 'Visit' };
+        // Remove blank "starter" line item if it's empty (newly-opened invoice has a blank row)
+        document.querySelectorAll('#invItems .line-item').forEach(li => {
+            const desc = li.querySelector('.li-desc')?.value.trim();
+            const amt = parseFloat(li.querySelector('.li-amount')?.value) || 0;
+            if (!desc && amt === 0 && !li.dataset.visitId) li.remove();
         });
+        addLineItem({
+            description: `${formatDate(visit.date)} — ${t.label}`,
+            amount: visit.price || 0,
+            visitId: visit.id,
+            date: visit.date
+        });
+    } else {
+        document.querySelectorAll('#invItems .line-item').forEach(li => {
+            if (li.dataset.visitId === visitId) li.remove();
+        });
+        recalcTotals();
+    }
+    // Update the row's visual selected state without a full re-render (preserves scroll/focus)
+    const row = document.querySelector(`.visit-picker-row[data-visit-id="${visitId}"]`);
+    if (row) row.classList.toggle('checked', isChecked);
+    // Update the summary line
+    _updateVisitPickerSummary();
+};
+
+window._togglePickerAll = function(check) {
+    const { clientId } = resolveInvClient();
+    if (!clientId) return;
+    const visits = getEligibleVisitsForInvoice(clientId, _invoicePickerFilter);
+    visits.forEach(v => {
+        const cb = document.querySelector(`.visit-picker-row[data-visit-id="${v.id}"] input[type="checkbox"]`);
+        if (!cb) return;
+        if (check && !cb.checked) { cb.checked = true; _toggleVisitInInvoice(v.id, true); }
+        else if (!check && cb.checked) { cb.checked = false; _toggleVisitInInvoice(v.id, false); }
     });
-    recalcTotals();
-    renderPullVisitsHint(); // hint stays the same, but refresh in case
-    showToast(`Pulled in ${unpaid.length} visit${unpaid.length === 1 ? '' : 's'}`);
+    renderVisitPicker(); // refresh the "Select all/Deselect all" button label
+};
+
+// Lightweight summary update — no full re-render
+function _updateVisitPickerSummary() {
+    const summary = document.querySelector('.visit-picker-summary');
+    if (!summary) return;
+    const { clientId } = resolveInvClient();
+    const visits = getEligibleVisitsForInvoice(clientId, _invoicePickerFilter);
+    const checkedIds = new Set(
+        Array.from(document.querySelectorAll('#invItems .line-item'))
+            .map(li => li.dataset.visitId).filter(Boolean)
+    );
+    const checked = visits.filter(v => checkedIds.has(v.id));
+    const total = checked.reduce((s, v) => s + (v.price || 0), 0);
+    summary.textContent = `${checked.length} of ${visits.length} selected · $${total.toFixed(2)}`;
 }
 
 /* ============================================================
@@ -1178,6 +1423,9 @@ function openInvoiceEditor(seed) {
     document.getElementById('invSaveBtn').textContent = 'Save Invoice';
     document.getElementById('invDeleteBtn').style.display = 'none';
 
+    // Reset the visit picker filter so every new invoice opens with a fresh view
+    _invoicePickerFilter = { range: 'rolling-60', showInvoiced: false };
+
     populateClientDatalist();
     const clientInput = document.getElementById('invClient');
     if (seed.clientId) {
@@ -1202,7 +1450,7 @@ function openInvoiceEditor(seed) {
         addLineItem();
     }
     recalcTotals();
-    renderPullVisitsHint();
+    renderVisitPicker();
     openModal('invoiceModal');
 }
 
@@ -1213,6 +1461,9 @@ function editInvoice(id) {
     document.getElementById('invoiceModalTitle').textContent = `Edit ${inv.invoiceNumber}`;
     document.getElementById('invSaveBtn').textContent = 'Save Changes';
     document.getElementById('invDeleteBtn').style.display = 'inline-flex';
+
+    // When editing, include already-invoiced visits so the existing line items show as checked
+    _invoicePickerFilter = { range: 'all', showInvoiced: true };
 
     populateClientDatalist();
     const clientInput = document.getElementById('invClient');
@@ -1240,13 +1491,13 @@ function editInvoice(id) {
     (inv.items || []).forEach(it => addLineItem(it));
     if ((inv.items || []).length === 0) addLineItem();
     recalcTotals();
-    renderPullVisitsHint();
+    renderVisitPicker();
     closeModal('viewModal');
     openModal('invoiceModal');
 }
 
 function onInvClientChange() {
-    renderPullVisitsHint();
+    renderVisitPicker();
 }
 
 // Resolve a typed name (or selected from datalist) to a clientId if it matches an existing client.
@@ -1267,10 +1518,25 @@ function addLineItem(seed = null) {
         <input type="date" class="li-date" value="${seed?.date || todayYmd()}" placeholder="Date">
         <input type="text" class="li-desc" list="visitTypeOptions" placeholder="Description" value="${seed ? escapeHtml(seed.description || '') : ''}" oninput="onLineItemDescChange(this)">
         <input type="number" class="li-amount" min="0" step="0.01" placeholder="0.00" value="${seed?.amount?.toFixed ? seed.amount.toFixed(2) : (seed?.amount || '')}" oninput="recalcTotals()">
-        <button type="button" class="item-remove" onclick="this.parentElement.remove(); recalcTotals();" title="Remove">×</button>
+        <button type="button" class="item-remove" onclick="removeLineItem(this)" title="Remove">×</button>
     `;
     container.appendChild(row);
     recalcTotals();
+}
+
+// Removing a line item also unchecks the visit in the picker (if it's a linked visit)
+function removeLineItem(btn) {
+    const row = btn.parentElement;
+    const visitId = row.dataset.visitId;
+    row.remove();
+    recalcTotals();
+    if (visitId) {
+        const cb = document.querySelector(`.visit-picker-row[data-visit-id="${visitId}"] input[type="checkbox"]`);
+        if (cb) cb.checked = false;
+        const pickerRow = document.querySelector(`.visit-picker-row[data-visit-id="${visitId}"]`);
+        if (pickerRow) pickerRow.classList.remove('checked');
+        _updateVisitPickerSummary();
+    }
 }
 
 const VISIT_TYPE_DESC_MAP = {

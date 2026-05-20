@@ -2339,7 +2339,7 @@
                 <h3 class="card-title">Pattern Fill <span class="bf-hint">Generate a batch of recurring visits</span></h3>
                 <div class="bf-field">
                     <label>Client</label>
-                    <select id="bfPatternClient" onchange="bfPatternAutofillPrice(true); bfPatternRefresh()"></select>
+                    <select id="bfPatternClient" onchange="bfPatternAutofillPrice(true); bfPatternAutofillPayment(true); bfPatternRefresh()"></select>
                 </div>
                 <div class="bf-field-row">
                     <div class="bf-field">
@@ -2392,7 +2392,7 @@
                 </div>
                 <div class="bf-field" id="bfPatternPaymentRow" style="display: none;">
                     <label>Payment Method (for all)</label>
-                    <select id="bfPatternPaymentMethod">
+                    <select id="bfPatternPaymentMethod" onchange="_bfPatternPayUserEdited = true">
                         <option value="venmo">Venmo (1.9%+$0.10)</option>
                         <option value="cashapp">CashApp (0%)</option>
                         <option value="stripe">Stripe (2.9%+$0.30)</option>
@@ -2420,7 +2420,7 @@
                 </div>
                 <div class="bf-field">
                     <label>Client</label>
-                    <select id="bfQuickClient" onchange="bfQuickAutofillPrice(true)"></select>
+                    <select id="bfQuickClient" onchange="bfQuickAutofillPrice(true); bfQuickAutofillPayment(true)"></select>
                 </div>
                 <div class="bf-field-row">
                     <div class="bf-field">
@@ -2453,7 +2453,7 @@
                 </div>
                 <div class="bf-field" id="bfQuickPaymentRow" style="display: none;">
                     <label>Payment Method</label>
-                    <select id="bfQuickPaymentMethod">
+                    <select id="bfQuickPaymentMethod" onchange="_bfQuickPayUserEdited = true">
                         <option value="venmo">Venmo</option>
                         <option value="cashapp">CashApp</option>
                         <option value="stripe">Stripe</option>
@@ -2719,6 +2719,14 @@ function calcNetAmount(method, gross) {
 }
 function paymentMethodLabel(method) {
     return (PAYMENT_METHODS[method] || {}).label || (method ? method : 'Unrecorded');
+}
+
+// Look up the default payment method for a client, if one is set.
+// Returns a method key like 'venmo' or null. Falls back to null if no client or no default.
+function getClientDefaultPaymentMethod(clientId) {
+    if (!clientId) return null;
+    const c = Store.getClients().find(x => x.id === clientId);
+    return (c && c.defaultPaymentMethod) || null;
 }
 
 /* ============================================================
@@ -3546,7 +3554,9 @@ function toggleVisitPaid(id) {
         _payMethodContext = { type: 'visit', id, gross: v.price || 0 };
         document.getElementById('payMethodTitle').textContent = `How was this paid?`;
         document.getElementById('payMethodAmount').textContent = `$${(v.price || 0).toFixed(2)} — ${v.clientName || 'Client'}`;
-        _openPaymentMethodModal(null);
+        // Pre-select the client's default payment method (if any) — saves a tap in the common case
+        const defaultMethod = getClientDefaultPaymentMethod(v.clientId);
+        _openPaymentMethodModal(defaultMethod);
     } else {
         // Unmarking paid: clear method/fee/net
         v.paid = false;
@@ -5166,6 +5176,42 @@ function _bfFindDefaultPriceFor(clientId, visitType) {
 // If they have, don't overwrite their value when client/type changes.
 let _bfPatternPriceUserEdited = false;
 let _bfQuickPriceUserEdited = false;
+// Same idea for the payment-method dropdowns — once user has touched them for this client,
+// don't clobber on subsequent autofill calls.
+let _bfPatternPayUserEdited = false;
+let _bfQuickPayUserEdited = false;
+
+// Pre-fills the Pattern Fill payment-method dropdown from the chosen client's default.
+function bfPatternAutofillPayment(force) {
+    const cid = document.getElementById('bfPatternClient').value;
+    const sel = document.getElementById('bfPatternPaymentMethod');
+    if (!sel) return;
+    if (!force && _bfPatternPayUserEdited) return;
+    const def = getClientDefaultPaymentMethod(cid);
+    if (def) {
+        sel.value = def;
+        _bfPatternPayUserEdited = false;
+    } else if (force) {
+        sel.value = 'cash'; // sensible neutral default
+        _bfPatternPayUserEdited = false;
+    }
+}
+
+// Pre-fills the Quick Add payment-method dropdown from the chosen client's default.
+function bfQuickAutofillPayment(force) {
+    const cid = document.getElementById('bfQuickClient').value;
+    const sel = document.getElementById('bfQuickPaymentMethod');
+    if (!sel) return;
+    if (!force && _bfQuickPayUserEdited) return;
+    const def = getClientDefaultPaymentMethod(cid);
+    if (def) {
+        sel.value = def;
+        _bfQuickPayUserEdited = false;
+    } else if (force) {
+        sel.value = 'cash';
+        _bfQuickPayUserEdited = false;
+    }
+}
 
 function bfPatternAutofillPrice(force) {
     const cid = document.getElementById('bfPatternClient').value;
@@ -5206,12 +5252,14 @@ function _bfMarkPatternPriceEdited() { _bfPatternPriceUserEdited = true; }
 function _bfMarkQuickPriceEdited() { _bfQuickPriceUserEdited = true; }
 
 function bfPatternTogglePaid() {
-    const row = document.getElementById('bfPatternPaymentRow');
-    row.style.display = document.getElementById('bfPatternPaid').checked ? 'flex' : 'none';
+    const checked = document.getElementById('bfPatternPaid').checked;
+    document.getElementById('bfPatternPaymentRow').style.display = checked ? 'flex' : 'none';
+    if (checked) bfPatternAutofillPayment(true);
 }
 function bfQuickTogglePaid() {
-    const row = document.getElementById('bfQuickPaymentRow');
-    row.style.display = document.getElementById('bfQuickPaid').checked ? 'flex' : 'none';
+    const checked = document.getElementById('bfQuickPaid').checked;
+    document.getElementById('bfQuickPaymentRow').style.display = checked ? 'flex' : 'none';
+    if (checked) bfQuickAutofillPayment(true);
 }
 
 function bfPatternRefresh() {

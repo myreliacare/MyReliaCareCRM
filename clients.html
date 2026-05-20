@@ -207,16 +207,37 @@
 
         .detail-section { margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
         .detail-section:last-child { border-bottom: none; }
-        .detail-section h3 { color: var(--accent-light); font-size: 1.1em; margin-bottom: 10px; font-family: 'Cormorant Unicase', serif; }
-        .detail-row { display: flex; gap: 12px; margin-bottom: 6px; }
-        .detail-label { color: var(--text-faint); min-width: 130px; font-size: 0.92em; }
-        .detail-value { color: var(--text); flex: 1; }
+        .detail-section h3 { color: var(--accent-light); font-size: 1.25em; margin-bottom: 14px; font-family: 'Cormorant Unicase', serif; font-weight: 600; letter-spacing: 0.01em; }
+        .detail-row { display: flex; gap: 12px; margin-bottom: 8px; align-items: baseline; }
+        .detail-label { color: var(--accent-light); min-width: 130px; font-size: 0.78em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; }
+        .detail-value { color: var(--text); flex: 1; font-size: 0.98em; }
         .pricing-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 6px; }
         @media (max-width: 700px) { .pricing-mini-grid { grid-template-columns: 1fr 1fr; } }
         .pricing-tile { background: var(--bg-input); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); }
-        .pricing-tile-label { color: var(--text-faint); font-size: 0.85em; }
+        .pricing-tile-label { color: var(--text-faint); font-size: 0.78em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
         .pricing-tile-value { color: var(--accent); font-size: 1.3em; font-weight: 600; font-family: 'Cormorant Unicase', serif; }
         .visit-history-row { display: grid; grid-template-columns: 130px 1fr 90px 90px; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; font-size: 0.95em; }
+        .visit-filter-bar {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+            padding: 10px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border);
+        }
+        .visit-filter-input, .visit-filter-select {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text); padding: 7px 10px; font-family: inherit; font-size: 0.92em;
+        }
+        .visit-filter-input { flex: 1 1 200px; min-width: 0; }
+        .visit-filter-select { flex: 0 1 auto; min-width: 0; }
+        .visit-filter-input:focus, .visit-filter-select:focus {
+            outline: none; border-color: var(--accent);
+        }
+        .visit-filter-status {
+            color: var(--text-faint); font-size: 0.85em;
+            padding: 4px 0 10px; font-style: italic;
+        }
+        @media (max-width: 700px) {
+            .visit-filter-bar { padding: 8px; gap: 6px; }
+            .visit-filter-input, .visit-filter-select { flex: 1 1 calc(50% - 4px); font-size: 0.9em; }
+        }
         .visit-history-row:last-child { border-bottom: none; }
         .visit-history-date { color: var(--text-dim); }
         .visit-history-type { color: var(--text); }
@@ -237,11 +258,17 @@
             .visit-history-type { grid-column: 1; grid-row: 2; font-size: 0.88em; color: var(--text-dim); }
             .visit-history-status { grid-column: 2; grid-row: 2; text-align: right; font-size: 0.85em; }
         }
-        .pet-detail-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
-        .pet-detail-card h4 { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.05em; margin-bottom: 6px; }
-        .pet-detail-meta { color: var(--text-dim); font-size: 0.92em; margin-bottom: 8px; }
-        .pet-note { color: var(--text-dim); font-size: 0.92em; margin-top: 6px; }
-        .pet-note strong { color: var(--accent-light); font-weight: 500; }
+        .pet-detail-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .pet-detail-card h4 { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.2em; margin-bottom: 6px; font-weight: 600; }
+        .pet-detail-meta { color: var(--text-dim); font-size: 0.92em; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .pet-note { color: var(--text); font-size: 0.96em; margin-top: 12px; line-height: 1.55; }
+        .pet-note strong { display: block; color: var(--accent-light); font-weight: 700; font-size: 0.76em; text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 3px; }
+
+        /* Mobile: tighten label width so values get more space */
+        @media (max-width: 700px) {
+            .detail-row { flex-direction: column; gap: 2px; margin-bottom: 10px; }
+            .detail-label { min-width: auto; }
+        }
 
         #toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--accent); color: var(--text); padding: 14px 22px; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); z-index: 2000; display: none; max-width: 320px; }
         #toast.error { border-color: var(--danger); }
@@ -316,6 +343,23 @@
         /* === Modal content NEVER scrolls horizontally === */
         .modal-body { overflow-x: hidden; }
         .modal { overflow: hidden; }
+
+        /* Tappable address — opens the Waze/Apple Maps chooser */
+        .clickable-address {
+            cursor: pointer;
+            color: var(--accent, #B59197);
+            border-bottom: 1px dotted rgba(181, 145, 151, 0.5);
+            padding-bottom: 1px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .clickable-address:hover {
+            color: #D4ADB3;
+            border-bottom-color: #D4ADB3;
+        }
+        .clickable-address:focus {
+            outline: 2px solid var(--accent, #B59197);
+            outline-offset: 2px;
+        }
         @media (max-width: 700px) {
             /* Hard width clamp on all modal descendants */
             .modal-body * { max-width: 100% !important; box-sizing: border-box !important; }
@@ -637,6 +681,18 @@
                 <div class="form-group"><label>30 min Visit ($)</label><input type="number" id="cPrice30" min="0" step="0.01" placeholder="0"></div>
                 <div class="form-group"><label>1 hour Visit ($)</label><input type="number" id="cPrice60" min="0" step="0.01" placeholder="0"></div>
             </div>
+            <div class="form-group">
+                <label>Default Payment Method <span class="bf-hint-inline" style="color: var(--text-faint); font-weight: normal; font-style: italic;">— pre-fills "Mark Paid" everywhere; can be overridden</span></label>
+                <select id="cDefaultPaymentMethod">
+                    <option value="">— none —</option>
+                    <option value="venmo">Venmo (1.9% + $0.10)</option>
+                    <option value="cashapp">CashApp (0%)</option>
+                    <option value="stripe">Stripe (2.9% + $0.30)</option>
+                    <option value="rover">Rover (paid via app)</option>
+                    <option value="cash">Cash (no fee)</option>
+                    <option value="other">Other (no fee tracked)</option>
+                </select>
+            </div>
 
             <h3 class="form-section-title">Preferred Time Windows</h3>
             <p style="color: var(--text-faint); font-size: 0.92em; margin-bottom: 10px;">When this client wants visits to happen. The dashboard uses these to suggest times when scheduling.</p>
@@ -785,6 +841,98 @@ const VISIT_TYPES = {
     '60min':      { label: '1 hour Visit' }
 };
 
+// === Visit history filtering (used inside client Details modal) ===
+window._visitFilter = { search: '', type: 'all', status: 'all', paid: 'all', dateRange: 'all', showAll: false };
+const VISIT_INITIAL_LIMIT = 50;  // initial cap on rendered rows; "Show all" reveals the rest
+
+function applyVisitFilter(visits) {
+    const f = window._visitFilter;
+    let result = visits;
+
+    if (f.type !== 'all') result = result.filter(v => v.visitType === f.type);
+    if (f.status !== 'all') result = result.filter(v => v.status === f.status);
+    if (f.paid === 'paid') result = result.filter(v => v.paid);
+    else if (f.paid === 'unpaid') result = result.filter(v => !v.paid);
+
+    if (f.dateRange !== 'all') {
+        const now = new Date();
+        let cutoff;
+        if (f.dateRange === 'ytd') {
+            cutoff = new Date(now.getFullYear(), 0, 1);
+        } else {
+            const days = parseInt(f.dateRange, 10);
+            cutoff = new Date(now);
+            cutoff.setDate(cutoff.getDate() - days);
+        }
+        const cutoffStr = cutoff.toISOString().slice(0, 10);
+        result = result.filter(v => (v.date || '') >= cutoffStr);
+    }
+
+    if (f.search) {
+        const q = f.search.toLowerCase();
+        result = result.filter(v => {
+            const typeLabel = (VISIT_TYPES[v.visitType] && VISIT_TYPES[v.visitType].label) || v.visitType || '';
+            const blob = [v.date, formatDateLong(v.date), typeLabel, v.visitType, v.notes, v.status, v.price]
+                .filter(Boolean).join(' ').toLowerCase();
+            return blob.includes(q);
+        });
+    }
+
+    return result;
+}
+
+function renderFilteredVisitList(allVisits) {
+    const filtered = applyVisitFilter(allVisits);
+    const showAll = window._visitFilter.showAll;
+    const rendered = showAll ? filtered : filtered.slice(0, VISIT_INITIAL_LIMIT);
+    const overflow = filtered.length - rendered.length;
+    const isFiltered = filtered.length !== allVisits.length;
+
+    let html = '';
+
+    // Status line — shows how many are visible
+    if (isFiltered || filtered.length > VISIT_INITIAL_LIMIT) {
+        html += `<div class="visit-filter-status">Showing ${rendered.length} of ${filtered.length}${isFiltered ? ' filtered' : ''} visits${isFiltered && filtered.length !== allVisits.length ? ' (of ' + allVisits.length + ' total)' : ''}</div>`;
+    }
+
+    if (filtered.length === 0) {
+        html += `<div class="empty-state" style="padding: 20px;">No visits match your filters</div>`;
+        return html;
+    }
+
+    html += rendered.map(v => {
+        const t = VISIT_TYPES[v.visitType] || { label: v.visitType };
+        return `
+        <div class="visit-history-row">
+            <div class="visit-history-date">${formatDateLong(v.date).replace(/, \d{4}$/, '')}</div>
+            <div class="visit-history-type">${escapeHtml(t.label)}${v.paid ? ' <span style="color: var(--success); font-size: 0.78em;">· paid</span>' : ''}</div>
+            <div class="visit-history-price">$${(v.price || 0).toFixed(2)}</div>
+            <div class="visit-history-status ${v.status}">${v.status}</div>
+        </div>`;
+    }).join('');
+
+    if (overflow > 0) {
+        html += `<div style="text-align: center; padding-top: 12px;">
+            <button class="btn btn-ghost btn-sm" onclick="updateVisitFilter('showAll', true)">Show all ${filtered.length} visits (+${overflow} more)</button>
+        </div>`;
+    }
+
+    return html;
+}
+
+window.updateVisitFilter = function(key, value) {
+    window._visitFilter[key] = value;
+    // When user changes any filter (other than showAll), reset the cap so they see fresh results
+    if (key !== 'showAll') window._visitFilter.showAll = false;
+    const container = document.getElementById('visitHistoryList');
+    if (!container) return;
+    const clientId = container.dataset.clientId;
+    if (!clientId) return;
+    const visits = Store.getVisits().filter(v => v.clientId === clientId)
+        .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+    container.innerHTML = renderFilteredVisitList(visits);
+};
+
 let editingClientId = null;
 
 function uploadLogo(e) {
@@ -840,6 +988,70 @@ function escapeHtml(s) {
     if (s == null) return '';
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
+
+// Renders an address as a clickable element. Tap → small chooser modal → opens
+// Waze or Apple Maps with the address pre-filled for navigation.
+// Uses data-attribute + event delegation so it works on dynamically re-rendered cards.
+function renderClickableAddress(address) {
+    if (!address) return '';
+    return `<span class="clickable-address" data-address="${escapeHtml(address)}" role="button" tabindex="0" aria-label="Open ${escapeHtml(address)} in maps">${escapeHtml(address)}</span>`;
+}
+
+// Event delegation — attach once, works for all current and future addresses
+document.addEventListener('click', (e) => {
+    const el = e.target.closest('.clickable-address');
+    if (el && el.dataset.address) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.openInMaps(el.dataset.address);
+    }
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest && e.target.closest('.clickable-address');
+    if (el && el.dataset.address) {
+        e.preventDefault();
+        window.openInMaps(el.dataset.address);
+    }
+});
+
+window.openInMaps = function(address) {
+    if (!address) return;
+    const encoded = encodeURIComponent(address);
+    // Waze URL — opens Waze app on mobile via universal link, falls back to waze.com
+    const wazeUrl = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+    // Apple Maps URL — opens Apple Maps app on iOS, web view elsewhere
+    const appleUrl = `https://maps.apple.com/?address=${encoded}&q=${encoded}`;
+
+    let el = document.getElementById('mapsChooserOverlay');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'mapsChooserOverlay';
+    el.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+        z-index: 10000; display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+    `;
+    el.innerHTML = `
+        <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 20px; max-width: 340px; width: 100%; color: #F0E6E8; font-family: inherit;">
+            <p style="margin: 0 0 4px; color: #C0B0B4; font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.06em;">Navigate to</p>
+            <p style="margin: 0 0 18px; font-size: 1.02em; word-break: break-word;">${escapeHtml(address)}</p>
+            <div style="display: flex; gap: 10px;">
+                <a href="${wazeUrl}" target="_blank" rel="noopener noreferrer" data-app="waze" style="flex: 1; padding: 14px; background: #33CCFF; color: white; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600; font-family: inherit;">Waze</a>
+                <a href="${appleUrl}" target="_blank" rel="noopener noreferrer" data-app="apple" style="flex: 1; padding: 14px; background: #007AFF; color: white; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600; font-family: inherit;">Apple Maps</a>
+            </div>
+            <button id="mapsChooserCancel" style="display: block; width: 100%; padding: 10px; margin-top: 10px; background: transparent; color: #C0B0B4; border: 1px solid #4A413E; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.92em;">Cancel</button>
+        </div>
+    `;
+    // Close on outside click or Cancel
+    el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+    el.querySelector('#mapsChooserCancel').addEventListener('click', () => el.remove());
+    // After choosing an app, close the modal (link has already fired)
+    el.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => setTimeout(() => el.remove(), 150));
+    });
+    document.body.appendChild(el);
+};
 function formatPhone(p) {
     if (!p) return '';
     const digits = String(p).replace(/\D/g, '');
@@ -1037,7 +1249,7 @@ function renderClientCard(c) {
             <div class="client-card-body" style="${isExpanded ? '' : 'display: none;'}">
                 ${c.phone ? `<div class="client-info-row"><strong>Phone</strong> ${escapeHtml(formatPhone(c.phone))}</div>` : ''}
                 ${c.email ? `<div class="client-info-row"><strong>Email</strong> ${escapeHtml(c.email)}</div>` : ''}
-                ${addressLine ? `<div class="client-info-row"><strong>Address</strong> ${escapeHtml(addressLine)}</div>` : ''}
+                ${addressLine ? `<div class="client-info-row"><strong>Address</strong> ${renderClickableAddress(addressLine)}</div>` : ''}
                 ${nextVisitHtml}
                 ${ltvLine}
                 ${tipsLine}
@@ -1080,7 +1292,7 @@ function openClientModal() {
     ['cName','cPhone','cEmail','cAddress','cCity','cState','cZip','cAccess','cNotes',
      'cMilesFromHome',
      'cEmergencyName','cEmergencyPhone','cEmergencyRel','cVetClinic','cVetPhone','cVetAddress',
-     'cPrice30','cPrice60'].forEach(id => document.getElementById(id).value = '');
+     'cPrice30','cPrice60','cDefaultPaymentMethod'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('cPreferredContact').value = '';
     document.getElementById('petsContainer').innerHTML = '';
     document.getElementById('timeWindowsContainer').innerHTML = '';
@@ -1107,6 +1319,7 @@ function editClient(clientId) {
     document.getElementById('cNotes').value = c.notes || '';
     document.getElementById('cPrice30').value = c.pricing?.['30min'] || '';
     document.getElementById('cPrice60').value = c.pricing?.['60min'] || '';
+    document.getElementById('cDefaultPaymentMethod').value = c.defaultPaymentMethod || '';
     const em = c.emergencyContact || {};
     document.getElementById('cEmergencyName').value = em.name || '';
     document.getElementById('cEmergencyPhone').value = em.phone || '';
@@ -1252,6 +1465,7 @@ function saveClient() {
         })(),
         notes: document.getElementById('cNotes').value.trim(),
         pricing, pets,
+        defaultPaymentMethod: document.getElementById('cDefaultPaymentMethod').value || null,
         timeWindows: collectTimeWindows(),
         emergencyContact: {
             name: document.getElementById('cEmergencyName').value.trim(),
@@ -1396,12 +1610,15 @@ function viewClient(clientId) {
     const addressLine = [c.address, c.city, c.state, c.zip].filter(Boolean).join(', ');
     let html = '';
     const pricing = c.pricing || {};
+    const PAY_LABELS = { venmo: 'Venmo', cashapp: 'CashApp', stripe: 'Stripe', rover: 'Rover', cash: 'Cash', other: 'Other' };
+    const payLabel = c.defaultPaymentMethod ? (PAY_LABELS[c.defaultPaymentMethod] || c.defaultPaymentMethod) : '—';
     html += `
         <div class="detail-section">
             <h3>Pricing</h3>
             <div class="pricing-mini-grid">
                 <div class="pricing-tile"><div class="pricing-tile-label">30 min Visit</div><div class="pricing-tile-value">${pricing['30min'] ? '$' + pricing['30min'].toFixed(2) : '—'}</div></div>
                 <div class="pricing-tile"><div class="pricing-tile-label">1 hour Visit</div><div class="pricing-tile-value">${pricing['60min'] ? '$' + pricing['60min'].toFixed(2) : '—'}</div></div>
+                <div class="pricing-tile"><div class="pricing-tile-label">Default Pay</div><div class="pricing-tile-value" style="font-size: 1.05em;">${payLabel}</div></div>
             </div>
         </div>`;
 
@@ -1420,7 +1637,7 @@ function viewClient(clientId) {
             ${c.phone ? `<div class="detail-row"><div class="detail-label">Phone</div><div class="detail-value">${escapeHtml(formatPhone(c.phone))}</div></div>` : ''}
             ${c.email ? `<div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">${escapeHtml(c.email)}</div></div>` : ''}
             ${c.preferredContact ? `<div class="detail-row"><div class="detail-label">Preferred</div><div class="detail-value">${escapeHtml(c.preferredContact)}</div></div>` : ''}
-            ${addressLine ? `<div class="detail-row"><div class="detail-label">Address</div><div class="detail-value">${escapeHtml(addressLine)}</div></div>` : ''}
+            ${addressLine ? `<div class="detail-row"><div class="detail-label">Address</div><div class="detail-value">${renderClickableAddress(addressLine)}</div></div>` : ''}
             ${(c.milesFromHome != null && c.milesFromHome !== '') ? `<div class="detail-row"><div class="detail-label">Miles from Home</div><div class="detail-value">${c.milesFromHome} mi (one-way)</div></div>` : ''}
             ${c.accessInstructions ? `<div class="detail-row"><div class="detail-label">Access</div><div class="detail-value">${escapeHtml(c.accessInstructions)}</div></div>` : ''}
         </div>`;
@@ -1432,10 +1649,10 @@ function viewClient(clientId) {
                 <div class="pet-detail-card">
                     <h4>${escapeHtml(p.name)}</h4>
                     ${meta ? `<div class="pet-detail-meta">${escapeHtml(meta)}</div>` : ''}
-                    ${p.behaviorNotes ? `<div class="pet-note"><strong>Behavior:</strong> ${escapeHtml(p.behaviorNotes)}</div>` : ''}
-                    ${p.medicalNotes ? `<div class="pet-note"><strong>Medical:</strong> ${escapeHtml(p.medicalNotes)}</div>` : ''}
-                    ${p.feedingInstructions ? `<div class="pet-note"><strong>Feeding:</strong> ${escapeHtml(p.feedingInstructions)}</div>` : ''}
-                    ${p.careInstructions ? `<div class="pet-note"><strong>Care:</strong> ${escapeHtml(p.careInstructions)}</div>` : ''}
+                    ${p.behaviorNotes ? `<div class="pet-note"><strong>Behavior</strong>${escapeHtml(p.behaviorNotes)}</div>` : ''}
+                    ${p.medicalNotes ? `<div class="pet-note"><strong>Medical</strong>${escapeHtml(p.medicalNotes)}</div>` : ''}
+                    ${p.feedingInstructions ? `<div class="pet-note"><strong>Feeding</strong>${escapeHtml(p.feedingInstructions)}</div>` : ''}
+                    ${p.careInstructions ? `<div class="pet-note"><strong>Care</strong>${escapeHtml(p.careInstructions)}</div>` : ''}
                 </div>`;
         });
         html += `</div>`;
@@ -1460,24 +1677,48 @@ function viewClient(clientId) {
         </div>
     `;
     if (visits.length > 0) {
-        const recent = visits.slice(0, 10);
+        // Build a set of types that actually appear in this client's visits, for the dropdown
+        const typesInUse = [...new Set(visits.map(v => v.visitType).filter(Boolean))].sort();
+        const typeOptions = typesInUse.map(t => {
+            const label = (VISIT_TYPES[t] && VISIT_TYPES[t].label) || t;
+            return `<option value="${escapeHtml(t)}">${escapeHtml(label)}</option>`;
+        }).join('');
+
+        // Reset filter state on every detail view open — each client starts fresh
+        window._visitFilter = { search: '', type: 'all', status: 'all', paid: 'all', dateRange: 'all', showAll: false };
+
         html += `
             <div class="detail-section">
                 <h3>Visit History — ${visits.length} total · Lifetime: $${stats.ltv.toFixed(2)}</h3>
+                <div class="visit-filter-bar">
+                    <input type="text" id="visitFilterSearch" placeholder="Search type, notes, date…" oninput="updateVisitFilter('search', this.value)" class="visit-filter-input">
+                    <select id="visitFilterType" onchange="updateVisitFilter('type', this.value)" class="visit-filter-select">
+                        <option value="all">All types</option>
+                        ${typeOptions}
+                    </select>
+                    <select id="visitFilterStatus" onchange="updateVisitFilter('status', this.value)" class="visit-filter-select">
+                        <option value="all">All statuses</option>
+                        <option value="completed">Completed</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                    <select id="visitFilterPaid" onchange="updateVisitFilter('paid', this.value)" class="visit-filter-select">
+                        <option value="all">Paid + unpaid</option>
+                        <option value="paid">Paid only</option>
+                        <option value="unpaid">Unpaid only</option>
+                    </select>
+                    <select id="visitFilterRange" onchange="updateVisitFilter('dateRange', this.value)" class="visit-filter-select">
+                        <option value="all">All time</option>
+                        <option value="30">Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="365">Last year</option>
+                        <option value="ytd">This year</option>
+                    </select>
+                </div>
                 <div class="visit-history-row visit-history-header" style="font-weight: 600; color: var(--text-faint); border-bottom-width: 2px;">
                     <div>Date</div><div>Type</div><div style="text-align: right;">Price</div><div style="text-align: right;">Status</div>
                 </div>
-                ${recent.map(v => {
-                    const t = VISIT_TYPES[v.visitType] || { label: v.visitType };
-                    return `
-                    <div class="visit-history-row">
-                        <div class="visit-history-date">${formatDateLong(v.date).replace(/, \d{4}$/, '')}</div>
-                        <div class="visit-history-type">${t.label}</div>
-                        <div class="visit-history-price">$${(v.price || 0).toFixed(2)}</div>
-                        <div class="visit-history-status ${v.status}">${v.status}</div>
-                    </div>`;
-                }).join('')}
-                ${visits.length > 10 ? `<div style="text-align: center; color: var(--text-faint); padding-top: 10px; font-size: 0.9em; font-style: italic;">+ ${visits.length - 10} earlier visits</div>` : ''}
+                <div id="visitHistoryList" data-client-id="${c.id}">${renderFilteredVisitList(visits)}</div>
             </div>`;
     } else {
         html += `<div class="detail-section"><h3>Visit History</h3><div class="empty-state" style="padding: 20px;">No visits yet</div></div>`;
@@ -1491,7 +1732,7 @@ function viewClient(clientId) {
         }
         if (vet.clinic || vet.phone) {
             html += `<div class="detail-row"><div class="detail-label">Vet</div><div class="detail-value">${escapeHtml(vet.clinic || '—')}${vet.phone ? ' · ' + escapeHtml(formatPhone(vet.phone)) : ''}</div></div>`;
-            if (vet.address) html += `<div class="detail-row"><div class="detail-label"></div><div class="detail-value">${escapeHtml(vet.address)}</div></div>`;
+            if (vet.address) html += `<div class="detail-row"><div class="detail-label"></div><div class="detail-value">${renderClickableAddress(vet.address)}</div></div>`;
         }
         html += `</div>`;
     }
@@ -1506,6 +1747,11 @@ function viewClient(clientId) {
         <button class="btn btn-primary" onclick="scheduleVisitFor('${c.id}')">Schedule Visit</button>
     `;
     openModal('detailModal');
+    // Always show the top of the details — never carry over the previous scroll position
+    const body = document.getElementById('detailBody');
+    if (body) body.scrollTop = 0;
+    const modal = document.querySelector('#detailModal .modal');
+    if (modal) modal.scrollTop = 0;
 }
 
 function init() {

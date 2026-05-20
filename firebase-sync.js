@@ -1042,7 +1042,10 @@ auth.onAuthStateChanged(async user => {
     if (user) {
         // Logged in
         if (passwordScreen) passwordScreen.style.display = 'none';
-        if (mainContent) mainContent.style.display = 'block';
+        // Show mainContent only if PIN is already verified this session.
+        // Otherwise leave it hidden — the PIN gate (called below) reveals it on success.
+        // Prevents a brief flash of dashboard content before the PIN modal mounts.
+        if (mainContent) mainContent.style.display = _isPinVerified() ? 'block' : 'none';
 
         // Hide session-expired modal if it was showing
         const expEl = document.getElementById('sessionExpiredOverlay');
