@@ -102,21 +102,6 @@ function _showSessionExpired() {
             el.style.display = 'none';
             _markActivity();
         } catch (e) {
-            if (e.code === 'auth/multi-factor-auth-required') {
-                el.style.display = 'none';
-                try {
-                    const mfaApi = await _ensureMfaApi();
-                    const resolver = mfaApi.getMultiFactorResolver(mfaApi.modularAuth, e);
-                    _showMfaChallenge(resolver);
-                } catch (err) {
-                    console.error('[mfa] resolver build failed:', err);
-                    errEl.textContent = 'MFA error';
-                    errEl.style.display = 'block';
-                    btn.disabled = false;
-                    btn.textContent = 'Sign back in';
-                }
-                return;
-            }
             errEl.textContent = 'Incorrect password';
             errEl.style.display = 'block';
             btn.disabled = false;
@@ -154,9 +139,48 @@ function _injectSignedInIndicator() {
     el.innerHTML = `
         <span style="width: 8px; height: 8px; border-radius: 50%; background: #7FB069; display: inline-block;"></span>
         <span>Signed in</span>
-        <button onclick="window.signOutCRM()" style="background: transparent; color: #B59197; border: none; cursor: pointer; font-family: inherit; font-size: 1em; padding: 0 0 0 4px; border-left: 1px solid #4A413E;">Sign out</button>
+        <button id="indicatorMenuBtn" style="background: transparent; color: #B59197; border: none; cursor: pointer; font-family: inherit; font-size: 1em; padding: 0 0 0 8px; border-left: 1px solid #4A413E;">Account ▾</button>
     `;
     document.body.appendChild(el);
+
+    // Popover menu
+    const menu = document.createElement('div');
+    menu.id = 'indicatorMenu';
+    menu.style.cssText = `
+        position: fixed; bottom: 48px; right: 14px; z-index: 9501;
+        background: #2A2220; border: 1px solid #4A413E; border-radius: 8px;
+        padding: 6px 0; min-width: 180px; display: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+        font-family: inherit; font-size: 0.88em;
+    `;
+    menu.innerHTML = `
+        <button data-action="changePin" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #F0E6E8; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Change PIN</button>
+        <button data-action="changePassword" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #F0E6E8; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Change password</button>
+        <div style="height: 1px; background: #4A413E; margin: 4px 0;"></div>
+        <button data-action="signOut" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #ff8585; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Sign out</button>
+    `;
+    document.body.appendChild(menu);
+
+    const toggleBtn = el.querySelector('#indicatorMenuBtn');
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    });
+    menu.querySelectorAll('button[data-action]').forEach(b => {
+        b.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.style.display = 'none';
+            const action = b.dataset.action;
+            if (action === 'changePin') window.changePin();
+            else if (action === 'changePassword') window.changePassword();
+            else if (action === 'signOut') window.signOutCRM();
+        });
+        // hover effect
+        b.addEventListener('mouseenter', () => { b.style.background = '#3A302E'; });
+        b.addEventListener('mouseleave', () => { b.style.background = 'transparent'; });
+    });
+    // Click outside to close
+    document.addEventListener('click', () => { menu.style.display = 'none'; });
 }
 
 firebase.initializeApp(firebaseConfig);
@@ -504,237 +528,401 @@ function _generateSyncId(prefix) {
 }
 
 /* ============================================================
-   MFA (TOTP) — enrollment + sign-in challenge
-   Requires Identity Platform enabled on the Firebase project.
-   Both Kasey's and Charlie's phones scan the same QR code at
-   enrollment time, so either of them can produce valid codes.
+   APP PIN — secondary local factor for sensitive data access
+   
+   Why: Firebase Auth's LOCAL persistence keeps the user signed in
+   across browser sessions via IndexedDB. This is convenient but
+   means a stolen/borrowed device with an unlocked browser can
+   open the CRM with no challenge. The PIN adds a challenge that
+   protects against that scenario.
+   
+   When is the PIN required?
+   - First sign-in after this feature shipped
+   - After auto-logout (60 min inactivity)
+   - After explicit sign-out
+   - First load on a brand-new browser/device (where the PIN session
+     flag was never set on that device)
+   
+   When is the PIN NOT required?
+   - Navigating between pages in the same tab
+   - Opening additional tabs (the verified flag is in localStorage,
+     shared across tabs)
+   - Refreshing the page
+   - Closing and reopening the browser (so long as you haven't
+     been signed out by inactivity)
+   
+   Design:
+   - 4-6 digit PIN, set by user once
+   - Stored as PBKDF2 hash + per-PIN salt in the settings collection
+   - localStorage flag tracks "verified" — cleared on every sign-out
+   - 5 wrong attempts → forced full sign-out (need password to retry)
    ============================================================ */
 
-let _mfaResolver = null;      // set when sign-in throws auth/multi-factor-auth-required
-let _mfaEnrollmentSecret = null;
-let _qrcodeLibLoaded = false;
+const PIN_SESSION_KEY = 'myreliacare_pin_verified';
+const PIN_FAIL_KEY = 'myreliacare_pin_failures';
+const PIN_MAX_FAILURES = 5;
 
-async function _loadQrcodeLib() {
-    if (_qrcodeLibLoaded || window.QRCode) { _qrcodeLibLoaded = true; return; }
-    return new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-        s.onload = () => { _qrcodeLibLoaded = true; resolve(); };
-        s.onerror = () => reject(new Error('Could not load QR code library'));
-        document.head.appendChild(s);
+function _getSettingsRecord() {
+    const arr = _state.settings || [];
+    return arr.find(s => s.id === 'global') || null;
+}
+
+function _hasPinConfigured() {
+    const s = _getSettingsRecord();
+    return !!(s && s.pinHash && s.pinSalt);
+}
+
+function _isPinVerified() {
+    try { return localStorage.getItem(PIN_SESSION_KEY) === 'verified'; } catch { return false; }
+}
+
+function _markPinVerified() {
+    try { localStorage.setItem(PIN_SESSION_KEY, 'verified'); } catch {}
+    try { localStorage.removeItem(PIN_FAIL_KEY); } catch {}
+}
+
+function _clearPinSession() {
+    try { localStorage.removeItem(PIN_SESSION_KEY); } catch {}
+}
+
+function _getPinFailures() {
+    try { return parseInt(localStorage.getItem(PIN_FAIL_KEY) || '0', 10) || 0; } catch { return 0; }
+}
+
+function _incrementPinFailures() {
+    const n = _getPinFailures() + 1;
+    try { localStorage.setItem(PIN_FAIL_KEY, String(n)); } catch {}
+    return n;
+}
+
+function _resetPinFailures() {
+    try { localStorage.removeItem(PIN_FAIL_KEY); } catch {}
+}
+
+async function _hashPin(pin, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+        'raw', enc.encode(pin), { name: 'PBKDF2' }, false, ['deriveBits']
+    );
+    const bits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' },
+        keyMaterial,
+        256
+    );
+    return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function _randomSalt() {
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function _savePinHash(pin) {
+    const salt = _randomSalt();
+    const hash = await _hashPin(pin, salt);
+    const arr = _deepClone(_state.settings || []);
+    let g = arr.find(s => s.id === 'global');
+    if (!g) { g = { id: 'global' }; arr.push(g); }
+    g.pinHash = hash;
+    g.pinSalt = salt;
+    g.pinSetAt = Date.now();
+    return _saveCollection(COLLECTIONS[6], arr);
+}
+
+async function _verifyPin(pin) {
+    const s = _getSettingsRecord();
+    if (!s || !s.pinHash || !s.pinSalt) return false;
+    const hash = await _hashPin(pin, s.pinSalt);
+    return hash === s.pinHash;
+}
+
+// Wait briefly for Firestore settings sync after sign-in, so we know
+// whether PIN is configured before showing setup vs. challenge.
+async function _waitForSettingsSync(timeoutMs = 4000) {
+    if (_getSettingsRecord()) return;
+    return new Promise(resolve => {
+        const start = Date.now();
+        const intv = setInterval(() => {
+            if (_getSettingsRecord() || Date.now() - start > timeoutMs) {
+                clearInterval(intv);
+                resolve();
+            }
+        }, 150);
     });
 }
 
-function _isMfaEnrolled() {
-    if (!auth.currentUser) return false;
-    const factors = auth.currentUser.multiFactor && auth.currentUser.multiFactor.enrolledFactors;
-    return Array.isArray(factors) && factors.length > 0;
-}
+let _pinGateActive = false;
 
-function _refreshMfaButtonOnIndicator() {
-    const wrap = document.getElementById('signedInIndicator');
-    if (!wrap) return;
-    let setupBtn = document.getElementById('mfaSetupBtn');
-    const enrolled = _isMfaEnrolled();
-    if (!enrolled && !setupBtn) {
-        setupBtn = document.createElement('button');
-        setupBtn.id = 'mfaSetupBtn';
-        setupBtn.textContent = 'Enable 2FA';
-        setupBtn.style.cssText = 'background: #B59197; color: white; border: none; cursor: pointer; font-family: inherit; font-size: 1em; padding: 2px 8px; border-radius: 10px; margin-right: 4px;';
-        setupBtn.onclick = () => window.setupMfa();
-        wrap.insertBefore(setupBtn, wrap.querySelector('button'));   // before Sign out
-    } else if (enrolled && setupBtn) {
-        setupBtn.remove();
+async function _enforcePinGate() {
+    if (_pinGateActive) return;
+    if (_isPinVerified()) return;
+    _pinGateActive = true;
+
+    // Hide main content while the gate is up
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent) mainContent.style.display = 'none';
+
+    await _waitForSettingsSync();
+
+    if (_hasPinConfigured()) {
+        _showPinChallenge();
+    } else {
+        _showPinSetup();
     }
 }
 
-// MFA Sign-In Challenge
-function _showMfaChallenge(resolver) {
-    _mfaResolver = resolver;
-    let el = document.getElementById('mfaChallengeOverlay');
-    if (!el) {
-        el = document.createElement('div');
-        el.id = 'mfaChallengeOverlay';
-        el.style.cssText = `
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-            z-index: 99999; display: flex; align-items: center; justify-content: center;
-            padding: 20px;
-        `;
-        el.innerHTML = `
-            <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 28px 32px; max-width: 400px; width: 100%; color: #F0E6E8; font-family: inherit;">
-                <h2 style="margin: 0 0 8px; font-family: 'Cormorant Unicase', serif; font-weight: 500;">Two-factor verification</h2>
-                <p style="margin: 0 0 20px; color: #C0B0B4; font-size: 0.95em; line-height: 1.5;">
-                    Open your authenticator app and enter the current 6-digit code for MyReliaCare CRM.
-                </p>
-                <input type="text" id="mfaChallengeCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" style="width: 100%; padding: 14px 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.3em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
-                <div id="mfaChallengeError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
-                <button id="mfaChallengeBtn" style="width: 100%; padding: 10px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Verify</button>
-            </div>
-        `;
-        document.body.appendChild(el);
-        const inp = el.querySelector('#mfaChallengeCode');
-        el.querySelector('#mfaChallengeBtn').addEventListener('click', () => _submitMfaCode(inp.value.trim()));
-        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') _submitMfaCode(inp.value.trim()); });
-    }
-    el.style.display = 'flex';
-    const input = el.querySelector('#mfaChallengeCode');
-    input.value = '';
-    el.querySelector('#mfaChallengeError').style.display = 'none';
-    setTimeout(() => input.focus(), 100);
-}
-
-async function _submitMfaCode(code) {
-    const errEl = document.getElementById('mfaChallengeError');
-    const btn = document.getElementById('mfaChallengeBtn');
-    if (!code || code.length !== 6) {
-        errEl.textContent = 'Enter the 6-digit code';
-        errEl.style.display = 'block';
-        return;
-    }
-    if (!_mfaResolver) return;
-    btn.disabled = true;
-    btn.textContent = 'Verifying…';
-    try {
-        const mfaApi = await _ensureMfaApi();
-        const factorUid = _mfaResolver.hints[0].uid;
-        const assertion = mfaApi.TotpMultiFactorGenerator.assertionForSignIn(factorUid, code);
-        await _mfaResolver.resolveSignIn(assertion);
-        document.getElementById('mfaChallengeOverlay').style.display = 'none';
-        _mfaResolver = null;
-    } catch (e) {
-        console.error('[mfa] verify error:', e);
-        errEl.textContent = 'Wrong code — try again';
-        errEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Verify';
-    }
-}
-
-// MFA Enrollment
-async function _ensureMfaApi() {
-    if (window._mfaApiReady && window._mfaApi) return window._mfaApi;
-    return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('MFA API load timeout — check network/CDN')), 10000);
-        window.addEventListener('mfaApiReady', () => {
-            clearTimeout(timeout);
-            resolve(window._mfaApi);
-        }, { once: true });
-    });
-}
-
-window.setupMfa = async function() {
-    if (!auth.currentUser) return;
-    let mfaApi;
-    try {
-        mfaApi = await _ensureMfaApi();
-    } catch (e) {
-        alert('Could not load the MFA module — check your network and try again.');
-        return;
-    }
-    try {
-        await _loadQrcodeLib();
-        // Get the modular User (compat's currentUser wraps it; we go straight to modular auth)
-        const modularAuth = mfaApi.getAuth();
-        const modularUser = modularAuth.currentUser;
-        if (!modularUser) { alert('Sign in first.'); return; }
-        const session = await mfaApi.multiFactor(modularUser).getSession();
-        const secret = await mfaApi.TotpMultiFactorGenerator.generateSecret(session);
-        _mfaEnrollmentSecret = secret;
-        const otpauthUrl = secret.generateQrCodeUrl(SHARED_EMAIL, 'MyReliaCare CRM');
-        _showMfaEnrollmentModal(otpauthUrl, secret.secretKey);
-    } catch (e) {
-        console.error('[mfa] setup error:', e);
-        const code = e.code || '';
-        if (code === 'auth/operation-not-allowed' || code === 'auth/unsupported-tenant-operation' || code === 'auth/unsupported-first-factor') {
-            alert('MFA is not enabled on this Firebase project. Run the Cloud Shell TOTP-enable command first.');
-        } else if (code === 'auth/requires-recent-login') {
-            alert('Please sign out and sign in again before setting up 2FA.');
-        } else if (code === 'auth/unverified-email') {
-            alert('The account email needs to be verified before enabling MFA. Tell Claude to send the verification command.');
-        } else {
-            alert('Could not start MFA setup: ' + (e.message || code));
-        }
-    }
-};
-
-function _showMfaEnrollmentModal(otpauthUrl, secretKey) {
-    let el = document.getElementById('mfaEnrollOverlay');
+function _showPinSetup() {
+    let el = document.getElementById('pinOverlay');
     if (el) el.remove();
     el = document.createElement('div');
-    el.id = 'mfaEnrollOverlay';
+    el.id = 'pinOverlay';
     el.style.cssText = `
-        position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-        z-index: 99999; display: flex; align-items: center; justify-content: center;
-        padding: 20px; overflow-y: auto;
+        position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+        z-index: 99998; display: flex; align-items: center; justify-content: center;
+        padding: 20px;
     `;
     el.innerHTML = `
-        <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 28px 32px; max-width: 460px; width: 100%; color: #F0E6E8; font-family: inherit; margin: 20px auto;">
-            <h2 style="margin: 0 0 10px; font-family: 'Cormorant Unicase', serif; font-weight: 500;">Enable two-factor authentication</h2>
-            <p style="margin: 0 0 16px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
-                <strong>Step 1:</strong> Open Google Authenticator, 1Password, Authy, or another TOTP app on <strong>both</strong> your phone <em>and</em> Charlie's phone.
+        <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 28px 32px; max-width: 400px; width: 100%; color: #F0E6E8; font-family: inherit;">
+            <h2 style="margin: 0 0 8px; font-family: 'Cormorant Unicase', serif; font-weight: 500;">Set up a PIN</h2>
+            <p style="margin: 0 0 20px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
+                Pick a 4-6 digit PIN. You'll enter it each time you open the CRM in a new tab, after auto-logout, or after closing your browser. This protects client data even if your device is borrowed or lost while logged in.
             </p>
-            <p style="margin: 0 0 12px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
-                <strong>Step 2:</strong> Scan this QR code with both phones (or paste the secret key manually).
-            </p>
-            <div id="mfaQrContainer" style="background: white; padding: 16px; border-radius: 8px; margin: 0 auto 14px; width: fit-content;"></div>
-            <details style="margin-bottom: 16px; color: #C0B0B4; font-size: 0.88em;">
-                <summary style="cursor: pointer;">Can't scan? Show secret key for manual entry</summary>
-                <code style="display: block; background: #1A1614; padding: 10px; border-radius: 6px; margin-top: 8px; font-family: monospace; font-size: 0.95em; word-break: break-all; user-select: all;">${secretKey}</code>
-            </details>
-            <p style="margin: 0 0 10px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
-                <strong>Step 3:</strong> Enter the current 6-digit code shown in either authenticator app to confirm.
-            </p>
-            <input type="text" id="mfaEnrollCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.3em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
-            <div id="mfaEnrollError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
-            <div style="display: flex; gap: 8px;">
-                <button id="mfaEnrollCancel" style="flex: 1; padding: 10px; background: transparent; color: #C0B0B4; border: 1px solid #4A413E; border-radius: 6px; cursor: pointer; font-family: inherit;">Cancel</button>
-                <button id="mfaEnrollConfirm" style="flex: 2; padding: 10px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 500;">Confirm & enable</button>
-            </div>
+            <label style="display: block; color: #C0B0B4; font-size: 0.85em; margin-bottom: 6px;">New PIN</label>
+            <input type="password" id="pinSetup1" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 12px;">
+            <label style="display: block; color: #C0B0B4; font-size: 0.85em; margin-bottom: 6px;">Confirm PIN</label>
+            <input type="password" id="pinSetup2" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
+            <div id="pinSetupError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+            <button id="pinSetupBtn" style="width: 100%; padding: 12px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Set PIN</button>
             <p style="margin: 14px 0 0; color: #ff8585; font-size: 0.82em; line-height: 1.5;">
-                ⚠️ <strong>Important:</strong> Save the secret key somewhere safe (password manager, printed copy in a drawer). If both phones are ever lost or wiped, this is the only way to recover access without a Firebase admin reset.
+                ⚠️ Write this down somewhere safe. If you forget the PIN, you'll need a one-time reset through the developer console.
             </p>
         </div>
     `;
     document.body.appendChild(el);
-    new window.QRCode(el.querySelector('#mfaQrContainer'), {
-        text: otpauthUrl,
-        width: 200,
-        height: 200,
-    });
-    el.querySelector('#mfaEnrollCancel').onclick = () => { el.remove(); _mfaEnrollmentSecret = null; };
-    const inp = el.querySelector('#mfaEnrollCode');
-    el.querySelector('#mfaEnrollConfirm').onclick = () => _completeMfaEnrollment(inp.value.trim());
-    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') _completeMfaEnrollment(inp.value.trim()); });
-    setTimeout(() => inp.focus(), 100);
+    const i1 = el.querySelector('#pinSetup1');
+    const i2 = el.querySelector('#pinSetup2');
+    const errEl = el.querySelector('#pinSetupError');
+    const submit = async () => {
+        const a = (i1.value || '').trim();
+        const b = (i2.value || '').trim();
+        errEl.style.display = 'none';
+        if (!/^\d{4,6}$/.test(a)) { errEl.textContent = 'PIN must be 4–6 digits'; errEl.style.display = 'block'; return; }
+        if (a !== b) { errEl.textContent = "PINs don't match"; errEl.style.display = 'block'; return; }
+        const btn = el.querySelector('#pinSetupBtn');
+        btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+            const ok = await _savePinHash(a);
+            if (ok === false) throw new Error('save failed');
+            _markPinVerified();
+            _pinGateActive = false;
+            el.remove();
+            const mainContent = document.getElementById('mainContent');
+            if (mainContent) mainContent.style.display = 'block';
+            if (typeof showToast === 'function') showToast('PIN set');
+        } catch (e) {
+            errEl.textContent = 'Could not save PIN — check connection';
+            errEl.style.display = 'block';
+            btn.disabled = false; btn.textContent = 'Set PIN';
+        }
+    };
+    el.querySelector('#pinSetupBtn').addEventListener('click', submit);
+    i2.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    setTimeout(() => i1.focus(), 100);
 }
 
-async function _completeMfaEnrollment(code) {
-    const errEl = document.getElementById('mfaEnrollError');
-    const btn = document.getElementById('mfaEnrollConfirm');
-    if (!code || code.length !== 6) {
-        errEl.textContent = 'Enter the 6-digit code';
-        errEl.style.display = 'block';
+function _showPinChallenge() {
+    let el = document.getElementById('pinOverlay');
+    if (el) el.remove();
+    const failures = _getPinFailures();
+    const remaining = Math.max(0, PIN_MAX_FAILURES - failures);
+    el = document.createElement('div');
+    el.id = 'pinOverlay';
+    el.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+        z-index: 99998; display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+    `;
+    el.innerHTML = `
+        <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 28px 32px; max-width: 380px; width: 100%; color: #F0E6E8; font-family: inherit;">
+            <h2 style="margin: 0 0 8px; font-family: 'Cormorant Unicase', serif; font-weight: 500;">Enter PIN</h2>
+            <p style="margin: 0 0 20px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
+                Enter your PIN to unlock the CRM.
+            </p>
+            <input type="password" id="pinChallenge" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" style="width: 100%; padding: 14px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.6em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
+            <div id="pinChallengeError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+            <button id="pinChallengeBtn" style="width: 100%; padding: 12px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Unlock</button>
+            <p id="pinAttemptsLeft" style="margin: 12px 0 0; color: #C0B0B4; font-size: 0.82em; text-align: center;">${failures > 0 ? remaining + ' attempts remaining before sign-out' : ''}</p>
+        </div>
+    `;
+    document.body.appendChild(el);
+    const input = el.querySelector('#pinChallenge');
+    const errEl = el.querySelector('#pinChallengeError');
+    const btn = el.querySelector('#pinChallengeBtn');
+    const attemptsEl = el.querySelector('#pinAttemptsLeft');
+    const submit = async () => {
+        const v = (input.value || '').trim();
+        errEl.style.display = 'none';
+        if (!/^\d{4,6}$/.test(v)) { errEl.textContent = 'PIN must be 4–6 digits'; errEl.style.display = 'block'; return; }
+        btn.disabled = true; btn.textContent = 'Checking…';
+        try {
+            const ok = await _verifyPin(v);
+            if (ok) {
+                _markPinVerified();
+                _pinGateActive = false;
+                el.remove();
+                const mainContent = document.getElementById('mainContent');
+                if (mainContent) mainContent.style.display = 'block';
+            } else {
+                const n = _incrementPinFailures();
+                const left = PIN_MAX_FAILURES - n;
+                if (left <= 0) {
+                    _resetPinFailures();
+                    _clearPinSession();
+                    await auth.signOut();
+                    return;
+                }
+                errEl.textContent = 'Wrong PIN';
+                errEl.style.display = 'block';
+                attemptsEl.textContent = left + ' attempt' + (left === 1 ? '' : 's') + ' remaining before sign-out';
+                input.value = '';
+                btn.disabled = false; btn.textContent = 'Unlock';
+                input.focus();
+            }
+        } catch (e) {
+            console.error('[pin] verify error:', e);
+            errEl.textContent = 'PIN check failed — try again';
+            errEl.style.display = 'block';
+            btn.disabled = false; btn.textContent = 'Unlock';
+        }
+    };
+    btn.addEventListener('click', submit);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    setTimeout(() => input.focus(), 100);
+}
+
+// Allow user to change PIN later from the signed-in indicator menu
+window.changePin = async function() {
+    if (!auth.currentUser) return;
+    if (!_isPinVerified()) {
+        alert('Unlock with current PIN first.');
         return;
     }
-    if (!_mfaEnrollmentSecret) return;
-    btn.disabled = true;
-    btn.textContent = 'Enabling…';
-    try {
-        const mfaApi = await _ensureMfaApi();
-        const modularUser = mfaApi.getAuth().currentUser;
-        const assertion = mfaApi.TotpMultiFactorGenerator.assertionForEnrollment(_mfaEnrollmentSecret, code);
-        await mfaApi.multiFactor(modularUser).enroll(assertion, 'Authenticator');
-        _mfaEnrollmentSecret = null;
-        document.getElementById('mfaEnrollOverlay').remove();
-        _refreshMfaButtonOnIndicator();
-        if (typeof showToast === 'function') showToast('Two-factor authentication enabled');
-    } catch (e) {
-        console.error('[mfa] enroll error:', e);
-        errEl.textContent = 'Wrong code — make sure you have the right account in your authenticator';
-        errEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Confirm & enable';
-    }
+    const current = prompt('Enter your CURRENT PIN to confirm:');
+    if (!current) return;
+    const ok = await _verifyPin(current);
+    if (!ok) { alert('Wrong current PIN.'); return; }
+    const next = prompt('Enter your NEW PIN (4-6 digits):');
+    if (!next || !/^\d{4,6}$/.test(next)) { alert('PIN must be 4-6 digits.'); return; }
+    const confirm = prompt('Confirm new PIN:');
+    if (confirm !== next) { alert("PINs don't match."); return; }
+    const saveOk = await _savePinHash(next);
+    if (saveOk === false) { alert('Save failed.'); return; }
+    alert('PIN updated.');
+};
+
+/* ============================================================
+   CHANGE FIREBASE PASSWORD
+   Requires recent authentication. We reauthenticate with the
+   current password before issuing updatePassword, so a stolen
+   PIN-verified session can't be used to lock the real owner out.
+   ============================================================ */
+
+window.changePassword = async function() {
+    if (!auth.currentUser) { alert('Sign in first.'); return; }
+    if (!_isPinVerified()) { alert('Unlock with PIN first.'); return; }
+    _showChangePasswordModal();
+};
+
+function _showChangePasswordModal() {
+    let el = document.getElementById('changePasswordOverlay');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'changePasswordOverlay';
+    el.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+        z-index: 99998; display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+    `;
+    el.innerHTML = `
+        <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 28px 32px; max-width: 420px; width: 100%; color: #F0E6E8; font-family: inherit;">
+            <h2 style="margin: 0 0 8px; font-family: 'Cormorant Unicase', serif; font-weight: 500;">Change password</h2>
+            <p style="margin: 0 0 20px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
+                Update the shared MyReliaCare login password. Charlie will be signed out within an hour and will need the new password.
+            </p>
+            <label style="display: block; color: #C0B0B4; font-size: 0.85em; margin-bottom: 6px;">Current password</label>
+            <input type="password" id="cpCurrent" autocomplete="current-password" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: inherit; font-size: 1em; box-sizing: border-box; margin-bottom: 12px;">
+            <label style="display: block; color: #C0B0B4; font-size: 0.85em; margin-bottom: 6px;">New password</label>
+            <input type="password" id="cpNew1" autocomplete="new-password" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: inherit; font-size: 1em; box-sizing: border-box; margin-bottom: 12px;">
+            <label style="display: block; color: #C0B0B4; font-size: 0.85em; margin-bottom: 6px;">Confirm new password</label>
+            <input type="password" id="cpNew2" autocomplete="new-password" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: inherit; font-size: 1em; box-sizing: border-box; margin-bottom: 10px;">
+            <div id="cpError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+            <div style="display: flex; gap: 10px;">
+                <button id="cpCancelBtn" style="flex: 1; padding: 12px; background: transparent; color: #C0B0B4; border: 1px solid #4A413E; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em;">Cancel</button>
+                <button id="cpSubmitBtn" style="flex: 1; padding: 12px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Update password</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(el);
+
+    const cur = el.querySelector('#cpCurrent');
+    const n1 = el.querySelector('#cpNew1');
+    const n2 = el.querySelector('#cpNew2');
+    const errEl = el.querySelector('#cpError');
+    const cancelBtn = el.querySelector('#cpCancelBtn');
+    const submitBtn = el.querySelector('#cpSubmitBtn');
+
+    cancelBtn.addEventListener('click', () => el.remove());
+
+    const submit = async () => {
+        errEl.style.display = 'none';
+        const current = cur.value;
+        const newPw = n1.value;
+        const confirmPw = n2.value;
+
+        if (!current) { errEl.textContent = 'Enter your current password'; errEl.style.display = 'block'; return; }
+        if (!newPw || newPw.length < 8) { errEl.textContent = 'New password must be at least 8 characters'; errEl.style.display = 'block'; return; }
+        if (newPw === current) { errEl.textContent = "New password can't be the same as current"; errEl.style.display = 'block'; return; }
+        if (newPw !== confirmPw) { errEl.textContent = "New passwords don't match"; errEl.style.display = 'block'; return; }
+
+        submitBtn.disabled = true; cancelBtn.disabled = true;
+        submitBtn.textContent = 'Updating…';
+
+        try {
+            const credential = firebase.auth.EmailAuthProvider.credential(SHARED_EMAIL, current);
+            await auth.currentUser.reauthenticateWithCredential(credential);
+            await auth.currentUser.updatePassword(newPw);
+            el.remove();
+            if (typeof showToast === 'function') {
+                showToast('Password updated — Charlie will need to sign in with the new one');
+            } else {
+                alert('Password updated. Charlie will be signed out within an hour and will need the new password to sign back in.');
+            }
+        } catch (e) {
+            console.error('[changePassword]', e);
+            const code = e.code || '';
+            if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials') {
+                errEl.textContent = 'Current password is incorrect';
+            } else if (code === 'auth/weak-password') {
+                errEl.textContent = 'New password is too weak — try a longer one';
+            } else if (code === 'auth/too-many-requests') {
+                errEl.textContent = 'Too many attempts — wait a few minutes and try again';
+            } else if (code === 'auth/network-request-failed') {
+                errEl.textContent = 'Network error — check your connection';
+            } else if (code === 'auth/requires-recent-login') {
+                errEl.textContent = 'Session too old — sign out and back in, then try again';
+            } else {
+                errEl.textContent = 'Could not update: ' + (e.message || code);
+            }
+            errEl.style.display = 'block';
+            submitBtn.disabled = false; cancelBtn.disabled = false;
+            submitBtn.textContent = 'Update password';
+        }
+    };
+
+    submitBtn.addEventListener('click', submit);
+    n2.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    setTimeout(() => cur.focus(), 100);
 }
 
 /* =============================================================
@@ -756,21 +944,6 @@ window.checkPassword = async function() {
         // keeps the session alive via its own token in IndexedDB — no need to store the
         // raw password ourselves.
     } catch (e) {
-        // MFA challenge — Firebase backend requires a second factor.
-        // We use the parallel modular SDK to build the resolver and assertion, since
-        // TOTP isn't supported in the compat namespace.
-        if (e.code === 'auth/multi-factor-auth-required') {
-            if (btn) { btn.disabled = false; btn.textContent = 'Access CRM'; }
-            try {
-                const mfaApi = await _ensureMfaApi();
-                const resolver = mfaApi.getMultiFactorResolver(mfaApi.modularAuth, e);
-                _showMfaChallenge(resolver);
-            } catch (err) {
-                console.error('[mfa] could not build modular resolver:', err);
-                if (error) { error.textContent = 'MFA error — see console'; error.style.display = 'block'; }
-            }
-            return;
-        }
         console.error('[sync] login error:', e);
         if (error) {
             const code = e.code || '';
@@ -881,12 +1054,12 @@ auth.onAuthStateChanged(async user => {
         _injectSignedInIndicator();
         const indicator = document.getElementById('signedInIndicator');
         if (indicator) indicator.style.display = 'flex';
-        _refreshMfaButtonOnIndicator();
 
         // CRITICAL ORDER:
         // 1) Run migration (uses _preMigrationCache; safe even before listeners)
         // 2) Then attach listeners (which can safely overwrite localStorage now)
-        // 3) Then render the app
+        // 3) Then enforce PIN gate (which may need settings synced from Firestore)
+        // 4) Then render the app — but mainContent stays hidden until PIN passes
         try { await _maybeMigrate(); } catch (e) { console.error('[sync] migrate error:', e); }
         attachListeners();
 
@@ -894,12 +1067,23 @@ auth.onAuthStateChanged(async user => {
             window._initialized = true;
             try { window.initApp(); } catch (e) { console.error('[sync] initApp error:', e); }
         }
+
+        // Show PIN gate AFTER initApp — initApp sets up the page, gate hides it until verified.
+        _enforcePinGate().catch(e => console.error('[pin] gate error:', e));
     } else {
         // Not signed in — Firebase Auth's LOCAL persistence handles "stay signed in"
         // via its own session token in IndexedDB. No need to store the raw password.
         _stopInactivityTimer();
+        _clearPinSession();
+        _pinGateActive = false;
+        const pinOverlay = document.getElementById('pinOverlay');
+        if (pinOverlay) pinOverlay.remove();
+        const cpOverlay = document.getElementById('changePasswordOverlay');
+        if (cpOverlay) cpOverlay.remove();
         const indicator = document.getElementById('signedInIndicator');
         if (indicator) indicator.style.display = 'none';
+        const menu = document.getElementById('indicatorMenu');
+        if (menu) menu.style.display = 'none';
 
         detachListeners();
         if (passwordScreen) passwordScreen.style.display = 'flex';
