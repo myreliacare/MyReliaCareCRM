@@ -2554,6 +2554,39 @@
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
+
+<!-- Modular Auth SDK loaded alongside compat — needed for TOTP MFA, which the compat namespace doesn't expose. We initialize a parallel modular Firebase app with the same config + same default name; both instances share auth state via IndexedDB persistence (same apiKey + appName = same persistence key). -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
+  import { getAuth, multiFactor, getMultiFactorResolver, TotpMultiFactorGenerator, browserLocalPersistence, setPersistence } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB0woIciG-MMUjdqLMCSegF5LiqQSv-7Wo",
+    authDomain: "myreliacare-crm.firebaseapp.com",
+    projectId: "myreliacare-crm",
+    storageBucket: "myreliacare-crm.firebasestorage.app",
+    messagingSenderId: "679984841970",
+    appId: "1:679984841970:web:d43930b3170ad091777c6b"
+  };
+
+  try {
+    const modularApp = initializeApp(firebaseConfig);
+    const modularAuth = getAuth(modularApp);
+    await setPersistence(modularAuth, browserLocalPersistence);
+    // Wait for the first auth state read so currentUser is populated from IndexedDB
+    await new Promise(resolve => {
+      const unsub = modularAuth.onAuthStateChanged(() => { unsub(); resolve(); });
+    });
+    window._mfaApi = { modularAuth, multiFactor, getMultiFactorResolver, TotpMultiFactorGenerator };
+    window._mfaApiReady = true;
+    window.dispatchEvent(new CustomEvent('mfaApiReady'));
+  } catch (e) {
+    console.error('[mfa-init] failed:', e);
+    window._mfaApiError = e.message || String(e);
+    window.dispatchEvent(new CustomEvent('mfaApiReady'));
+  }
+</script>
+
 <script src="firebase-sync.js"></script>
 
 <script>

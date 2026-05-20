@@ -104,7 +104,17 @@ function _showSessionExpired() {
         } catch (e) {
             if (e.code === 'auth/multi-factor-auth-required') {
                 el.style.display = 'none';
-                _showMfaChallenge(e.resolver);
+                try {
+                    const mfaApi = await _ensureMfaApi();
+                    const resolver = mfaApi.getMultiFactorResolver(mfaApi.modularAuth, e);
+                    _showMfaChallenge(resolver);
+                } catch (err) {
+                    console.error('[mfa] resolver build failed:', err);
+                    errEl.textContent = 'MFA error';
+                    errEl.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Sign back in';
+                }
                 return;
             }
             errEl.textContent = 'Incorrect password';
@@ -585,8 +595,9 @@ async function _submitMfaCode(code) {
     btn.disabled = true;
     btn.textContent = 'Verifying…';
     try {
+        const mfaApi = await _ensureMfaApi();
         const factorUid = _mfaResolver.hints[0].uid;
-        const assertion = firebase.auth.TotpMultiFactorGenerator.assertionForSignIn(factorUid, code);
+        const assertion = mfaApi.TotpMultiFactorGenerator.assertionForSignIn(factorUid, code);
         await _mfaResolver.resolveSignIn(assertion);
         document.getElementById('mfaChallengeOverlay').style.display = 'none';
         _mfaResolver = null;
@@ -600,18 +611,34 @@ async function _submitMfaCode(code) {
 }
 
 // MFA Enrollment
+async function _ensureMfaApi() {
+    if (window._mfaApiReady && window._mfaApi) return window._mfaApi;
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('MFA API load timeout — check network/CDN')), 10000);
+        window.addEventListener('mfaApiReady', () => {
+            clearTimeout(timeout);
+            resolve(window._mfaApi);
+        }, { once: true });
+    });
+}
+
 window.setupMfa = async function() {
     if (!auth.currentUser) return;
-    // Guard: verify TOTP support is actually loaded in this SDK build
-    if (!firebase.auth.TotpMultiFactorGenerator || typeof firebase.auth.TotpMultiFactorGenerator.generateSecret !== 'function') {
-        alert('TOTP support is not available in this Firebase SDK build. The page may be using a cached old version — try a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) and retry. If that doesn\'t work, paste the SDK version from the page\'s script tags to Claude.');
-        console.error('[mfa] firebase.auth.TotpMultiFactorGenerator is unavailable. SDK version mismatch?', Object.keys(firebase.auth || {}).slice(0, 20));
+    let mfaApi;
+    try {
+        mfaApi = await _ensureMfaApi();
+    } catch (e) {
+        alert('Could not load the MFA module — check your network and try again.');
         return;
     }
     try {
         await _loadQrcodeLib();
-        const session = await auth.currentUser.multiFactor.getSession();
-        const secret = await firebase.auth.TotpMultiFactorGenerator.generateSecret(session);
+        // Get the modular User (compat's currentUser wraps it; we go straight to modular auth)
+        const modularAuth = mfaApi.getAuth();
+        const modularUser = modularAuth.currentUser;
+        if (!modularUser) { alert('Sign in first.'); return; }
+        const session = await mfaApi.multiFactor(modularUser).getSession();
+        const secret = await mfaApi.TotpMultiFactorGenerator.generateSecret(session);
         _mfaEnrollmentSecret = secret;
         const otpauthUrl = secret.generateQrCodeUrl(SHARED_EMAIL, 'MyReliaCare CRM');
         _showMfaEnrollmentModal(otpauthUrl, secret.secretKey);
@@ -619,7 +646,7 @@ window.setupMfa = async function() {
         console.error('[mfa] setup error:', e);
         const code = e.code || '';
         if (code === 'auth/operation-not-allowed' || code === 'auth/unsupported-tenant-operation' || code === 'auth/unsupported-first-factor') {
-            alert('MFA is not enabled on this Firebase project. Go to Firebase Console → Authentication → Sign-in method, upgrade to Identity Platform, then enable TOTP.');
+            alert('MFA is not enabled on this Firebase project. Run the Cloud Shell TOTP-enable command first.');
         } else if (code === 'auth/requires-recent-login') {
             alert('Please sign out and sign in again before setting up 2FA.');
         } else if (code === 'auth/unverified-email') {
@@ -693,8 +720,10 @@ async function _completeMfaEnrollment(code) {
     btn.disabled = true;
     btn.textContent = 'Enabling…';
     try {
-        const assertion = firebase.auth.TotpMultiFactorGenerator.assertionForEnrollment(_mfaEnrollmentSecret, code);
-        await auth.currentUser.multiFactor.enroll(assertion, 'Authenticator');
+        const mfaApi = await _ensureMfaApi();
+        const modularUser = mfaApi.getAuth().currentUser;
+        const assertion = mfaApi.TotpMultiFactorGenerator.assertionForEnrollment(_mfaEnrollmentSecret, code);
+        await mfaApi.multiFactor(modularUser).enroll(assertion, 'Authenticator');
         _mfaEnrollmentSecret = null;
         document.getElementById('mfaEnrollOverlay').remove();
         _refreshMfaButtonOnIndicator();
@@ -727,10 +756,19 @@ window.checkPassword = async function() {
         // keeps the session alive via its own token in IndexedDB — no need to store the
         // raw password ourselves.
     } catch (e) {
-        // MFA challenge — Firebase didn't sign in because second factor is required
+        // MFA challenge — Firebase backend requires a second factor.
+        // We use the parallel modular SDK to build the resolver and assertion, since
+        // TOTP isn't supported in the compat namespace.
         if (e.code === 'auth/multi-factor-auth-required') {
             if (btn) { btn.disabled = false; btn.textContent = 'Access CRM'; }
-            _showMfaChallenge(e.resolver);
+            try {
+                const mfaApi = await _ensureMfaApi();
+                const resolver = mfaApi.getMultiFactorResolver(mfaApi.modularAuth, e);
+                _showMfaChallenge(resolver);
+            } catch (err) {
+                console.error('[mfa] could not build modular resolver:', err);
+                if (error) { error.textContent = 'MFA error — see console'; error.style.display = 'block'; }
+            }
             return;
         }
         console.error('[sync] login error:', e);
