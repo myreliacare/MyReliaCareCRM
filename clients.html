@@ -216,6 +216,32 @@
         .pricing-tile { background: var(--bg-input); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); }
         .pricing-tile-label { color: var(--text-faint); font-size: 0.78em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
         .pricing-tile-value { color: var(--accent); font-size: 1.3em; font-weight: 600; font-family: 'Cormorant Unicase', serif; }
+
+        /* Home Access — most-scanned piece of info when arriving at a client's home.
+           Lives in its own callout block, more prominent than pricing tiles. */
+        .access-callout {
+            background: rgba(181, 145, 151, 0.13);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+        }
+        .access-callout-label {
+            color: var(--accent-light);
+            font-size: 0.82em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+        .access-callout-value {
+            color: var(--text);
+            font-size: 1.15em;
+            font-weight: 500;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
         .visit-history-row { display: grid; grid-template-columns: 130px 1fr 90px 90px; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; font-size: 0.95em; }
         .visit-filter-bar {
             display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
@@ -571,8 +597,19 @@
             padding-top: 12px;
             margin-top: 10px;
             border-top: 1px solid var(--border);
+            flex: 1;  /* fills remaining card height so .client-card-actions can sit at the bottom */
+        }
+        .client-card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         .client-card.expanded .client-card-name { color: var(--accent-light); }
+        /* Push action buttons to the bottom of every expanded card */
+        .client-card-body .client-card-actions {
+            margin-top: auto;
+            padding-top: 12px;
+        }
 </style>
 </head>
 <body>
@@ -1247,12 +1284,10 @@ function renderClientCard(c) {
                 <button class="card-expand-toggle" aria-label="${isExpanded ? 'Collapse' : 'Expand'}">${isExpanded ? '▴' : '▾'}</button>
             </div>
             <div class="client-card-body" style="${isExpanded ? '' : 'display: none;'}">
-                ${c.phone ? `<div class="client-info-row"><strong>Phone</strong> ${escapeHtml(formatPhone(c.phone))}</div>` : ''}
-                ${c.email ? `<div class="client-info-row"><strong>Email</strong> ${escapeHtml(c.email)}</div>` : ''}
-                ${addressLine ? `<div class="client-info-row"><strong>Address</strong> ${renderClickableAddress(addressLine)}</div>` : ''}
-                ${nextVisitHtml}
-                ${ltvLine}
-                ${tipsLine}
+                <div class="client-card-content">
+                    ${addressLine ? `<div class="client-info-row"><strong>Address</strong> ${renderClickableAddress(addressLine)}</div>` : ''}
+                    ${nextVisitHtml}
+                </div>
                 <div class="client-card-actions">
                     <button class="btn btn-primary btn-sm" onclick="scheduleVisitFor('${c.id}')">Schedule</button>
                     <button class="btn btn-ghost btn-sm" onclick="viewClient('${c.id}')">Details</button>
@@ -1634,12 +1669,17 @@ function viewClient(clientId) {
     html += `
         <div class="detail-section">
             <h3>Contact & Access</h3>
+            ${c.accessInstructions ? `
+                <div class="access-callout">
+                    <div class="access-callout-label">Home Access</div>
+                    <div class="access-callout-value">${escapeHtml(c.accessInstructions)}</div>
+                </div>
+            ` : ''}
             ${c.phone ? `<div class="detail-row"><div class="detail-label">Phone</div><div class="detail-value">${escapeHtml(formatPhone(c.phone))}</div></div>` : ''}
             ${c.email ? `<div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">${escapeHtml(c.email)}</div></div>` : ''}
             ${c.preferredContact ? `<div class="detail-row"><div class="detail-label">Preferred</div><div class="detail-value">${escapeHtml(c.preferredContact)}</div></div>` : ''}
             ${addressLine ? `<div class="detail-row"><div class="detail-label">Address</div><div class="detail-value">${renderClickableAddress(addressLine)}</div></div>` : ''}
             ${(c.milesFromHome != null && c.milesFromHome !== '') ? `<div class="detail-row"><div class="detail-label">Miles from Home</div><div class="detail-value">${c.milesFromHome} mi (one-way)</div></div>` : ''}
-            ${c.accessInstructions ? `<div class="detail-row"><div class="detail-label">Access</div><div class="detail-value">${escapeHtml(c.accessInstructions)}</div></div>` : ''}
         </div>`;
     if ((c.pets || []).length > 0) {
         html += `<div class="detail-section"><h3>Pets (${c.pets.length})</h3>`;

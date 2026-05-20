@@ -5712,6 +5712,16 @@ function _bfTimeToMin(t) {
     return (h || 0) * 60 + (m || 0);
 }
 
+// Decides whether a visit counts toward a given driver's mileage.
+// Rule: visits assigned to 'kasey' or 'both' (the default) count for Kasey —
+// when both are working, they take Kasey's car, so the miles go on her tab.
+// Visits explicitly assigned to 'charlie' count only for Charlie.
+function _visitCountsForDriver(visit, driver) {
+    const a = visit.assignedTo || 'both';
+    if (driver === 'kasey') return a === 'kasey' || a === 'both';
+    return a === 'charlie';
+}
+
 function _bfCalcDayDriverMiles(visits, clientsById) {
     // visits: array for ONE day, ONE driver, already filtered
     // Returns: { miles: number, breakdown: [{label, miles}], missing: [clientIds] }
@@ -5832,7 +5842,7 @@ function _bfRenderMileage() {
         const dayVisits = allVisits.filter(v => v.date === date);
         const drivers = ['kasey', 'charlie'];
         const driverBlocks = drivers.map(driver => {
-            const dv = dayVisits.filter(v => (v.assignedTo || 'kasey') === driver);
+            const dv = dayVisits.filter(v => _visitCountsForDriver(v, driver));
             const key = `${date}|${driver}`;
             const existing = existingByKey[key];
             const calc = _bfCalcDayDriverMiles(dv, clientsById);
@@ -5914,7 +5924,7 @@ function _bfUpdateSaveBtnLabel() {
     dates.forEach(date => {
         const dayVisits = allVisits.filter(v => v.date === date);
         ['kasey', 'charlie'].forEach(driver => {
-            const dv = dayVisits.filter(v => (v.assignedTo || 'kasey') === driver);
+            const dv = dayVisits.filter(v => _visitCountsForDriver(v, driver));
             const key = `${date}|${driver}`;
             const existing = existingByKey[key];
             const calc = _bfCalcDayDriverMiles(dv, clientsById);
@@ -5975,21 +5985,92 @@ function _bfHaversineMiles(a, b) {
     return 2 * R * Math.asin(Math.sqrt(x));
 }
 
+// Parse a US address string like "12895 Frogtown Connector Rd, Walton KY 41094"
+// or "12895 Frogtown Connector Rd, Walton, KY 41094" into structured parts.
+// Returns { street, city, state, zip } with empty strings for parts it can't find.
+function _bfParseUSAddress(s) {
+    const out = { street: '', city: '', state: '', zip: '' };
+    if (!s) return out;
+    // Normalize: split on commas, trim each piece
+    const parts = s.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length === 0) return out;
+    out.street = parts[0];
+    // Trailing piece often holds "STATE ZIP" or "CITY STATE ZIP"
+    const tail = parts.slice(1).join(' ');
+    // Match a US zip at the end
+    const zipMatch = tail.match(/\b(\d{5}(-\d{4})?)\b/);
+    if (zipMatch) out.zip = zipMatch[1];
+    // Match a 2-letter state code
+    const stateMatch = tail.match(/\b([A-Za-z]{2})\b(?!.*\b[A-Za-z]{2}\b)/); // last 2-letter token
+    if (stateMatch) out.state = stateMatch[1].toUpperCase();
+    // City: tail with state + zip removed, trimmed
+    let cityChunk = tail;
+    if (out.zip) cityChunk = cityChunk.replace(out.zip, '');
+    if (out.state) cityChunk = cityChunk.replace(new RegExp('\\\\b' + out.state + '\\\\b', 'i'), '');
+    out.city = cityChunk.replace(/[,\s]+/g, ' ').trim();
+    return out;
+}
+
+// Geocode using multiple strategies — necessary because Nominatim sometimes can't
+// match rural/uncommon road names with a single freeform query, but DOES find them
+// with a structured query (street/city/state/zip as separate params).
+// Returns { lat, lng } on success, null on failure.
 async function _bfGeocodeAddress(addressStr) {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`;
-    try {
-        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!r.ok) return null;
-        const data = await r.json();
-        if (!Array.isArray(data) || data.length === 0) return null;
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        if (isNaN(lat) || isNaN(lng)) return null;
-        return { lat, lng };
-    } catch (e) {
-        console.error('[geocode] error:', e);
-        return null;
+    const attempts = [];
+
+    // Strategy 1: freeform query (matches well-known addresses fast)
+    attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`);
+
+    // Strategy 2: structured query — most reliable for rural/uncommon addresses
+    const parts = _bfParseUSAddress(addressStr);
+    if (parts.street && (parts.city || parts.zip)) {
+        const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'us' });
+        if (parts.street) params.set('street', parts.street);
+        if (parts.city)   params.set('city', parts.city);
+        if (parts.state)  params.set('state', parts.state);
+        if (parts.zip)    params.set('postalcode', parts.zip);
+        attempts.push('https://nominatim.openstreetmap.org/search?' + params.toString());
     }
+
+    // Strategy 3: drop the street suffix (Rd / Dr / St / etc.) — Nominatim's road database
+    //             sometimes stores the road under a slightly different name.
+    const simplified = addressStr.replace(/\b(rd|dr|st|ln|ct|ave|blvd|hwy|way|trl|pl)\b\.?/gi, '').replace(/\s+/g, ' ').trim();
+    if (simplified !== addressStr) {
+        attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(simplified)}&format=json&limit=1&countrycodes=us`);
+    }
+
+    // Strategy 4: drop the street number — last-resort fallback that gives a
+    //             nearby point on the road (still useful for mileage estimates).
+    const noNumber = addressStr.replace(/^\d+\s+/, '').trim();
+    if (noNumber !== addressStr) {
+        attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(noNumber)}&format=json&limit=1&countrycodes=us`);
+    }
+
+    for (let i = 0; i < attempts.length; i++) {
+        const url = attempts[i];
+        try {
+            // Nominatim usage policy: max 1 req/sec. Sleep between attempts.
+            if (i > 0) await _bfSleep(1100);
+            const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!r.ok) {
+                console.warn(`[geocode] HTTP ${r.status} on attempt ${i+1}: ${url}`);
+                continue;
+            }
+            const data = await r.json();
+            if (Array.isArray(data) && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    console.log(`[geocode] hit on attempt ${i+1}: ${data[0].display_name}`);
+                    return { lat, lng };
+                }
+            }
+            console.log(`[geocode] no result on attempt ${i+1}`);
+        } catch (e) {
+            console.error(`[geocode] error on attempt ${i+1}:`, e);
+        }
+    }
+    return null;
 }
 
 function _bfClientAddressStr(c) {
@@ -6089,6 +6170,83 @@ function _bfEditHomeAddress() {
     `;
 }
 
+// Prompts the user to paste lat/lng coordinates for their home address when
+// Nominatim can't find it (common with rural / uncommon road names).
+// Accepts "37.123, -84.567" or "37.123 -84.567" (just two numbers).
+// On valid input, saves homeCoords and re-runs the auto-compute flow.
+function _bfPromptManualHomeCoords() {
+    const existing = document.getElementById('bfManualCoordsModal');
+    if (existing) existing.remove();
+
+    const home = _bfGetHomeSetting() || {};
+    const homeAddress = home.homeAddress || '(unset)';
+
+    const el = document.createElement('div');
+    el.id = 'bfManualCoordsModal';
+    el.className = 'modal-overlay active';
+    el.style.zIndex = '1200';
+    el.innerHTML = `
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2>Enter home coordinates</h2>
+                <button class="modal-close" onclick="document.getElementById('bfManualCoordsModal').remove()">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="color: var(--text-dim); margin-bottom: 10px; font-size: 0.92em; line-height: 1.45;">
+                    Couldn't find <em>${escapeHtml(homeAddress)}</em> in OpenStreetMap (common for rural addresses). Grab coordinates from Google Maps instead:
+                </div>
+                <ol style="color: var(--text-dim); font-size: 0.9em; padding-left: 20px; margin: 0 0 14px 0; line-height: 1.55;">
+                    <li>Open Google Maps and search your address</li>
+                    <li>Right-click the pin, then click the lat/lng numbers at the top to copy</li>
+                    <li>Paste below</li>
+                </ol>
+                <input type="text" id="bfManualCoordsInput" placeholder="e.g. 38.8654, -84.6088"
+                    style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 1em; box-sizing: border-box;">
+                <div id="bfManualCoordsError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="document.getElementById('bfManualCoordsModal').remove()">Cancel</button>
+                <button class="btn btn-primary" onclick="_bfSubmitManualHomeCoords()">Save &amp; compute</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => {
+        const input = document.getElementById('bfManualCoordsInput');
+        if (input) {
+            input.focus();
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') _bfSubmitManualHomeCoords();
+            });
+        }
+    }, 50);
+}
+
+// Parses the manual-coords input, saves homeCoords if valid, and resumes auto-compute.
+function _bfSubmitManualHomeCoords() {
+    const inp = document.getElementById('bfManualCoordsInput');
+    const err = document.getElementById('bfManualCoordsError');
+    if (!inp) return;
+    const raw = (inp.value || '').trim();
+    // Accept "lat,lng" or "lat lng" — split on comma OR whitespace, expect two numbers
+    const nums = raw.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
+    if (nums.length !== 2) {
+        if (err) err.textContent = 'Enter two numbers separated by a comma or space.';
+        return;
+    }
+    const [lat, lng] = nums;
+    // Basic sanity: latitude -90..90, longitude -180..180
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        if (err) err.textContent = 'Coordinates out of range. Latitude must be -90 to 90, longitude -180 to 180.';
+        return;
+    }
+    _bfSaveHomeSetting({ homeCoords: { lat, lng } });
+    document.getElementById('bfManualCoordsModal').remove();
+    showToast('Home coordinates saved');
+    // Resume the auto-compute flow now that we have homeCoords
+    _bfAutoComputeMiles();
+}
+
 async function _bfAutoComputeMiles() {
     const home = _bfGetHomeSetting();
     if (!home || !home.homeAddress) { showToast('Set home address first', 'error'); return; }
@@ -6097,13 +6255,16 @@ async function _bfAutoComputeMiles() {
     const progress = document.getElementById('bfComputeProgress');
     if (btn) btn.disabled = true;
 
+    // Look up the home coordinates first — every per-client distance depends on this.
     let homeCoords = home.homeCoords;
     if (!homeCoords) {
-        if (progress) progress.textContent = 'Looking up home address…';
+        if (progress) progress.textContent = 'Looking up home address (trying multiple variations)…';
         homeCoords = await _bfGeocodeAddress(home.homeAddress);
         if (!homeCoords) {
-            showToast('Could not look up home address — check spelling', 'error');
             if (btn) btn.disabled = false;
+            if (progress) progress.textContent = '';
+            // Fallback: let the user paste lat/lng from Google Maps when Nominatim can't find the address.
+            _bfPromptManualHomeCoords();
             return;
         }
         _bfSaveHomeSetting({ homeCoords });
@@ -6228,7 +6389,7 @@ function bfSaveMileage() {
         if (toSave.some(s => s.date === date && s.driver === otherDriver)) return;
         // If the other driver already has a saved record, no gap
         if (existingByKey[dateKey]) return;
-        const otherVisitCount = allVisits.filter(v => v.date === date && (v.assignedTo || 'kasey') === otherDriver).length;
+        const otherVisitCount = allVisits.filter(v => v.date === date && _visitCountsForDriver(v, otherDriver)).length;
         if (otherVisitCount > 0) {
             warnings.push({ date, missingDriver: otherDriver, visitCount: otherVisitCount });
             seenDates.add(dateKey);
@@ -6276,7 +6437,7 @@ function _bfDoSaveMileage(toSave, allVisits) {
     const dateDriversTouched = new Set();
     const toAdd = toSave.map(({ date, driver, miles }) => {
         dateDriversTouched.add(`${date}|${driver}`);
-        const visitIds = allVisits.filter(v => v.date === date && (v.assignedTo || 'kasey') === driver).map(v => v.id);
+        const visitIds = allVisits.filter(v => v.date === date && _visitCountsForDriver(v, driver)).map(v => v.id);
         return {
             id: `mile_${date}_${driver}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
             date, driver, miles,

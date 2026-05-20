@@ -274,17 +274,36 @@
         .mileage-entries-title { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; }
         .log-miles-context { margin-top: 14px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; color: var(--text-dim); }
         .log-miles-context strong { color: var(--text); display: block; margin-bottom: 6px; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); }
-        .backfill-day-row { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .backfill-day-row { display: grid; grid-template-columns: 1.6fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
         .backfill-day-row:last-child { border-bottom: none; }
-        .backfill-day-info { font-size: 0.9em; }
+        .backfill-day-info { font-size: 0.9em; min-width: 0; }
         .backfill-day-date { color: var(--text); font-weight: 500; margin-bottom: 2px; }
-        .backfill-day-visits { color: var(--text-faint); font-size: 0.85em; }
-        .backfill-day-row input { padding: 6px 8px; font-size: 0.95em; }
+        .backfill-day-visits { color: var(--text-faint); font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; }
+        .bfm-day-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+        .bfm-driver-line { display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+        .bfm-driver-label { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.05em; }
+        .bfm-driver-miles { color: var(--text); font-size: 1em; font-weight: 500; min-width: 56px; text-align: right; }
         .backfill-day-row input.user-edited { border-color: var(--accent); }
-        .backfill-day-bd-toggle { background: none; border: none; color: var(--text-faint); font-size: 0.8em; cursor: pointer; padding: 2px 0 0 0; text-decoration: underline; font-family: inherit; }
-        .backfill-day-bd { grid-column: 1 / -1; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 0.82em; color: var(--text-dim); margin-top: 4px; }
+        .backfill-day-bd-toggle { background: none; border: none; color: var(--text-faint); font-size: 0.78em; cursor: pointer; padding: 4px 0 0 0; font-family: inherit; }
+        .backfill-day-bd-toggle:hover { color: var(--accent); }
+        .backfill-day-bd { grid-column: 1 / -1; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85em; color: var(--text-dim); margin-top: 6px; }
+        .bfm-route-block { margin-bottom: 10px; }
+        .bfm-route-block:last-child { margin-bottom: 0; }
+        .bfm-route-header { color: var(--accent-light); font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 4px; }
         .backfill-day-bd-row { display: flex; justify-content: space-between; padding: 3px 0; font-variant-numeric: tabular-nums; }
         .backfill-day-bd-row .bf-bd-reason { color: var(--text-faint); font-style: italic; font-size: 0.92em; }
+        .bfm-override-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 10px; margin-top: 10px; border-top: 1px dashed var(--border); }
+        .bfm-override-label { color: var(--text-faint); font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.05em; }
+        .bfm-override-field { color: var(--text-dim); font-size: 0.9em; display: flex; align-items: center; gap: 6px; }
+        .bfm-override-field input { width: 80px; padding: 5px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.9em; font-variant-numeric: tabular-nums; }
+        .bfm-override-field input:focus { outline: none; border-color: var(--accent); }
+        .bfm-top-summary { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; }
+        .bfm-summary-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+        .bfm-summary-num { color: var(--accent); font-size: 1.4em; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .bfm-summary-lbl { color: var(--text-faint); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 4px; }
+        .bfm-summary-divider { color: var(--text-faint); opacity: 0.5; margin: 0 2px; }
+        .bfm-summary-hint { color: var(--text-faint); font-size: 0.85em; line-height: 1.4; margin-top: 8px; }
+        .bfm-summary-hint em { color: var(--text-dim); font-style: normal; padding: 1px 5px; background: var(--bg-input); border-radius: 3px; font-size: 0.92em; }
         .backfill-miles-warning { background: rgba(220, 150, 50, 0.08); border: 1px solid rgba(220, 150, 50, 0.3); color: var(--text); padding: 14px 16px; border-radius: 8px; margin-bottom: 14px; font-size: 0.92em; line-height: 1.5; }
         .bfm-setup-header { font-weight: 600; color: var(--text); font-size: 1em; margin-bottom: 4px; }
         .bfm-setup-sub { color: var(--text-dim); font-size: 0.88em; margin-bottom: 12px; line-height: 1.5; }
@@ -301,7 +320,10 @@
             .mileage-entry-row { grid-template-columns: 1.4fr 1fr 1fr auto; }
             .mileage-entry-row .mileage-entry-meta { display: none; }
             .mileage-entry-row.header .mileage-entry-meta { display: none; }
-            .backfill-day-row { grid-template-columns: 1fr; gap: 4px; }
+            .backfill-day-row { grid-template-columns: 1fr; gap: 6px; }
+            .bfm-day-totals { align-items: flex-start; flex-direction: row; gap: 14px; flex-wrap: wrap; }
+            .bfm-driver-miles { min-width: auto; }
+            .backfill-day-bd-toggle { width: 100%; text-align: left; }
         }
         .modal-header { flex-shrink: 0; min-width: 0; }
         .modal-header h2 { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
@@ -409,6 +431,18 @@
         .visit-picker-tag-done {
             background: rgba(127, 176, 105, 0.18);
             color: var(--success, #7FB069);
+        }
+        .visit-picker-tag-auto {
+            background: rgba(127, 176, 105, 0.18);
+            color: var(--success, #7FB069);
+        }
+        .visit-picker-tag-warn {
+            background: rgba(240, 180, 100, 0.18);
+            color: #E8A65C;
+        }
+        .visit-picker-price-warn {
+            color: #E8A65C !important;
+            opacity: 0.85;
         }
         .visit-picker-price { text-align: right; color: var(--accent); font-weight: 600; }
         .visit-picker-empty {
@@ -978,7 +1012,7 @@
             <button class="modal-close" onclick="closeModal('backfillMilesModal')">×</button>
         </div>
         <div class="modal-body modal-body-scrollable">
-            <p style="color: var(--text-faint); margin-bottom: 14px;">Days with completed visits but no mileage logged yet. Suggested miles auto-calculated using the 60-min gap rule (if visits are 60+ min apart, assumes home trip between). Edit any value, or leave blank to skip.</p>
+            <p style="color: var(--text-faint); margin-bottom: 14px;">Days with completed visits but no mileage logged yet. Miles are auto-computed from each visit's assignment — Kasey-only goes to Kasey, Charlie-only to Charlie, and "Both" goes to Kasey (assumes her car). Expand a day to see the route or override.</p>
             <div id="backfillMilesWarning" class="backfill-miles-warning" style="display: none;"></div>
             <div id="backfillMilesList"></div>
         </div>
@@ -1250,11 +1284,24 @@ function getEligibleVisitsForInvoice(clientId, opts = {}) {
                   && v.status !== 'cancelled'      // exclude cancelled only
                   && !v.paid                       // exclude already-paid
                   && (showInvoiced || !v.invoiced) // exclude already-invoiced (unless editing)
-                  && (v.price || 0) > 0
                   && (!startStr || (v.date || '') >= startStr)
                   && (!endStr   || (v.date || '') <= endStr))
         // Newest first so today's and upcoming visits are right at the top
         .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+}
+
+// Looks up the right price to pre-fill when adding a visit to an invoice:
+// 1) the visit's own price if set, else
+// 2) the client's default pricing for that visit type, else
+// 3) 0 (user can fill in manually)
+function _resolveVisitInvoicePrice(visit) {
+    if (visit.price && visit.price > 0) return visit.price;
+    const client = Store.getClients().find(c => c.id === visit.clientId);
+    if (client && client.pricing && client.pricing[visit.visitType]) {
+        const p = parseFloat(client.pricing[visit.visitType]);
+        if (!isNaN(p) && p > 0) return p;
+    }
+    return 0;
 }
 
 function renderVisitPicker() {
@@ -1273,11 +1320,22 @@ function renderVisitPicker() {
     })[_invoicePickerFilter.range];
 
     if (visits.length === 0) {
-        slot.innerHTML = `
-            <div class="visit-picker-empty">
-                No billable visits for this client in the ${rangeLabel}.
-                <button type="button" class="btn-link" onclick="_setPickerRange('all')">Try all time →</button>
-            </div>`;
+        // Check whether the client has visits outside the current range so we can
+        // give a useful hint instead of a dead-end empty state.
+        const allEligible = getEligibleVisitsForInvoice(clientId,
+            { range: 'all', showInvoiced: _invoicePickerFilter.showInvoiced });
+        if (allEligible.length > 0) {
+            slot.innerHTML = `
+                <div class="visit-picker-empty">
+                    ${allEligible.length} billable visit${allEligible.length === 1 ? '' : 's'} for this client — none in ${rangeLabel}.
+                    <button type="button" class="btn-link" onclick="_setPickerRange('all')">Show all →</button>
+                </div>`;
+        } else {
+            slot.innerHTML = `
+                <div class="visit-picker-empty">
+                    No billable visits scheduled for this client yet.
+                </div>`;
+        }
         return;
     }
 
@@ -1289,7 +1347,7 @@ function renderVisitPicker() {
     );
     const checkedCount = visits.filter(v => checkedIds.has(v.id)).length;
     const allChecked = checkedCount === visits.length;
-    const selectedTotal = visits.filter(v => checkedIds.has(v.id)).reduce((s, v) => s + (v.price || 0), 0);
+    const selectedTotal = visits.filter(v => checkedIds.has(v.id)).reduce((s, v) => s + _resolveVisitInvoicePrice(v), 0);
     const todayStr = new Date().toISOString().slice(0, 10);
 
     slot.innerHTML = `
@@ -1319,12 +1377,16 @@ function renderVisitPicker() {
                         ? '<span class="visit-picker-tag visit-picker-tag-upcoming">upcoming</span>'
                         : (v.status === 'completed' ? '<span class="visit-picker-tag visit-picker-tag-done">done</span>' : '');
                     const invoicedTag = v.invoiced ? '<span class="visit-picker-tag">already invoiced</span>' : '';
+                    // Show what we'll actually invoice — visit's own price, or client default for this visit type
+                    const resolvedPrice = _resolveVisitInvoicePrice(v);
+                    const priceFromClient = !(v.price && v.price > 0) && resolvedPrice > 0;
+                    const needsPrice = resolvedPrice === 0;
                     return `
                         <label class="visit-picker-row ${isChecked ? 'checked' : ''}" data-visit-id="${v.id}">
                             <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="_toggleVisitInInvoice('${v.id}', this.checked)">
                             <div class="visit-picker-date">${formatDate(v.date)}${v.time ? ' · ' + formatTime12(v.time) : ''}</div>
-                            <div class="visit-picker-type">${escapeHtml(t.label)} ${statusTag} ${invoicedTag}</div>
-                            <div class="visit-picker-price">$${(v.price || 0).toFixed(2)}</div>
+                            <div class="visit-picker-type">${escapeHtml(t.label)} ${statusTag} ${invoicedTag}${priceFromClient ? ' <span class="visit-picker-tag visit-picker-tag-auto">auto-priced</span>' : ''}${needsPrice ? ' <span class="visit-picker-tag visit-picker-tag-warn">needs price</span>' : ''}</div>
+                            <div class="visit-picker-price ${needsPrice ? 'visit-picker-price-warn' : ''}">$${resolvedPrice.toFixed(2)}</div>
                         </label>
                     `;
                 }).join('')}
@@ -1353,9 +1415,11 @@ window._toggleVisitInInvoice = function(visitId, isChecked) {
             const amt = parseFloat(li.querySelector('.li-amount')?.value) || 0;
             if (!desc && amt === 0 && !li.dataset.visitId) li.remove();
         });
+        // Price: visit's own price → client default for this visit type → 0 (editable)
+        const amount = _resolveVisitInvoicePrice(visit);
         addLineItem({
             description: `${formatDate(visit.date)} — ${t.label}`,
-            amount: visit.price || 0,
+            amount,
             visitId: visit.id,
             date: visit.date
         });
@@ -1396,7 +1460,7 @@ function _updateVisitPickerSummary() {
             .map(li => li.dataset.visitId).filter(Boolean)
     );
     const checked = visits.filter(v => checkedIds.has(v.id));
-    const total = checked.reduce((s, v) => s + (v.price || 0), 0);
+    const total = checked.reduce((s, v) => s + _resolveVisitInvoicePrice(v), 0);
     summary.textContent = `${checked.length} of ${visits.length} selected · $${total.toFixed(2)}`;
 }
 
@@ -2513,7 +2577,7 @@ function saveLoggedMiles() {
     if (onlyKasey || onlyCharlie) {
         const otherDriver = onlyKasey ? 'charlie' : 'kasey';
         const allVisits = Store.getVisits();
-        const otherVisitCount = allVisits.filter(v => v.date === date && (v.assignedTo || 'kasey') === otherDriver).length;
+        const otherVisitCount = allVisits.filter(v => v.date === date && _visitCountsForDriver(v, otherDriver)).length;
         const existingMileage = Store.getMileage();
         const otherAlreadyLogged = existingMileage.some(r => r.date === date && r.driver === otherDriver);
         if (otherVisitCount > 0 && !otherAlreadyLogged) {
@@ -2578,6 +2642,15 @@ function deleteLoggedMiles() {
    ============================================================ */
 const _BFM_VISIT_DURATION = { 'meet-greet': 15, '30min': 30, '60min': 60 };
 let _bfmBdOpen = {};    // { 'date|driver': true } — breakdown open state
+
+// Decides whether a visit counts toward a given driver's mileage.
+// Visits assigned to 'kasey' or 'both' (the default) count for Kasey — they took her car.
+// Visits explicitly assigned to 'charlie' count only for Charlie.
+function _visitCountsForDriver(visit, driver) {
+    const a = visit.assignedTo || 'both';
+    if (driver === 'kasey') return a === 'kasey' || a === 'both';
+    return a === 'charlie';
+}
 
 function _bfmTimeToMin(t) {
     if (!t) return 0;
@@ -2676,28 +2749,58 @@ function openBackfillMilesModal() {
         return;
     }
 
-    list.innerHTML = days.map(d => _bfmRenderDayRow(d, clientsById)).join('');
+    list.innerHTML = _bfmBuildContent(days, clientsById);
     openModal('backfillMilesModal');
+}
+
+// Builds the full inner content of the backfill modal: top summary + per-day rows.
+// Used both by openBackfillMilesModal and by bfmToggleBd so re-renders keep the summary.
+function _bfmBuildContent(days, clientsById) {
+    let totalK = 0, totalC = 0;
+    days.forEach(d => {
+        const kV = d.visits.filter(v => _visitCountsForDriver(v, 'kasey'));
+        const cV = d.visits.filter(v => _visitCountsForDriver(v, 'charlie'));
+        totalK += _bfmCalcDayDriverMiles(kV, clientsById).miles;
+        totalC += _bfmCalcDayDriverMiles(cV, clientsById).miles;
+    });
+    const summaryHtml = `
+        <div class="bfm-top-summary">
+            <div class="bfm-summary-line">
+                <span class="bfm-summary-num">${days.length}</span><span class="bfm-summary-lbl">day${days.length === 1 ? '' : 's'} pending</span>
+                <span class="bfm-summary-divider">·</span>
+                <span class="bfm-summary-num">${totalK.toFixed(1)}</span><span class="bfm-summary-lbl">Kasey mi</span>
+                <span class="bfm-summary-divider">·</span>
+                <span class="bfm-summary-num">${totalC.toFixed(1)}</span><span class="bfm-summary-lbl">Charlie mi</span>
+            </div>
+            <div class="bfm-summary-hint">Auto-computed from visit assignments. <em>"Both"</em> visits count toward Kasey (assumes her car). Expand any day to override.</div>
+        </div>
+    `;
+    return summaryHtml + days.map(d => _bfmRenderDayRow(d, clientsById)).join('');
 }
 
 function _bfmRenderDayRow(d, clientsById) {
     const clientNames = d.visits.map(v => v.clientName || 'Client').filter((v, i, a) => a.indexOf(v) === i).join(', ');
-    const kVisits = d.visits.filter(v => (v.assignedTo || 'kasey') === 'kasey');
-    const cVisits = d.visits.filter(v => (v.assignedTo || 'kasey') === 'charlie');
+    // 'both' visits count for Kasey (they took her car). See _visitCountsForDriver above.
+    const kVisits = d.visits.filter(v => _visitCountsForDriver(v, 'kasey'));
+    const cVisits = d.visits.filter(v => _visitCountsForDriver(v, 'charlie'));
     const kCalc = _bfmCalcDayDriverMiles(kVisits, clientsById);
     const cCalc = _bfmCalcDayDriverMiles(cVisits, clientsById);
-    const kKey = `${d.date}|kasey`;
-    const cKey = `${d.date}|charlie`;
-    const kBdOpen = !!_bfmBdOpen[kKey];
-    const cBdOpen = !!_bfmBdOpen[cKey];
+    const detailKey = `${d.date}|details`;
+    const detailsOpen = !!_bfmBdOpen[detailKey];
 
-    const renderBd = (calc) => `
-        <div class="backfill-day-bd">${calc.breakdown.map(b => `
-            <div class="backfill-day-bd-row">
-                <span class="bf-bd-reason">${escapeHtml(b.label)}</span>
-                <span>${b.miles == null ? '—' : b.miles.toFixed(1) + ' mi'}</span>
-            </div>
-        `).join('')}</div>
+    const fmt = (n) => n > 0 ? n.toFixed(1) + ' mi' : '—';
+
+    // Single combined route breakdown — show whichever drivers had visits
+    const renderRouteBlock = (label, calc) => calc.breakdown.length === 0 ? '' : `
+        <div class="bfm-route-block">
+            <div class="bfm-route-header">${label} route</div>
+            ${calc.breakdown.map(b => `
+                <div class="backfill-day-bd-row">
+                    <span class="bf-bd-reason">${escapeHtml(b.label)}</span>
+                    <span>${b.miles == null ? '—' : b.miles.toFixed(1) + ' mi'}</span>
+                </div>
+            `).join('')}
+        </div>
     `;
 
     return `
@@ -2705,21 +2808,32 @@ function _bfmRenderDayRow(d, clientsById) {
             <div class="backfill-day-info">
                 <div class="backfill-day-date">${formatDate(d.date)}</div>
                 <div class="backfill-day-visits">${d.visits.length} visit${d.visits.length === 1 ? '' : 's'} · ${escapeHtml(clientNames)}</div>
-                <div style="display:flex; gap:10px; margin-top:4px;">
-                    ${kVisits.length > 0 ? `<button class="backfill-day-bd-toggle" onclick="bfmToggleBd('${kKey}')">${kBdOpen ? 'hide' : 'show'} Kasey breakdown</button>` : ''}
-                    ${cVisits.length > 0 ? `<button class="backfill-day-bd-toggle" onclick="bfmToggleBd('${cKey}')">${cBdOpen ? 'hide' : 'show'} Charlie breakdown</button>` : ''}
-                </div>
             </div>
-            <input type="number" min="0" step="0.1" placeholder="Kasey mi" class="backfill-kasey"
-                   value="${kVisits.length > 0 && kCalc.miles > 0 ? kCalc.miles.toFixed(1) : ''}"
-                   ${kVisits.length === 0 ? 'disabled' : ''}
-                   oninput="this.classList.add('user-edited')">
-            <input type="number" min="0" step="0.1" placeholder="Charlie mi" class="backfill-charlie"
-                   value="${cVisits.length > 0 && cCalc.miles > 0 ? cCalc.miles.toFixed(1) : ''}"
-                   ${cVisits.length === 0 ? 'disabled' : ''}
-                   oninput="this.classList.add('user-edited')">
-            ${kBdOpen ? renderBd(kCalc) : ''}
-            ${cBdOpen ? renderBd(cCalc) : ''}
+            <div class="bfm-day-totals">
+                <div class="bfm-driver-line"><span class="bfm-driver-label">Kasey</span> <span class="bfm-driver-miles">${fmt(kCalc.miles)}</span></div>
+                ${cVisits.length > 0
+                    ? `<div class="bfm-driver-line"><span class="bfm-driver-label">Charlie</span> <span class="bfm-driver-miles">${fmt(cCalc.miles)}</span></div>`
+                    : ''}
+                <button type="button" class="backfill-day-bd-toggle" onclick="bfmToggleBd('${detailKey}')">${detailsOpen ? '▾ hide details' : '▸ details / edit'}</button>
+            </div>
+            <!-- Inputs are always in the DOM (so the save handler can read them) but hidden until details are open. -->
+            <input type="hidden" class="backfill-kasey" value="${kCalc.miles > 0 ? kCalc.miles.toFixed(1) : ''}">
+            <input type="hidden" class="backfill-charlie" value="${cVisits.length > 0 && cCalc.miles > 0 ? cCalc.miles.toFixed(1) : ''}">
+            ${detailsOpen ? `
+                <div class="backfill-day-bd">
+                    ${renderRouteBlock('Kasey', kCalc)}
+                    ${cVisits.length > 0 ? renderRouteBlock('Charlie', cCalc) : ''}
+                    <div class="bfm-override-row">
+                        <span class="bfm-override-label">Override:</span>
+                        <label class="bfm-override-field">Kasey <input type="number" min="0" step="0.1" class="backfill-kasey-edit"
+                            value="${kCalc.miles > 0 ? kCalc.miles.toFixed(1) : ''}"
+                            oninput="this.closest('.backfill-day-row').querySelector('.backfill-kasey').value = this.value; this.classList.add('user-edited');"></label>
+                        ${cVisits.length > 0 ? `<label class="bfm-override-field">Charlie <input type="number" min="0" step="0.1" class="backfill-charlie-edit"
+                            value="${cCalc.miles > 0 ? cCalc.miles.toFixed(1) : ''}"
+                            oninput="this.closest('.backfill-day-row').querySelector('.backfill-charlie').value = this.value; this.classList.add('user-edited');"></label>` : ''}
+                    </div>
+                </div>
+            ` : ''}
         </div>
     `;
 }
@@ -2981,37 +3095,38 @@ function _bfmDismissSetup() {
     if (warningEl) warningEl.style.display = 'none';
 }
 
-function bfmToggleBd(key) {    _bfmBdOpen[key] = !_bfmBdOpen[key];
-    // Re-render the modal but preserve any user-edited input values
-    const inputs = document.querySelectorAll('#backfillMilesList .backfill-day-row input');
+function bfmToggleBd(key) {
+    _bfmBdOpen[key] = !_bfmBdOpen[key];
+    // Collect any values the user manually edited (visible override input flags itself as user-edited).
+    // Those edits live on the hidden input value because the oninput handler syncs them over.
+    const list = document.getElementById('backfillMilesList');
     const edits = {};
-    inputs.forEach(inp => {
-        if (inp.classList.contains('user-edited')) {
-            const row = inp.closest('.backfill-day-row');
-            const driver = inp.classList.contains('backfill-kasey') ? 'kasey' : 'charlie';
-            edits[`${row.dataset.date}|${driver}`] = inp.value;
-        }
+    list.querySelectorAll('.backfill-day-row').forEach(row => {
+        const date = row.dataset.date;
+        ['kasey', 'charlie'].forEach(driver => {
+            const visEdit = row.querySelector(`.backfill-${driver}-edit.user-edited`);
+            if (visEdit) edits[`${date}|${driver}`] = visEdit.value;
+        });
     });
-    // Re-render
+    // Re-render fresh
     const clients = Store.getClients();
     const clientsById = {};
     clients.forEach(c => { clientsById[c.id] = c; });
-    const list = document.getElementById('backfillMilesList');
-    const rows = list.querySelectorAll('.backfill-day-row');
-    const days = [];
-    rows.forEach(row => {
-        const date = row.dataset.date;
-        const dayVisits = Store.getVisits().filter(v => v.date === date);
-        days.push({ date, visits: dayVisits });
-    });
-    list.innerHTML = days.map(d => _bfmRenderDayRow(d, clientsById)).join('');
-    // Restore user edits
+    const dates = Array.from(list.querySelectorAll('.backfill-day-row')).map(r => r.dataset.date);
+    const days = dates.map(date => ({
+        date,
+        visits: Store.getVisits().filter(v => v.date === date)
+    }));
+    list.innerHTML = _bfmBuildContent(days, clientsById);
+    // Reapply user-edits on the new DOM (both visible override input + hidden input that save reads from)
     Object.entries(edits).forEach(([k, val]) => {
         const [date, driver] = k.split('|');
         const row = list.querySelector(`.backfill-day-row[data-date="${date}"]`);
         if (!row) return;
-        const inp = row.querySelector(driver === 'kasey' ? '.backfill-kasey' : '.backfill-charlie');
-        if (inp) { inp.value = val; inp.classList.add('user-edited'); }
+        const hidden = row.querySelector(`.backfill-${driver}`);
+        const visible = row.querySelector(`.backfill-${driver}-edit`);
+        if (hidden) hidden.value = val;
+        if (visible) { visible.value = val; visible.classList.add('user-edited'); }
     });
 }
 
@@ -3036,13 +3151,22 @@ function saveBackfillMiles() {
     existingMileage.forEach(r => { existingByKey[`${r.date}|${r.driver}`] = r; });
     const warnings = [];
     const seenDates = new Set();
+    // Counts visits that should belong to a given driver, using the same 'both → Kasey' rule
+    // applied everywhere else in the mileage breakdown.
+    const visitCountFor = (date, driver) => allVisits.filter(v => {
+        if (v.date !== date) return false;
+        const a = v.assignedTo || 'both';
+        if (driver === 'kasey') return a === 'kasey' || a === 'both';
+        return a === 'charlie';
+    }).length;
+
     toSave.forEach(({ date, driver }) => {
         const otherDriver = driver === 'kasey' ? 'charlie' : 'kasey';
         const dateKey = `${date}|${otherDriver}`;
         if (seenDates.has(dateKey)) return;
         if (toSave.some(s => s.date === date && s.driver === otherDriver)) return;
         if (existingByKey[dateKey]) return;
-        const otherVisitCount = allVisits.filter(v => v.date === date && (v.assignedTo || 'kasey') === otherDriver).length;
+        const otherVisitCount = visitCountFor(date, otherDriver);
         if (otherVisitCount > 0) {
             warnings.push({ date, missingDriver: otherDriver, visitCount: otherVisitCount });
             seenDates.add(dateKey);
@@ -3098,7 +3222,7 @@ function _bfmDoBackfillSave(toSave, allVisits) {
     const dateDriversTouched = new Set();
     const toAdd = toSave.map(({ date, driver, miles }) => {
         dateDriversTouched.add(`${date}|${driver}`);
-        const visitIds = allVisits.filter(v => v.date === date && (v.assignedTo || 'kasey') === driver).map(v => v.id);
+        const visitIds = allVisits.filter(v => v.date === date && _visitCountsForDriver(v, driver)).map(v => v.id);
         return {
             id: `mile_${date}_${driver}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
             date, driver, miles,
