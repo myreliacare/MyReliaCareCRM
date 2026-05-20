@@ -25,21 +25,128 @@ const firebaseConfig = {
 
 const SHARED_EMAIL = 'team@myreliacare.com';
 
-// "Remember me" credential storage. Stored base64'd (light obfuscation, not encryption) —
-// for the threat model of a private 2-person CRM behind phone unlock, this is acceptable.
-// Tradeoff: anyone with unlocked phone access can open the CRM without entering a password.
-const _REMEMBER_KEY = 'myreliacare_session_token';
-function _saveRemembered(pw) {
-    try { localStorage.setItem(_REMEMBER_KEY, btoa(pw)); } catch {}
+// One-time cleanup: remove the legacy "remember me" base64-encoded password if it exists.
+// Earlier versions of this file stored the raw password in localStorage; this purges it
+// for any users upgrading. Firebase Auth's session token (in IndexedDB) keeps them signed
+// in without needing the password.
+try { localStorage.removeItem('myreliacare_session_token'); } catch {}
+
+// Inactivity auto-logout: signs out after a period of no user input.
+// Resets on any mouse/keyboard/touch/scroll activity.
+const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;   // 60 minutes
+let _lastActivity = Date.now();
+let _inactivityTimerId = null;
+
+function _markActivity() { _lastActivity = Date.now(); }
+
+function _startInactivityTimer() {
+    // Reset timer on user activity
+    ['mousedown', 'keydown', 'touchstart', 'scroll'].forEach(ev =>
+        window.addEventListener(ev, _markActivity, { passive: true })
+    );
+    // Check every minute
+    if (_inactivityTimerId) clearInterval(_inactivityTimerId);
+    _inactivityTimerId = setInterval(() => {
+        if (!auth.currentUser) return;
+        const idle = Date.now() - _lastActivity;
+        if (idle >= INACTIVITY_LIMIT_MS) {
+            console.log('[sync] auto sign-out after inactivity');
+            _signOutAndShowExpired();
+        }
+    }, 60 * 1000);
 }
-function _getRemembered() {
+
+function _stopInactivityTimer() {
+    if (_inactivityTimerId) { clearInterval(_inactivityTimerId); _inactivityTimerId = null; }
+}
+
+async function _signOutAndShowExpired() {
+    try { await auth.signOut(); } catch (e) { console.warn('[sync] signOut error:', e); }
+    _showSessionExpired();
+}
+
+function _showSessionExpired() {
+    // Banner-style modal that takes over the viewport
+    let el = document.getElementById('sessionExpiredOverlay');
+    if (el) { el.style.display = 'flex'; return; }
+    el = document.createElement('div');
+    el.id = 'sessionExpiredOverlay';
+    el.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+        z-index: 99999; display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+    `;
+    el.innerHTML = `
+        <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 28px 32px; max-width: 380px; width: 100%; color: #F0E6E8; font-family: inherit;">
+            <h2 style="margin: 0 0 8px; font-family: 'Cormorant Unicase', serif; font-weight: 500;">Session expired</h2>
+            <p style="margin: 0 0 20px; color: #C0B0B4; font-size: 0.95em; line-height: 1.5;">
+                You were signed out after 60 minutes of inactivity. Sign back in to continue.
+            </p>
+            <input type="password" id="sessionExpiredPw" placeholder="Password" style="width: 100%; padding: 10px 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: inherit; font-size: 1em; box-sizing: border-box; margin-bottom: 10px;">
+            <div id="sessionExpiredError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+            <button id="sessionExpiredBtn" style="width: 100%; padding: 10px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Sign back in</button>
+        </div>
+    `;
+    document.body.appendChild(el);
+    const input = el.querySelector('#sessionExpiredPw');
+    const btn = el.querySelector('#sessionExpiredBtn');
+    const errEl = el.querySelector('#sessionExpiredError');
+    const submit = async () => {
+        const pw = input.value;
+        if (!pw) return;
+        btn.disabled = true;
+        btn.textContent = 'Signing in…';
+        errEl.style.display = 'none';
+        try {
+            await auth.signInWithEmailAndPassword(SHARED_EMAIL, pw);
+            el.style.display = 'none';
+            _markActivity();
+        } catch (e) {
+            if (e.code === 'auth/multi-factor-auth-required') {
+                el.style.display = 'none';
+                _showMfaChallenge(e.resolver);
+                return;
+            }
+            errEl.textContent = 'Incorrect password';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Sign back in';
+        }
+    };
+    btn.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+    setTimeout(() => input.focus(), 100);
+}
+
+// Public sign-out function for the visible button
+window.signOutCRM = async function() {
+    if (!confirm('Sign out of MyReliaCare?')) return;
     try {
-        const raw = localStorage.getItem(_REMEMBER_KEY);
-        return raw ? atob(raw) : null;
-    } catch { return null; }
-}
-function _clearRemembered() {
-    try { localStorage.removeItem(_REMEMBER_KEY); } catch {}
+        await auth.signOut();
+    } catch (e) {
+        console.error('[sync] sign out error:', e);
+    }
+};
+
+// Inject visible "signed in" status pill + sign-out into every page
+function _injectSignedInIndicator() {
+    if (document.getElementById('signedInIndicator')) return;
+    const el = document.createElement('div');
+    el.id = 'signedInIndicator';
+    el.style.cssText = `
+        position: fixed; bottom: 14px; right: 14px; z-index: 9500;
+        background: rgba(42, 34, 32, 0.92); border: 1px solid #4A413E;
+        color: #C0B0B4; padding: 6px 10px; border-radius: 20px;
+        font-family: inherit; font-size: 0.78em;
+        display: none; align-items: center; gap: 8px;
+        backdrop-filter: blur(4px);
+    `;
+    el.innerHTML = `
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #7FB069; display: inline-block;"></span>
+        <span>Signed in</span>
+        <button onclick="window.signOutCRM()" style="background: transparent; color: #B59197; border: none; cursor: pointer; font-family: inherit; font-size: 1em; padding: 0 0 0 4px; border-left: 1px solid #4A413E;">Sign out</button>
+    `;
+    document.body.appendChild(el);
 }
 
 firebase.initializeApp(firebaseConfig);
@@ -386,6 +493,213 @@ function _generateSyncId(prefix) {
     return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+/* ============================================================
+   MFA (TOTP) — enrollment + sign-in challenge
+   Requires Identity Platform enabled on the Firebase project.
+   Both Kasey's and Charlie's phones scan the same QR code at
+   enrollment time, so either of them can produce valid codes.
+   ============================================================ */
+
+let _mfaResolver = null;      // set when sign-in throws auth/multi-factor-auth-required
+let _mfaEnrollmentSecret = null;
+let _qrcodeLibLoaded = false;
+
+async function _loadQrcodeLib() {
+    if (_qrcodeLibLoaded || window.QRCode) { _qrcodeLibLoaded = true; return; }
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+        s.onload = () => { _qrcodeLibLoaded = true; resolve(); };
+        s.onerror = () => reject(new Error('Could not load QR code library'));
+        document.head.appendChild(s);
+    });
+}
+
+function _isMfaEnrolled() {
+    if (!auth.currentUser) return false;
+    const factors = auth.currentUser.multiFactor && auth.currentUser.multiFactor.enrolledFactors;
+    return Array.isArray(factors) && factors.length > 0;
+}
+
+function _refreshMfaButtonOnIndicator() {
+    const wrap = document.getElementById('signedInIndicator');
+    if (!wrap) return;
+    let setupBtn = document.getElementById('mfaSetupBtn');
+    const enrolled = _isMfaEnrolled();
+    if (!enrolled && !setupBtn) {
+        setupBtn = document.createElement('button');
+        setupBtn.id = 'mfaSetupBtn';
+        setupBtn.textContent = 'Enable 2FA';
+        setupBtn.style.cssText = 'background: #B59197; color: white; border: none; cursor: pointer; font-family: inherit; font-size: 1em; padding: 2px 8px; border-radius: 10px; margin-right: 4px;';
+        setupBtn.onclick = () => window.setupMfa();
+        wrap.insertBefore(setupBtn, wrap.querySelector('button'));   // before Sign out
+    } else if (enrolled && setupBtn) {
+        setupBtn.remove();
+    }
+}
+
+// MFA Sign-In Challenge
+function _showMfaChallenge(resolver) {
+    _mfaResolver = resolver;
+    let el = document.getElementById('mfaChallengeOverlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'mfaChallengeOverlay';
+        el.style.cssText = `
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            z-index: 99999; display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        `;
+        el.innerHTML = `
+            <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 28px 32px; max-width: 400px; width: 100%; color: #F0E6E8; font-family: inherit;">
+                <h2 style="margin: 0 0 8px; font-family: 'Cormorant Unicase', serif; font-weight: 500;">Two-factor verification</h2>
+                <p style="margin: 0 0 20px; color: #C0B0B4; font-size: 0.95em; line-height: 1.5;">
+                    Open your authenticator app and enter the current 6-digit code for MyReliaCare CRM.
+                </p>
+                <input type="text" id="mfaChallengeCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" style="width: 100%; padding: 14px 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.3em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
+                <div id="mfaChallengeError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+                <button id="mfaChallengeBtn" style="width: 100%; padding: 10px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Verify</button>
+            </div>
+        `;
+        document.body.appendChild(el);
+        const inp = el.querySelector('#mfaChallengeCode');
+        el.querySelector('#mfaChallengeBtn').addEventListener('click', () => _submitMfaCode(inp.value.trim()));
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') _submitMfaCode(inp.value.trim()); });
+    }
+    el.style.display = 'flex';
+    const input = el.querySelector('#mfaChallengeCode');
+    input.value = '';
+    el.querySelector('#mfaChallengeError').style.display = 'none';
+    setTimeout(() => input.focus(), 100);
+}
+
+async function _submitMfaCode(code) {
+    const errEl = document.getElementById('mfaChallengeError');
+    const btn = document.getElementById('mfaChallengeBtn');
+    if (!code || code.length !== 6) {
+        errEl.textContent = 'Enter the 6-digit code';
+        errEl.style.display = 'block';
+        return;
+    }
+    if (!_mfaResolver) return;
+    btn.disabled = true;
+    btn.textContent = 'Verifying…';
+    try {
+        const factorUid = _mfaResolver.hints[0].uid;
+        const assertion = firebase.auth.TotpMultiFactorGenerator.assertionForSignIn(factorUid, code);
+        await _mfaResolver.resolveSignIn(assertion);
+        document.getElementById('mfaChallengeOverlay').style.display = 'none';
+        _mfaResolver = null;
+    } catch (e) {
+        console.error('[mfa] verify error:', e);
+        errEl.textContent = 'Wrong code — try again';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Verify';
+    }
+}
+
+// MFA Enrollment
+window.setupMfa = async function() {
+    if (!auth.currentUser) return;
+    try {
+        await _loadQrcodeLib();
+        const session = await auth.currentUser.multiFactor.getSession();
+        const secret = await firebase.auth.TotpMultiFactorGenerator.generateSecret(session);
+        _mfaEnrollmentSecret = secret;
+        const otpauthUrl = secret.generateQrCodeUrl(SHARED_EMAIL, 'MyReliaCare CRM');
+        _showMfaEnrollmentModal(otpauthUrl, secret.secretKey);
+    } catch (e) {
+        console.error('[mfa] setup error:', e);
+        const code = e.code || '';
+        if (code === 'auth/operation-not-allowed' || code === 'auth/unsupported-tenant-operation' || code === 'auth/unsupported-first-factor') {
+            alert('MFA is not enabled on this Firebase project. Go to Firebase Console → Authentication → Sign-in method, upgrade to Identity Platform, then enable TOTP.');
+        } else if (code === 'auth/requires-recent-login') {
+            alert('Please sign out and sign in again before setting up 2FA.');
+        } else {
+            alert('Could not start MFA setup: ' + (e.message || code));
+        }
+    }
+};
+
+function _showMfaEnrollmentModal(otpauthUrl, secretKey) {
+    let el = document.getElementById('mfaEnrollOverlay');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'mfaEnrollOverlay';
+    el.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+        z-index: 99999; display: flex; align-items: center; justify-content: center;
+        padding: 20px; overflow-y: auto;
+    `;
+    el.innerHTML = `
+        <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 28px 32px; max-width: 460px; width: 100%; color: #F0E6E8; font-family: inherit; margin: 20px auto;">
+            <h2 style="margin: 0 0 10px; font-family: 'Cormorant Unicase', serif; font-weight: 500;">Enable two-factor authentication</h2>
+            <p style="margin: 0 0 16px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
+                <strong>Step 1:</strong> Open Google Authenticator, 1Password, Authy, or another TOTP app on <strong>both</strong> your phone <em>and</em> Charlie's phone.
+            </p>
+            <p style="margin: 0 0 12px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
+                <strong>Step 2:</strong> Scan this QR code with both phones (or paste the secret key manually).
+            </p>
+            <div id="mfaQrContainer" style="background: white; padding: 16px; border-radius: 8px; margin: 0 auto 14px; width: fit-content;"></div>
+            <details style="margin-bottom: 16px; color: #C0B0B4; font-size: 0.88em;">
+                <summary style="cursor: pointer;">Can't scan? Show secret key for manual entry</summary>
+                <code style="display: block; background: #1A1614; padding: 10px; border-radius: 6px; margin-top: 8px; font-family: monospace; font-size: 0.95em; word-break: break-all; user-select: all;">${secretKey}</code>
+            </details>
+            <p style="margin: 0 0 10px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
+                <strong>Step 3:</strong> Enter the current 6-digit code shown in either authenticator app to confirm.
+            </p>
+            <input type="text" id="mfaEnrollCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.3em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
+            <div id="mfaEnrollError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+            <div style="display: flex; gap: 8px;">
+                <button id="mfaEnrollCancel" style="flex: 1; padding: 10px; background: transparent; color: #C0B0B4; border: 1px solid #4A413E; border-radius: 6px; cursor: pointer; font-family: inherit;">Cancel</button>
+                <button id="mfaEnrollConfirm" style="flex: 2; padding: 10px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 500;">Confirm & enable</button>
+            </div>
+            <p style="margin: 14px 0 0; color: #ff8585; font-size: 0.82em; line-height: 1.5;">
+                ⚠️ <strong>Important:</strong> Save the secret key somewhere safe (password manager, printed copy in a drawer). If both phones are ever lost or wiped, this is the only way to recover access without a Firebase admin reset.
+            </p>
+        </div>
+    `;
+    document.body.appendChild(el);
+    new window.QRCode(el.querySelector('#mfaQrContainer'), {
+        text: otpauthUrl,
+        width: 200,
+        height: 200,
+    });
+    el.querySelector('#mfaEnrollCancel').onclick = () => { el.remove(); _mfaEnrollmentSecret = null; };
+    const inp = el.querySelector('#mfaEnrollCode');
+    el.querySelector('#mfaEnrollConfirm').onclick = () => _completeMfaEnrollment(inp.value.trim());
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') _completeMfaEnrollment(inp.value.trim()); });
+    setTimeout(() => inp.focus(), 100);
+}
+
+async function _completeMfaEnrollment(code) {
+    const errEl = document.getElementById('mfaEnrollError');
+    const btn = document.getElementById('mfaEnrollConfirm');
+    if (!code || code.length !== 6) {
+        errEl.textContent = 'Enter the 6-digit code';
+        errEl.style.display = 'block';
+        return;
+    }
+    if (!_mfaEnrollmentSecret) return;
+    btn.disabled = true;
+    btn.textContent = 'Enabling…';
+    try {
+        const assertion = firebase.auth.TotpMultiFactorGenerator.assertionForEnrollment(_mfaEnrollmentSecret, code);
+        await auth.currentUser.multiFactor.enroll(assertion, 'Authenticator');
+        _mfaEnrollmentSecret = null;
+        document.getElementById('mfaEnrollOverlay').remove();
+        _refreshMfaButtonOnIndicator();
+        if (typeof showToast === 'function') showToast('Two-factor authentication enabled');
+    } catch (e) {
+        console.error('[mfa] enroll error:', e);
+        errEl.textContent = 'Wrong code — make sure you have the right account in your authenticator';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Confirm & enable';
+    }
+}
+
 /* =============================================================
    AUTH FLOW
 ============================================================= */
@@ -401,9 +715,16 @@ window.checkPassword = async function() {
 
     try {
         await auth.signInWithEmailAndPassword(SHARED_EMAIL, password);
-        _saveRemembered(password);
-        // onAuthStateChanged will handle UI transition
+        // onAuthStateChanged will handle UI transition. Firebase Auth's LOCAL persistence
+        // keeps the session alive via its own token in IndexedDB — no need to store the
+        // raw password ourselves.
     } catch (e) {
+        // MFA challenge — Firebase didn't sign in because second factor is required
+        if (e.code === 'auth/multi-factor-auth-required') {
+            if (btn) { btn.disabled = false; btn.textContent = 'Access CRM'; }
+            _showMfaChallenge(e.resolver);
+            return;
+        }
         console.error('[sync] login error:', e);
         if (error) {
             const code = e.code || '';
@@ -425,7 +746,8 @@ window.checkPassword = async function() {
 };
 
 window.logout = async function() {
-    _clearRemembered();
+    // Clean up any leftover legacy storage entry from previous versions
+    try { localStorage.removeItem('myreliacare_session_token'); } catch {}
     try {
         await auth.signOut();
         // Don't reload — onAuthStateChanged handles UI
@@ -503,6 +825,18 @@ auth.onAuthStateChanged(async user => {
         if (passwordScreen) passwordScreen.style.display = 'none';
         if (mainContent) mainContent.style.display = 'block';
 
+        // Hide session-expired modal if it was showing
+        const expEl = document.getElementById('sessionExpiredOverlay');
+        if (expEl) expEl.style.display = 'none';
+
+        // Start inactivity tracking + show signed-in indicator
+        _markActivity();
+        _startInactivityTimer();
+        _injectSignedInIndicator();
+        const indicator = document.getElementById('signedInIndicator');
+        if (indicator) indicator.style.display = 'flex';
+        _refreshMfaButtonOnIndicator();
+
         // CRITICAL ORDER:
         // 1) Run migration (uses _preMigrationCache; safe even before listeners)
         // 2) Then attach listeners (which can safely overwrite localStorage now)
@@ -515,23 +849,12 @@ auth.onAuthStateChanged(async user => {
             try { window.initApp(); } catch (e) { console.error('[sync] initApp error:', e); }
         }
     } else {
-        // Not logged in. Before showing the password screen, try silent auto-relogin
-        // using a remembered credential (Safari ITP and aggressive storage cleanup
-        // sometimes wipe the Firebase session token even when localStorage survives).
-        const remembered = _getRemembered();
-        if (remembered) {
-            try {
-                await auth.signInWithEmailAndPassword(SHARED_EMAIL, remembered);
-                // Success — onAuthStateChanged will fire again with user set
-                return;
-            } catch (e) {
-                // Stored password no longer works (rotated, etc). Clear it.
-                console.warn('[sync] auto-relogin failed:', e.code || e.message);
-                _clearRemembered();
-            }
-        }
+        // Not signed in — Firebase Auth's LOCAL persistence handles "stay signed in"
+        // via its own session token in IndexedDB. No need to store the raw password.
+        _stopInactivityTimer();
+        const indicator = document.getElementById('signedInIndicator');
+        if (indicator) indicator.style.display = 'none';
 
-        // Fall through to manual login
         detachListeners();
         if (passwordScreen) passwordScreen.style.display = 'flex';
         if (mainContent) mainContent.style.display = 'none';
