@@ -602,6 +602,12 @@ async function _submitMfaCode(code) {
 // MFA Enrollment
 window.setupMfa = async function() {
     if (!auth.currentUser) return;
+    // Guard: verify TOTP support is actually loaded in this SDK build
+    if (!firebase.auth.TotpMultiFactorGenerator || typeof firebase.auth.TotpMultiFactorGenerator.generateSecret !== 'function') {
+        alert('TOTP support is not available in this Firebase SDK build. The page may be using a cached old version — try a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) and retry. If that doesn\'t work, paste the SDK version from the page\'s script tags to Claude.');
+        console.error('[mfa] firebase.auth.TotpMultiFactorGenerator is unavailable. SDK version mismatch?', Object.keys(firebase.auth || {}).slice(0, 20));
+        return;
+    }
     try {
         await _loadQrcodeLib();
         const session = await auth.currentUser.multiFactor.getSession();
@@ -616,6 +622,8 @@ window.setupMfa = async function() {
             alert('MFA is not enabled on this Firebase project. Go to Firebase Console → Authentication → Sign-in method, upgrade to Identity Platform, then enable TOTP.');
         } else if (code === 'auth/requires-recent-login') {
             alert('Please sign out and sign in again before setting up 2FA.');
+        } else if (code === 'auth/unverified-email') {
+            alert('The account email needs to be verified before enabling MFA. Tell Claude to send the verification command.');
         } else {
             alert('Could not start MFA setup: ' + (e.message || code));
         }
