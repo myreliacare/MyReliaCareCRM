@@ -6014,17 +6014,43 @@ function _bfParseUSAddress(s) {
     return out;
 }
 
-// Geocode using multiple strategies — necessary because Nominatim sometimes can't
-// match rural/uncommon road names with a single freeform query, but DOES find them
-// with a structured query (street/city/state/zip as separate params).
+// Tries the US Census Bureau Geocoder first — uses TIGER/Line data which has
+// every legitimate US address including rural ones Nominatim can't find.
+// Free, no API key, CORS-enabled. Returns { lat, lng } or null.
+async function _bfCensusGeocode(addressStr) {
+    const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(addressStr)}&benchmark=Public_AR_Current&format=json`;
+    try {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) { console.warn(`[census] HTTP ${r.status}`); return null; }
+        const data = await r.json();
+        const matches = data?.result?.addressMatches;
+        if (!Array.isArray(matches) || matches.length === 0) { console.log('[census] no match'); return null; }
+        // Census API: x = longitude, y = latitude
+        const lat = parseFloat(matches[0].coordinates?.y);
+        const lng = parseFloat(matches[0].coordinates?.x);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        console.log(`[census] hit: ${matches[0].matchedAddress}`);
+        return { lat, lng };
+    } catch (e) {
+        console.warn('[census] error:', e.message);
+        return null;
+    }
+}
+
+// Geocode strategy: Census Bureau first (best for US rural), then Nominatim variations as fallback.
 // Returns { lat, lng } on success, null on failure.
 async function _bfGeocodeAddress(addressStr) {
+    // Strategy 0 (PRIMARY): US Census Bureau Geocoder. Handles rural addresses Nominatim can't.
+    const census = await _bfCensusGeocode(addressStr);
+    if (census) return census;
+
+    // Fallback strategies use Nominatim with the rate-limit policy (1 req/sec).
     const attempts = [];
 
-    // Strategy 1: freeform query (matches well-known addresses fast)
+    // Strategy 1: freeform Nominatim
     attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`);
 
-    // Strategy 2: structured query — most reliable for rural/uncommon addresses
+    // Strategy 2: structured query
     const parts = _bfParseUSAddress(addressStr);
     if (parts.street && (parts.city || parts.zip)) {
         const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'us' });
@@ -6035,15 +6061,13 @@ async function _bfGeocodeAddress(addressStr) {
         attempts.push('https://nominatim.openstreetmap.org/search?' + params.toString());
     }
 
-    // Strategy 3: drop the street suffix (Rd / Dr / St / etc.) — Nominatim's road database
-    //             sometimes stores the road under a slightly different name.
+    // Strategy 3: drop the street suffix
     const simplified = addressStr.replace(/\b(rd|dr|st|ln|ct|ave|blvd|hwy|way|trl|pl)\b\.?/gi, '').replace(/\s+/g, ' ').trim();
     if (simplified !== addressStr) {
         attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(simplified)}&format=json&limit=1&countrycodes=us`);
     }
 
-    // Strategy 4: drop the street number — last-resort fallback that gives a
-    //             nearby point on the road (still useful for mileage estimates).
+    // Strategy 4: drop the street number (road-level fallback)
     const noNumber = addressStr.replace(/^\d+\s+/, '').trim();
     if (noNumber !== addressStr) {
         attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(noNumber)}&format=json&limit=1&countrycodes=us`);
@@ -6052,25 +6076,21 @@ async function _bfGeocodeAddress(addressStr) {
     for (let i = 0; i < attempts.length; i++) {
         const url = attempts[i];
         try {
-            // Nominatim usage policy: max 1 req/sec. Sleep between attempts.
             if (i > 0) await _bfSleep(1100);
             const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-            if (!r.ok) {
-                console.warn(`[geocode] HTTP ${r.status} on attempt ${i+1}: ${url}`);
-                continue;
-            }
+            if (!r.ok) { console.warn(`[nominatim] HTTP ${r.status} on attempt ${i+1}`); continue; }
             const data = await r.json();
             if (Array.isArray(data) && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lng = parseFloat(data[0].lon);
                 if (!isNaN(lat) && !isNaN(lng)) {
-                    console.log(`[geocode] hit on attempt ${i+1}: ${data[0].display_name}`);
+                    console.log(`[nominatim] hit on attempt ${i+1}: ${data[0].display_name}`);
                     return { lat, lng };
                 }
             }
-            console.log(`[geocode] no result on attempt ${i+1}`);
+            console.log(`[nominatim] no result on attempt ${i+1}`);
         } catch (e) {
-            console.error(`[geocode] error on attempt ${i+1}:`, e);
+            console.error(`[nominatim] error on attempt ${i+1}:`, e);
         }
     }
     return null;
@@ -6300,7 +6320,10 @@ async function _bfAutoComputeMiles() {
             failed++;
             failedNames.push(c.name || 'Unnamed');
         }
-        await _bfSleep(1100);
+        // Sleep between clients. Census doesn't enforce a strict rate limit, but we keep
+        // a small buffer in case the per-client geocode falls through to Nominatim fallback,
+        // which DOES require 1 req/sec.
+        await _bfSleep(300);
     }
 
     const ok = Store.saveClients(clients);

@@ -2921,9 +2921,34 @@ function _parseUSAddress(s) {
     return out;
 }
 
-// Multi-strategy geocoder. Same approach as index.html — necessary because rural / uncommon
-// road names often fail with a freeform Nominatim query but succeed with a structured one.
+// US Census Bureau Geocoder — uses TIGER/Line data, handles rural US addresses
+// Nominatim can't find. Free, no API key. Returns { lat, lng } or null.
+async function _censusGeocode(addressStr) {
+    const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(addressStr)}&benchmark=Public_AR_Current&format=json`;
+    try {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) { console.warn(`[census] HTTP ${r.status}`); return null; }
+        const data = await r.json();
+        const matches = data?.result?.addressMatches;
+        if (!Array.isArray(matches) || matches.length === 0) { console.log('[census] no match'); return null; }
+        const lat = parseFloat(matches[0].coordinates?.y);
+        const lng = parseFloat(matches[0].coordinates?.x);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        console.log(`[census] hit: ${matches[0].matchedAddress}`);
+        return { lat, lng };
+    } catch (e) {
+        console.warn('[census] error:', e.message);
+        return null;
+    }
+}
+
+// Multi-strategy geocoder. Tries US Census Bureau first (best for US rural addresses),
+// falls back to Nominatim variations if Census returns no match.
 async function _geocodeAddress(addressStr) {
+    // PRIMARY: Census Bureau geocoder — handles rural US addresses Nominatim can't find
+    const census = await _censusGeocode(addressStr);
+    if (census) return census;
+
     const attempts = [];
     // Strategy 1: freeform
     attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`);
@@ -3198,7 +3223,8 @@ async function _bfmAutoComputeMiles() {
             failed++;
             failedNames.push(c.name || 'Unnamed');
         }
-        await _sleep(1100);   // respect Nominatim 1 req/sec policy
+        // Census doesn't enforce strict rate limits; small buffer for Nominatim fallback path.
+        await _sleep(300);
     }
 
     const ok = Store.saveClients(clients);
