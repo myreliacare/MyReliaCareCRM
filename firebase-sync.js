@@ -83,7 +83,7 @@ function _showSessionExpired() {
                 You were signed out after 60 minutes of inactivity. Sign back in to continue.
             </p>
             <input type="password" id="sessionExpiredPw" placeholder="Password" style="width: 100%; padding: 10px 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: inherit; font-size: 1em; box-sizing: border-box; margin-bottom: 10px;">
-            <div id="sessionExpiredError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+            <div id="sessionExpiredError" style="color: #A85A66; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
             <button id="sessionExpiredBtn" style="width: 100%; padding: 10px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Sign back in</button>
         </div>
     `;
@@ -137,7 +137,7 @@ function _injectSignedInIndicator() {
         backdrop-filter: blur(4px);
     `;
     el.innerHTML = `
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: #7FB069; display: inline-block;"></span>
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #C9A66B; display: inline-block;"></span>
         <span>Signed in</span>
         <button id="indicatorMenuBtn" style="background: transparent; color: #B59197; border: none; cursor: pointer; font-family: inherit; font-size: 1em; padding: 0 0 0 8px; border-left: 1px solid #4A413E;">Account ▾</button>
     `;
@@ -157,7 +157,7 @@ function _injectSignedInIndicator() {
         <button data-action="changePin" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #F0E6E8; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Change PIN</button>
         <button data-action="changePassword" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #F0E6E8; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Change password</button>
         <div style="height: 1px; background: #4A413E; margin: 4px 0;"></div>
-        <button data-action="signOut" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #ff8585; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Sign out</button>
+        <button data-action="signOut" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #A85A66; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Sign out</button>
     `;
     document.body.appendChild(menu);
 
@@ -381,7 +381,7 @@ function _ensureBanner() {
     el.id = 'syncStatusBanner';
     el.style.cssText = `
         position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
-        background: #C0392B; color: white;
+        background: #A85A66; color: white;
         padding: 10px 16px; font-family: inherit; font-size: 0.92em;
         display: none; align-items: center; justify-content: space-between;
         gap: 12px; flex-wrap: wrap;
@@ -692,9 +692,9 @@ function _showPinSetup() {
             <input type="password" id="pinSetup1" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 12px;">
             <label style="display: block; color: #C0B0B4; font-size: 0.85em; margin-bottom: 6px;">Confirm PIN</label>
             <input type="password" id="pinSetup2" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
-            <div id="pinSetupError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+            <div id="pinSetupError" style="color: #A85A66; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
             <button id="pinSetupBtn" style="width: 100%; padding: 12px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Set PIN</button>
-            <p style="margin: 14px 0 0; color: #ff8585; font-size: 0.82em; line-height: 1.5;">
+            <p style="margin: 14px 0 0; color: #A85A66; font-size: 0.82em; line-height: 1.5;">
                 ⚠️ Write this down somewhere safe. If you forget the PIN, you'll need a one-time reset through the developer console.
             </p>
         </div>
@@ -750,7 +750,7 @@ function _showPinChallenge() {
                 Enter your PIN to unlock the CRM.
             </p>
             <input type="password" id="pinChallenge" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" style="width: 100%; padding: 14px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.6em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
-            <div id="pinChallengeError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+            <div id="pinChallengeError" style="color: #A85A66; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
             <button id="pinChallengeBtn" style="width: 100%; padding: 12px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Unlock</button>
             <p id="pinAttemptsLeft" style="margin: 12px 0 0; color: #C0B0B4; font-size: 0.82em; text-align: center;">${failures > 0 ? remaining + ' attempts remaining before sign-out' : ''}</p>
         </div>
@@ -856,7 +856,7 @@ function _showChangePasswordModal() {
             <input type="password" id="cpNew1" autocomplete="new-password" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: inherit; font-size: 1em; box-sizing: border-box; margin-bottom: 12px;">
             <label style="display: block; color: #C0B0B4; font-size: 0.85em; margin-bottom: 6px;">Confirm new password</label>
             <input type="password" id="cpNew2" autocomplete="new-password" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: inherit; font-size: 1em; box-sizing: border-box; margin-bottom: 10px;">
-            <div id="cpError" style="color: #ff8585; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
+            <div id="cpError" style="color: #A85A66; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
             <div style="display: flex; gap: 10px;">
                 <button id="cpCancelBtn" style="flex: 1; padding: 12px; background: transparent; color: #C0B0B4; border: 1px solid #4A413E; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em;">Cancel</button>
                 <button id="cpSubmitBtn" style="flex: 1; padding: 12px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Update password</button>

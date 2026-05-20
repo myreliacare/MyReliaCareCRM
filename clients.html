@@ -22,8 +22,9 @@
             --bg-deep: #1A1614; --bg-card: #2A2220; --bg-card-light: #3A3530;
             --bg-input: #2F2825; --accent: #B59197; --accent-dark: #A47F85;
             --accent-light: #D4C5C9; --text: #F5E8EB; --text-dim: #D4C5C9;
-            --text-faint: #8B7378; --border: #4A413E; --danger: #ff6b6b;
-            --success: #7FB069; --personal: #6B8FA8;
+            --text-faint: #8B7378; --border: #4A413E;
+            --danger: #A85A66; --success: #C9A66B; --warn: #C4825C;
+            --info: #A89BC4; --personal: #A89BC4;
         }
         body { font-family: 'Cormorant', serif; background: var(--bg-deep); min-height: 100vh; padding: 20px; color: var(--text); line-height: 1.6; font-size: 18px; }
 
@@ -103,10 +104,10 @@
         .client-card-pets { color: var(--text-faint); font-family: 'Cormorant', serif; font-style: italic; font-size: 0.85em; font-weight: 400; }
         .client-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
         .badge { font-size: 0.78em; padding: 2px 8px; border-radius: 10px; background: var(--bg-card-light); color: var(--text-dim); }
-        .badge.success { background: rgba(127, 176, 105, 0.18); color: var(--success); }
-        .badge.warn { background: rgba(255, 107, 107, 0.18); color: var(--danger); }
+        .badge.success { background: rgba(201, 166, 107, 0.18); color: var(--success); }
+        .badge.warn { background: rgba(168, 90, 102, 0.18); color: var(--danger); }
         .badge.info { background: rgba(181, 145, 151, 0.2); color: var(--accent-light); }
-        .badge.tip { background: rgba(127, 176, 105, 0.2); color: var(--success); border: 1px solid var(--success); font-weight: 600; }
+        .badge.tip { background: rgba(201, 166, 107, 0.2); color: var(--success); border: 1px solid var(--success); font-weight: 600; }
         .badge.muted { background: transparent; color: var(--text-faint); border: 1px dashed var(--border); }
         .client-tips { font-size: 0.95em; color: var(--success); }
         .client-info-row { color: var(--text-dim); font-size: 0.95em; display: flex; gap: 8px; align-items: center; }
@@ -1074,8 +1075,8 @@ window.openInMaps = function(address) {
             <p style="margin: 0 0 4px; color: #C0B0B4; font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.06em;">Navigate to</p>
             <p style="margin: 0 0 18px; font-size: 1.02em; word-break: break-word;">${escapeHtml(address)}</p>
             <div style="display: flex; gap: 10px;">
-                <a href="${wazeUrl}" target="_blank" rel="noopener noreferrer" data-app="waze" style="flex: 1; padding: 14px; background: #33CCFF; color: white; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600; font-family: inherit;">Waze</a>
-                <a href="${appleUrl}" target="_blank" rel="noopener noreferrer" data-app="apple" style="flex: 1; padding: 14px; background: #007AFF; color: white; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600; font-family: inherit;">Apple Maps</a>
+                <a href="${wazeUrl}" target="_blank" rel="noopener noreferrer" data-app="waze" style="flex: 1; padding: 14px; background: var(--info); color: white; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600; font-family: inherit;">Waze</a>
+                <a href="${appleUrl}" target="_blank" rel="noopener noreferrer" data-app="apple" style="flex: 1; padding: 14px; background: var(--accent); color: white; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600; font-family: inherit;">Apple Maps</a>
             </div>
             <button id="mapsChooserCancel" style="display: block; width: 100%; padding: 10px; margin-top: 10px; background: transparent; color: #C0B0B4; border: 1px solid #4A413E; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.92em;">Cancel</button>
         </div>

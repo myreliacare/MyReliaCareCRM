@@ -22,8 +22,9 @@
             --bg-deep: #1A1614; --bg-card: #2A2220; --bg-card-light: #3A3530;
             --bg-input: #2F2825; --accent: #B59197; --accent-dark: #A47F85;
             --accent-light: #D4C5C9; --text: #F5E8EB; --text-dim: #D4C5C9;
-            --text-faint: #8B7378; --border: #4A413E; --danger: #ff6b6b;
-            --success: #7FB069; --warn: #D4A85A; --personal: #6B8FA8;
+            --text-faint: #8B7378; --border: #4A413E;
+            --danger: #A85A66; --success: #C9A66B; --warn: #C4825C;
+            --info: #A89BC4; --personal: #A89BC4;
         }
         body { font-family: 'Cormorant', serif; background: var(--bg-deep); min-height: 100vh; padding: 20px; color: var(--text); line-height: 1.6; font-size: 18px; }
 
@@ -105,7 +106,7 @@
         .action-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 
         /* Unbilled panel */
-        .unbilled-panel { background: linear-gradient(135deg, rgba(212, 168, 90, 0.12) 0%, rgba(181, 145, 151, 0.08) 100%); border: 1px solid var(--warn); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
+        .unbilled-panel { background: linear-gradient(135deg, rgba(196, 130, 92, 0.12) 0%, rgba(181, 145, 151, 0.08) 100%); border: 1px solid var(--warn); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
         .unbilled-panel h2 { color: var(--warn); font-size: 1.3em; margin-bottom: 6px; }
         .unbilled-summary { color: var(--text-dim); font-size: 0.95em; margin-bottom: 14px; }
         .unbilled-clients { display: flex; flex-direction: column; gap: 10px; }
@@ -147,9 +148,9 @@
         .invoice-due.overdue { color: var(--danger); font-weight: 600; }
         .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
         .status-badge.draft { background: var(--bg-card-light); color: var(--text-dim); border: 1px solid var(--border); }
-        .status-badge.sent { background: rgba(107, 143, 168, 0.2); color: var(--personal); border: 1px solid var(--personal); }
-        .status-badge.paid { background: rgba(127, 176, 105, 0.2); color: var(--success); border: 1px solid var(--success); }
-        .status-badge.overdue { background: rgba(255, 107, 107, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+        .status-badge.sent { background: rgba(168, 155, 196, 0.2); color: var(--personal); border: 1px solid var(--personal); }
+        .status-badge.paid { background: rgba(201, 166, 107, 0.2); color: var(--success); border: 1px solid var(--success); }
+        .status-badge.overdue { background: rgba(168, 90, 102, 0.2); color: var(--danger); border: 1px solid var(--danger); }
         .status-badge.cancelled { background: var(--bg-card); color: var(--text-faint); border: 1px solid var(--border); text-decoration: line-through; }
 
         .empty-state { text-align: center; padding: 50px 20px; color: var(--text-faint); }
@@ -304,7 +305,7 @@
         .bfm-summary-divider { color: var(--text-faint); opacity: 0.5; margin: 0 2px; }
         .bfm-summary-hint { color: var(--text-faint); font-size: 0.85em; line-height: 1.4; margin-top: 8px; }
         .bfm-summary-hint em { color: var(--text-dim); font-style: normal; padding: 1px 5px; background: var(--bg-input); border-radius: 3px; font-size: 0.92em; }
-        .backfill-miles-warning { background: rgba(220, 150, 50, 0.08); border: 1px solid rgba(220, 150, 50, 0.3); color: var(--text); padding: 14px 16px; border-radius: 8px; margin-bottom: 14px; font-size: 0.92em; line-height: 1.5; }
+        .backfill-miles-warning { background: rgba(196, 130, 92, 0.08); border: 1px solid rgba(196, 130, 92, 0.3); color: var(--text); padding: 14px 16px; border-radius: 8px; margin-bottom: 14px; font-size: 0.92em; line-height: 1.5; }
         .bfm-setup-header { font-weight: 600; color: var(--text); font-size: 1em; margin-bottom: 4px; }
         .bfm-setup-sub { color: var(--text-dim); font-size: 0.88em; margin-bottom: 12px; line-height: 1.5; }
         .bfm-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-bottom: 14px; }
@@ -312,7 +313,7 @@
         .bfm-setup-client { color: var(--text); font-size: 0.95em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .bfm-setup-input { width: 72px; flex-shrink: 0; padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.92em; }
         .bfm-setup-input:focus { outline: none; border-color: var(--accent); }
-        .bfm-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(220, 150, 50, 0.2); }
+        .bfm-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(196, 130, 92, 0.2); }
         @media (max-width: 600px) {
             .bfm-setup-grid { grid-template-columns: 1fr; }
         }
@@ -372,6 +373,15 @@
             padding: 12px 14px;
             margin-bottom: 4px;
         }
+        .inv-client-wrap { position: relative; }
+        .inv-client-wrap input { padding-right: 36px; }
+        .inv-client-clear {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: transparent; border: none; color: var(--text-faint);
+            font-size: 1.4em; line-height: 1; cursor: pointer; padding: 4px 8px;
+            border-radius: 4px; font-family: system-ui, sans-serif;
+        }
+        .inv-client-clear:hover { color: var(--accent); background: var(--bg-input); }
         .visit-picker-header {
             display: flex; align-items: center; justify-content: space-between;
             gap: 12px; flex-wrap: wrap; margin-bottom: 10px;
@@ -425,24 +435,24 @@
             font-size: 0.75em; color: var(--accent-light);
         }
         .visit-picker-tag-upcoming {
-            background: rgba(139, 195, 240, 0.18);
-            color: #8BC3F0;
+            background: rgba(168, 155, 196, 0.18);
+            color: var(--info, #A89BC4);
         }
         .visit-picker-tag-done {
-            background: rgba(127, 176, 105, 0.18);
-            color: var(--success, #7FB069);
+            background: rgba(201, 166, 107, 0.18);
+            color: var(--success, #C9A66B);
         }
         .visit-picker-tag-auto {
-            background: rgba(127, 176, 105, 0.18);
-            color: var(--success, #7FB069);
+            background: rgba(201, 166, 107, 0.18);
+            color: var(--success, #C9A66B);
         }
         .visit-picker-tag-warn {
-            background: rgba(240, 180, 100, 0.18);
-            color: #E8A65C;
+            background: rgba(196, 130, 92, 0.18);
+            color: var(--warn, #C4825C);
         }
         .visit-picker-price-warn {
-            color: #E8A65C !important;
-            opacity: 0.85;
+            color: var(--warn, #C4825C) !important;
+            opacity: 0.9;
         }
         .visit-picker-price { text-align: right; color: var(--accent); font-weight: 600; }
         .visit-picker-empty {
@@ -858,7 +868,10 @@
             <div class="form-row">
                 <div class="form-group" style="flex: 2;">
                     <label>Client <span class="required">*</span></label>
-                    <input type="text" id="invClient" list="invClientList" placeholder="Type a name or pick from your list…" oninput="onInvClientChange()">
+                    <div class="inv-client-wrap">
+                        <input type="text" id="invClient" list="invClientList" placeholder="Type a name or pick from your list…" oninput="onInvClientChange()">
+                        <button type="button" class="inv-client-clear" onclick="clearInvClient()" title="Clear and pick a different client" aria-label="Clear client">×</button>
+                    </div>
                     <datalist id="invClientList"></datalist>
                 </div>
                 <div class="form-group">
@@ -1155,6 +1168,14 @@ function todayYmd() { return ymd(new Date()); }
 function parseYmd(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m-1, d); }
 function formatDate(s) { if (!s) return ''; return parseYmd(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
 function formatDateLong(s) { if (!s) return ''; return parseYmd(s).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }); }
+function formatTime12(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    if (isNaN(h)) return t;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = ((h + 11) % 12) + 1;
+    return `${h12}:${String(m || 0).padStart(2, '0')} ${period}`;
+}
 function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 function daysBetween(a, b) { return Math.round((parseYmd(b) - parseYmd(a)) / (1000*60*60*24)); }
 function generateId(p) { return `${p}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; }
@@ -1563,6 +1584,17 @@ function editInvoice(id) {
 function onInvClientChange() {
     renderVisitPicker();
 }
+
+// Clears the client input so the user can pick a different client without
+// having to backspace the whole name. Also refocuses for fast re-typing.
+function clearInvClient() {
+    const inp = document.getElementById('invClient');
+    if (!inp) return;
+    inp.value = '';
+    renderVisitPicker();
+    inp.focus();
+}
+window.clearInvClient = clearInvClient;
 
 // Resolve a typed name (or selected from datalist) to a clientId if it matches an existing client.
 // Returns { clientId, clientName }.
@@ -2869,21 +2901,73 @@ function _haversineMiles(a, b) {
     return 2 * R * Math.asin(Math.sqrt(x));
 }
 
+// Parses a US address string like "12895 Frogtown Connector Rd, Walton KY 41094"
+// (or with extra comma "Walton, KY 41094") into structured parts.
+function _parseUSAddress(s) {
+    const out = { street: '', city: '', state: '', zip: '' };
+    if (!s) return out;
+    const parts = s.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length === 0) return out;
+    out.street = parts[0];
+    const tail = parts.slice(1).join(' ');
+    const zipMatch = tail.match(/\b(\d{5}(-\d{4})?)\b/);
+    if (zipMatch) out.zip = zipMatch[1];
+    const stateMatch = tail.match(/\b([A-Za-z]{2})\b(?!.*\b[A-Za-z]{2}\b)/);
+    if (stateMatch) out.state = stateMatch[1].toUpperCase();
+    let cityChunk = tail;
+    if (out.zip) cityChunk = cityChunk.replace(out.zip, '');
+    if (out.state) cityChunk = cityChunk.replace(new RegExp('\\b' + out.state + '\\b', 'i'), '');
+    out.city = cityChunk.replace(/[,\s]+/g, ' ').trim();
+    return out;
+}
+
+// Multi-strategy geocoder. Same approach as index.html — necessary because rural / uncommon
+// road names often fail with a freeform Nominatim query but succeed with a structured one.
 async function _geocodeAddress(addressStr) {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`;
-    try {
-        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!r.ok) return null;
-        const data = await r.json();
-        if (!Array.isArray(data) || data.length === 0) return null;
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        if (isNaN(lat) || isNaN(lng)) return null;
-        return { lat, lng };
-    } catch (e) {
-        console.error('[geocode] error:', e);
-        return null;
+    const attempts = [];
+    // Strategy 1: freeform
+    attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`);
+    // Strategy 2: structured query
+    const parts = _parseUSAddress(addressStr);
+    if (parts.street && (parts.city || parts.zip)) {
+        const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'us' });
+        if (parts.street) params.set('street', parts.street);
+        if (parts.city)   params.set('city', parts.city);
+        if (parts.state)  params.set('state', parts.state);
+        if (parts.zip)    params.set('postalcode', parts.zip);
+        attempts.push('https://nominatim.openstreetmap.org/search?' + params.toString());
     }
+    // Strategy 3: drop the street suffix
+    const simplified = addressStr.replace(/\b(rd|dr|st|ln|ct|ave|blvd|hwy|way|trl|pl)\b\.?/gi, '').replace(/\s+/g, ' ').trim();
+    if (simplified !== addressStr) {
+        attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(simplified)}&format=json&limit=1&countrycodes=us`);
+    }
+    // Strategy 4: drop the street number (road-level fallback)
+    const noNumber = addressStr.replace(/^\d+\s+/, '').trim();
+    if (noNumber !== addressStr) {
+        attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(noNumber)}&format=json&limit=1&countrycodes=us`);
+    }
+
+    for (let i = 0; i < attempts.length; i++) {
+        try {
+            if (i > 0) await _sleep(1100);  // Nominatim policy: max 1 req/sec
+            const r = await fetch(attempts[i], { headers: { 'Accept': 'application/json' } });
+            if (!r.ok) { console.warn(`[geocode] HTTP ${r.status} on attempt ${i+1}`); continue; }
+            const data = await r.json();
+            if (Array.isArray(data) && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    console.log(`[geocode] hit on attempt ${i+1}: ${data[0].display_name}`);
+                    return { lat, lng };
+                }
+            }
+            console.log(`[geocode] no result on attempt ${i+1}`);
+        } catch (e) {
+            console.error(`[geocode] error on attempt ${i+1}:`, e);
+        }
+    }
+    return null;
 }
 
 function _clientAddressStr(c) {
@@ -2893,6 +2977,78 @@ function _clientAddressStr(c) {
 }
 
 function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Prompts the user to paste lat/lng coordinates for their home address when Nominatim
+// can't find it. Accepts "37.123, -84.567" or "37.123 -84.567". On valid input,
+// saves homeCoords and resumes the auto-compute flow.
+function _bfmPromptManualHomeCoords() {
+    const existing = document.getElementById('bfmManualCoordsModal');
+    if (existing) existing.remove();
+
+    const home = _getHomeSetting() || {};
+    const homeAddress = home.homeAddress || '(unset)';
+
+    const el = document.createElement('div');
+    el.id = 'bfmManualCoordsModal';
+    el.className = 'modal-overlay active';
+    el.style.zIndex = '1200';
+    el.innerHTML = `
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2>Enter home coordinates</h2>
+                <button class="modal-close" onclick="document.getElementById('bfmManualCoordsModal').remove()">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="color: var(--text-dim); margin-bottom: 10px; font-size: 0.92em; line-height: 1.45;">
+                    Couldn't find <em>${escapeHtml(homeAddress)}</em> in OpenStreetMap (common for rural addresses). Grab coordinates from Google Maps instead:
+                </div>
+                <ol style="color: var(--text-dim); font-size: 0.9em; padding-left: 20px; margin: 0 0 14px 0; line-height: 1.55;">
+                    <li>Open Google Maps and search your address</li>
+                    <li>Right-click the pin, then click the lat/lng numbers at the top to copy</li>
+                    <li>Paste below</li>
+                </ol>
+                <input type="text" id="bfmManualCoordsInput" placeholder="e.g. 38.8654, -84.6088"
+                    style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 1em; box-sizing: border-box;">
+                <div id="bfmManualCoordsError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="document.getElementById('bfmManualCoordsModal').remove()">Cancel</button>
+                <button class="btn btn-primary" onclick="_bfmSubmitManualHomeCoords()">Save &amp; compute</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => {
+        const input = document.getElementById('bfmManualCoordsInput');
+        if (input) {
+            input.focus();
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') _bfmSubmitManualHomeCoords();
+            });
+        }
+    }, 50);
+}
+
+function _bfmSubmitManualHomeCoords() {
+    const inp = document.getElementById('bfmManualCoordsInput');
+    const err = document.getElementById('bfmManualCoordsError');
+    if (!inp) return;
+    const raw = (inp.value || '').trim();
+    const nums = raw.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
+    if (nums.length !== 2) {
+        if (err) err.textContent = 'Enter two numbers separated by a comma or space.';
+        return;
+    }
+    const [lat, lng] = nums;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        if (err) err.textContent = 'Coordinates out of range. Latitude must be -90 to 90, longitude -180 to 180.';
+        return;
+    }
+    _saveHomeSetting({ homeCoords: { lat, lng } });
+    document.getElementById('bfmManualCoordsModal').remove();
+    showToast('Home coordinates saved');
+    _bfmAutoComputeMiles();
+}
 
 function _bfmRenderSetupPanel(missingClients) {
     // Renders into #backfillMilesWarning based on current state.
@@ -3002,11 +3158,13 @@ async function _bfmAutoComputeMiles() {
     // Step 1: ensure home is geocoded
     let homeCoords = home.homeCoords;
     if (!homeCoords) {
-        if (progress) progress.textContent = 'Looking up home address…';
+        if (progress) progress.textContent = 'Looking up home address (trying multiple variations)…';
         homeCoords = await _geocodeAddress(home.homeAddress);
         if (!homeCoords) {
-            showToast('Could not look up home address — check spelling', 'error');
             if (btn) btn.disabled = false;
+            if (progress) progress.textContent = '';
+            // Same fallback as the in-page flow — let the user paste lat/lng from Google Maps
+            _bfmPromptManualHomeCoords();
             return;
         }
         _saveHomeSetting({ homeCoords });

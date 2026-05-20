@@ -32,12 +32,15 @@
             --text-dim: #D4C5C9;
             --text-faint: #8B7378;
             --border: #4A413E;
-            --danger: #ff6b6b;
-            --success: #7FB069;
-            --warn: #E0B176;
-            --personal: #6B8FA8;
-            --charlie: #8AA89C;
-            --visit-meetgreet: #8B7378;
+            /* Semantic colors — all sit inside the rose/mauve/champagne family so the UI feels
+               unified instead of borrowing traffic-light cliches (green/yellow/red). */
+            --danger: #A85A66;     /* wine — delete, errors */
+            --success: #C9A66B;    /* antique gold — paid, done, auto-priced */
+            --warn: #C4825C;       /* terracotta — needs attention, missing data */
+            --info: #A89BC4;       /* dusty lavender — upcoming, scheduled */
+            --personal: #A89BC4;   /* lavender — matches info */
+            --charlie: #9B7FA8;    /* plum/orchid — Charlie's driver color */
+            --visit-meetgreet: #C4A87A;
             --visit-30min: #B59197;
             --visit-60min: #D4A5AC;
         }
@@ -442,7 +445,7 @@
         }
         .todo-item.done { opacity: 0.55; }
         .todo-item.done .todo-text { text-decoration: line-through; color: var(--text-faint); }
-        .todo-item.overdue { border-color: rgba(255, 107, 107, 0.55); }
+        .todo-item.overdue { border-color: rgba(168, 90, 102, 0.55); }
         .todo-item.editing { border-color: var(--accent); background: var(--bg); }
         .todo-check {
             width: 22px; height: 22px;
@@ -840,7 +843,7 @@
             font-family: 'Cormorant', serif;
         }
         .assignee-badge.kasey   { background: rgba(181, 145, 151, 0.2); color: var(--accent); border: 1px solid var(--accent); }
-        .assignee-badge.charlie { background: rgba(138, 168, 156, 0.2); color: var(--charlie); border: 1px solid var(--charlie); }
+        .assignee-badge.charlie { background: rgba(155, 127, 168, 0.2); color: var(--charlie); border: 1px solid var(--charlie); }
         .assignee-badge.both    { background: rgba(212, 197, 201, 0.15); color: var(--accent-light); border: 1px solid var(--accent-light); }
 
         .map-links { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
@@ -1237,9 +1240,9 @@
             letter-spacing: 0.5px;
             vertical-align: middle;
         }
-        .assignee-badge.kasey { background: #B59197; color: white; }
-        .assignee-badge.charlie { background: #8AA89C; color: white; }
-        .assignee-badge.both { background: linear-gradient(90deg, #B59197 50%, #8AA89C 50%); color: white; }
+        .assignee-badge.kasey { background: var(--accent); color: white; }
+        .assignee-badge.charlie { background: var(--charlie); color: white; }
+        .assignee-badge.both { background: linear-gradient(90deg, var(--accent) 50%, var(--charlie) 50%); color: white; }
 
         .assign-toggle { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
         .assign-option {
@@ -1254,8 +1257,8 @@
         }
         .assign-option input { display: none; }
         .assign-option.checked { border-color: var(--accent); background: var(--accent); color: white; }
-        .assign-option.checked.charlie { background: #8AA89C; border-color: #8AA89C; }
-        .assign-option.checked.both { background: linear-gradient(90deg, #B59197 50%, #8AA89C 50%); border-color: var(--accent); }
+        .assign-option.checked.charlie { background: var(--charlie); border-color: var(--charlie); }
+        .assign-option.checked.both { background: linear-gradient(90deg, var(--accent) 50%, var(--charlie) 50%); border-color: var(--accent); }
 
         .paid-badge {
             display: inline-block;
@@ -1517,7 +1520,7 @@
         .bf-year-bar-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
         .bf-year-stat { color: var(--text-faint); font-size: 0.85em; font-variant-numeric: tabular-nums; white-space: nowrap; }
         /* Daily Mileage panel */
-        .bf-mileage-warning { background: rgba(220, 150, 50, 0.08); border: 1px solid rgba(220, 150, 50, 0.3); color: var(--text); padding: 14px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 0.92em; line-height: 1.5; }
+        .bf-mileage-warning { background: rgba(196, 130, 92, 0.08); border: 1px solid rgba(196, 130, 92, 0.3); color: var(--text); padding: 14px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 0.92em; line-height: 1.5; }
         .bf-setup-header { font-weight: 600; color: var(--text); font-size: 1em; margin-bottom: 4px; }
         .bf-setup-sub { color: var(--text-dim); font-size: 0.88em; margin-bottom: 12px; line-height: 1.5; }
         .bf-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-bottom: 14px; }
@@ -1525,7 +1528,7 @@
         .bf-setup-client { color: var(--text); font-size: 0.95em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .bf-setup-input { width: 72px; flex-shrink: 0; padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.92em; }
         .bf-setup-input:focus { outline: none; border-color: var(--accent); }
-        .bf-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(220, 150, 50, 0.2); }
+        .bf-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(196, 130, 92, 0.2); }
         @media (max-width: 600px) {
             .bf-setup-grid { grid-template-columns: 1fr; }
         }
@@ -1685,8 +1688,8 @@
             min-width: 0;
         }
         .agenda-event.completed { opacity: 0.55; }
-        .agenda-event.personal { border-left-color: #7a8fa6; }
-        .agenda-event.meet-greet { border-left-color: #c4a87a; }
+        .agenda-event.personal { border-left-color: var(--personal); }
+        .agenda-event.meet-greet { border-left-color: var(--visit-meetgreet); }
         .agenda-event.thirty-min { border-left-color: var(--accent); }
         .agenda-event.sixty-min { border-left-color: var(--accent-light); }
         .agenda-event-time { color: var(--accent-light); font-size: 0.92em; font-weight: 600; }
@@ -1850,7 +1853,7 @@
         }
         .status-toggle:hover { border-color: var(--accent); color: var(--text); }
         .status-toggle.checked {
-            background: rgba(140, 178, 130, 0.15);
+            background: rgba(201, 166, 107, 0.15);
             border-color: var(--success);
             color: var(--success);
         }
