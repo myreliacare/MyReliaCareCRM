@@ -6336,13 +6336,14 @@ function _bfRenderSetupPanel(missingClients) {
 
 // Modal for entering / changing the Geocodio API key
 function _bfShowGeocodioKeyModal() {
+    console.log('[geocodio] modal opener invoked');
     const existing = document.getElementById('bfGeocodioKeyModal');
     if (existing) existing.remove();
     const currentKey = _bfGetGeocodioKey() || '';
     const el = document.createElement('div');
     el.id = 'bfGeocodioKeyModal';
     el.className = 'modal-overlay active';
-    el.style.zIndex = '1200';
+    el.style.zIndex = '10000';  // above the backfill workspace (9500), which would otherwise cover the modal
     el.innerHTML = `
         <div class="modal modal-sm">
             <div class="modal-header">
@@ -6404,6 +6405,12 @@ function _bfRemoveGeocodioKey() {
     _bfRenderMileage();
 }
 
+// Belt-and-suspenders: bind to window so onclick attributes from dynamically-injected
+// HTML always resolve, regardless of scope quirks.
+window._bfShowGeocodioKeyModal = _bfShowGeocodioKeyModal;
+window._bfSaveGeocodioKeyFromModal = _bfSaveGeocodioKeyFromModal;
+window._bfRemoveGeocodioKey = _bfRemoveGeocodioKey;
+
 function _bfSaveHomeAddress() {
     const inp = document.getElementById('bfHomeAddressInput');
     if (!inp) return;
@@ -6444,7 +6451,7 @@ function _bfPromptManualHomeCoords() {
     const el = document.createElement('div');
     el.id = 'bfManualCoordsModal';
     el.className = 'modal-overlay active';
-    el.style.zIndex = '1200';
+    el.style.zIndex = '10000';
     el.innerHTML = `
         <div class="modal modal-sm">
             <div class="modal-header">
