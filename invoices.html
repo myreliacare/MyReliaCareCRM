@@ -2684,8 +2684,7 @@ function _visitCountsForDriver(visit, driver) {
     return a === 'charlie';
 }
 
-function _bfmTimeToMin(t) {
-    if (!t) return 0;
+function _bfmTimeToMin(t) {    if (!t) return 0;
     const [h, m] = t.split(':').map(Number);
     return (h || 0) * 60 + (m || 0);
 }
@@ -2868,10 +2867,56 @@ function _bfmBuildContent(days, clientsById) {
                 <span class="bfm-summary-divider">·</span>
                 <span class="bfm-summary-num">${totalC.toFixed(1)}</span><span class="bfm-summary-lbl">Charlie mi</span>
             </div>
-            <div class="bfm-summary-hint">Auto-computed from visit assignments. <em>"Both"</em> visits count toward Kasey (assumes her car). Expand any day to override.</div>
+            <div class="bfm-summary-hint">Each row has a <strong>Get real miles from Google Maps</strong> button — opens the day's route in Google Maps so you can read the real driving miles, then expand the row and type that number into the override.</div>
         </div>
     `;
     return summaryHtml + days.map(d => _bfmRenderDayRow(d, clientsById)).join('');
+}
+
+/* Build a Google Maps Directions URL for a given day, with home as origin
+ * and destination, every visit's client address as a waypoint in time order,
+ * and home re-inserted as a waypoint at any 60+ min gap. Uses street addresses
+ * (not lat/lng) so Google Maps' own geocoder handles partial/typo'd addresses.
+ * Returns null if home address or all client addresses are missing.
+ */
+function _bfmBuildDayMapsUrl(visits, clientsById) {
+    const home = _getHomeSetting();
+    const homeAddr = home && home.homeAddress ? home.homeAddress : null;
+    if (!homeAddr) return null;
+
+    const sorted = (visits || []).slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    if (sorted.length === 0) return null;
+
+    const addrFor = (c) => {
+        if (!c) return null;
+        const parts = [c.address, c.city, c.state, c.zip].map(x => (x || '').trim()).filter(Boolean);
+        return parts.length >= 2 ? parts.join(', ') : null;
+    };
+
+    const stops = [];
+    let prevEndMin = null;
+    for (const v of sorted) {
+        const c = clientsById[v.clientId];
+        const addr = addrFor(c);
+        if (!addr) continue;
+        const startMin = _bfmTimeToMin(v.time);
+        if (prevEndMin !== null && (startMin - prevEndMin) >= 60) {
+            stops.push(homeAddr);
+        }
+        stops.push(addr);
+        const dur = _BFM_VISIT_DURATION[v.visitType] || 30;
+        prevEndMin = startMin + dur;
+    }
+    if (stops.length === 0) return null;
+
+    const params = new URLSearchParams({
+        api: '1',
+        origin: homeAddr,
+        destination: homeAddr,
+        waypoints: stops.join('|'),
+        travelmode: 'driving'
+    });
+    return 'https://www.google.com/maps/dir/?' + params.toString();
 }
 
 function _bfmRenderDayRow(d, clientsById) {
@@ -2899,11 +2944,17 @@ function _bfmRenderDayRow(d, clientsById) {
         </div>
     `;
 
+    const mapsUrl = _bfmBuildDayMapsUrl(d.visits, clientsById);
+    const mapsBtnHtml = mapsUrl
+        ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="padding: 3px 10px; text-decoration: none; font-size: 0.78em; white-space: nowrap; display: inline-block; margin-top: 6px;">Get real miles from Google Maps</a>`
+        : '';
+
     return `
         <div class="backfill-day-row" data-date="${d.date}">
             <div class="backfill-day-info">
                 <div class="backfill-day-date">${formatDate(d.date)}</div>
                 <div class="backfill-day-visits">${d.visits.length} visit${d.visits.length === 1 ? '' : 's'} · ${escapeHtml(clientNames)}</div>
+                ${mapsBtnHtml}
             </div>
             <div class="bfm-day-totals">
                 <div class="bfm-driver-line"><span class="bfm-driver-label">Kasey</span> <span class="bfm-driver-miles">${fmt(kCalc.miles)}</span></div>
