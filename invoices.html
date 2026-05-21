@@ -2694,11 +2694,53 @@ function _bfmCalcDayDriverMiles(visits, clientsById) {
     if (!visits || visits.length === 0) return { miles: 0, breakdown: [], missing: [] };
     const sorted = visits.slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
     const missing = new Set();
-    const milesFor = (cid) => {
+
+    const coordsFor = (cid) => {
         const c = clientsById[cid];
-        if (!c || c.milesFromHome == null || c.milesFromHome === '') { missing.add(cid); return null; }
-        return parseFloat(c.milesFromHome) || 0;
+        if (!c) return null;
+        return c.coords || c.coordsCache || null;
     };
+
+    let homeCoords = null;
+    try {
+        const settings = Store.getSettings ? Store.getSettings() : [];
+        const homeRec = (settings || []).find(s => s && s.key === 'home');
+        homeCoords = homeRec?.value?.homeCoords || null;
+    } catch (e) {}
+
+    const hav = (a, b) => {
+        if (!a || !b) return null;
+        const toRad = (d) => d * Math.PI / 180;
+        const R = 3958.7613;
+        const dLat = toRad(b.lat - a.lat);
+        const dLng = toRad(b.lng - a.lng);
+        const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+        const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+        return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 1.3 * 10) / 10;
+    };
+
+    const homeToClient = (cid) => {
+        const c = clientsById[cid];
+        if (!c) { missing.add(cid); return null; }
+        const cc = coordsFor(cid);
+        if (homeCoords && cc) return hav(homeCoords, cc);
+        if (c.milesFromHome != null && c.milesFromHome !== '') return parseFloat(c.milesFromHome) || 0;
+        missing.add(cid);
+        return null;
+    };
+
+    const clientToClient = (a, b) => {
+        const ac = coordsFor(a), bc = coordsFor(b);
+        if (ac && bc) return hav(ac, bc);
+        const ca = clientsById[a], cb = clientsById[b];
+        const am = ca && ca.milesFromHome != null ? parseFloat(ca.milesFromHome) : null;
+        const bm = cb && cb.milesFromHome != null ? parseFloat(cb.milesFromHome) : null;
+        if (am != null && bm != null) return Math.round(((am + bm) / 2) * 10) / 10;
+        if (!ac) missing.add(a);
+        if (!bc) missing.add(b);
+        return null;
+    };
+
     let total = 0;
     const breakdown = [];
     let prevClient = null;
@@ -2706,37 +2748,37 @@ function _bfmCalcDayDriverMiles(visits, clientsById) {
     for (const v of sorted) {
         const startMin = _bfmTimeToMin(v.time);
         const dur = _BFM_VISIT_DURATION[v.visitType] || 30;
-        const cMiles = milesFor(v.clientId);
         const cName = (v.clientName || 'Client').slice(0, 18);
+
         if (prevClient === null) {
-            if (cMiles != null) { total += cMiles; breakdown.push({ label: `Home → ${cName}`, miles: cMiles }); }
+            const m = homeToClient(v.clientId);
+            if (m != null) { total += m; breakdown.push({ label: `Home → ${cName}`, miles: m }); }
             else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
         } else {
             const gap = startMin - (prevEndMin || startMin);
-            const prevMiles = milesFor(prevClient);
             if (gap >= 60) {
-                if (prevMiles != null) { total += prevMiles; breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: prevMiles }); }
+                const back = homeToClient(prevClient);
+                if (back != null) { total += back; breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: back }); }
                 else { breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: null }); }
-                if (cMiles != null) { total += cMiles; breakdown.push({ label: `Home → ${cName}`, miles: cMiles }); }
+                const out = homeToClient(v.clientId);
+                if (out != null) { total += out; breakdown.push({ label: `Home → ${cName}`, miles: out }); }
                 else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
             } else if (v.clientId === prevClient) {
                 breakdown.push({ label: `at ${cName} (${gap}min · no drive)`, miles: 0 });
             } else {
-                if (prevMiles != null && cMiles != null) {
-                    const direct = Math.round(((prevMiles + cMiles) / 2) * 10) / 10;
-                    total += direct;
-                    breakdown.push({ label: `prev → ${cName} (${gap}min · direct)`, miles: direct });
-                } else {
-                    breakdown.push({ label: `prev → ${cName} (${gap}min · direct)`, miles: null });
-                }
+                const m = clientToClient(prevClient, v.clientId);
+                const haveBothCoords = coordsFor(prevClient) && coordsFor(v.clientId);
+                const tag = haveBothCoords ? '' : ' · approx';
+                if (m != null) { total += m; breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: m }); }
+                else { breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: null }); }
             }
         }
         prevClient = v.clientId;
         prevEndMin = startMin + dur;
     }
     if (prevClient) {
-        const lastMiles = milesFor(prevClient);
-        if (lastMiles != null) { total += lastMiles; breakdown.push({ label: `last → Home`, miles: lastMiles }); }
+        const m = homeToClient(prevClient);
+        if (m != null) { total += m; breakdown.push({ label: `last → Home`, miles: m }); }
         else { breakdown.push({ label: `last → Home`, miles: null }); }
     }
     return { miles: Math.round(total * 10) / 10, breakdown, missing: [...missing] };
@@ -2925,16 +2967,18 @@ function _parseUSAddress(s) {
 // Nominatim can't find. Free, no API key. Returns { lat, lng } or null.
 async function _censusGeocode(addressStr) {
     const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(addressStr)}&benchmark=Public_AR_Current&format=json`;
+    console.log(`[census] trying: ${addressStr}`);
     try {
         const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!r.ok) { console.warn(`[census] HTTP ${r.status}`); return null; }
+        console.log(`[census] HTTP ${r.status}`);
+        if (!r.ok) return null;
         const data = await r.json();
         const matches = data?.result?.addressMatches;
-        if (!Array.isArray(matches) || matches.length === 0) { console.log('[census] no match'); return null; }
+        if (!Array.isArray(matches) || matches.length === 0) { console.log('[census] no matches in response'); return null; }
         const lat = parseFloat(matches[0].coordinates?.y);
         const lng = parseFloat(matches[0].coordinates?.x);
         if (isNaN(lat) || isNaN(lng)) return null;
-        console.log(`[census] hit: ${matches[0].matchedAddress}`);
+        console.log(`[census] ✓ HIT: ${matches[0].matchedAddress} → ${lat}, ${lng}`);
         return { lat, lng };
     } catch (e) {
         console.warn('[census] error:', e.message);
@@ -2942,12 +2986,36 @@ async function _censusGeocode(addressStr) {
     }
 }
 
-// Multi-strategy geocoder. Tries US Census Bureau first (best for US rural addresses),
-// falls back to Nominatim variations if Census returns no match.
+// Photon (Komoot) — OSM-based with better fuzzy matching than Nominatim.
+async function _photonGeocode(addressStr) {
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(addressStr)}&limit=1&lang=en`;
+    console.log(`[photon] trying: ${addressStr}`);
+    try {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        console.log(`[photon] HTTP ${r.status}`);
+        if (!r.ok) return null;
+        const data = await r.json();
+        const feat = data?.features?.[0];
+        if (!feat) { console.log('[photon] no features'); return null; }
+        const [lng, lat] = feat.geometry?.coordinates || [];
+        if (isNaN(lat) || isNaN(lng)) return null;
+        console.log(`[photon] ✓ HIT: ${feat.properties?.name || ''} → ${lat}, ${lng}`);
+        return { lat, lng };
+    } catch (e) {
+        console.warn('[photon] error:', e.message);
+        return null;
+    }
+}
+
+// Multi-strategy geocoder. Census → Photon → Nominatim chain.
 async function _geocodeAddress(addressStr) {
-    // PRIMARY: Census Bureau geocoder — handles rural US addresses Nominatim can't find
+    console.log(`[geocode] === starting lookup: "${addressStr}" ===`);
+
     const census = await _censusGeocode(addressStr);
     if (census) return census;
+
+    const photon = await _photonGeocode(addressStr);
+    if (photon) return photon;
 
     const attempts = [];
     // Strategy 1: freeform
@@ -3020,38 +3088,73 @@ function _bfmPromptManualHomeCoords() {
     el.innerHTML = `
         <div class="modal modal-sm">
             <div class="modal-header">
-                <h2>Enter home coordinates</h2>
+                <h2>Pin your home</h2>
                 <button class="modal-close" onclick="document.getElementById('bfmManualCoordsModal').remove()">×</button>
             </div>
             <div class="modal-body">
-                <div style="color: var(--text-dim); margin-bottom: 10px; font-size: 0.92em; line-height: 1.45;">
-                    Couldn't find <em>${escapeHtml(homeAddress)}</em> in OpenStreetMap (common for rural addresses). Grab coordinates from Google Maps instead:
+                <div style="color: var(--text-dim); margin-bottom: 14px; font-size: 0.92em; line-height: 1.45;">
+                    Couldn't auto-locate <em>${escapeHtml(homeAddress)}</em>. The fastest fix:
                 </div>
-                <ol style="color: var(--text-dim); font-size: 0.9em; padding-left: 20px; margin: 0 0 14px 0; line-height: 1.55;">
-                    <li>Open Google Maps and search your address</li>
-                    <li>Right-click the pin, then click the lat/lng numbers at the top to copy</li>
-                    <li>Paste below</li>
-                </ol>
-                <input type="text" id="bfmManualCoordsInput" placeholder="e.g. 38.8654, -84.6088"
-                    style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 1em; box-sizing: border-box;">
-                <div id="bfmManualCoordsError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
+                <button class="btn btn-primary" id="bfmUseMyLocationBtn" onclick="_bfmUseMyCurrentLocation()" style="width: 100%; padding: 14px; font-size: 1em;">
+                    📍 Use my current location
+                </button>
+                <div style="color: var(--text-faint); font-size: 0.82em; margin-top: 6px; line-height: 1.4;">
+                    One tap. Your browser will ask permission. Only works if you're at home right now.
+                </div>
+                <div id="bfmLocStatus" style="color: var(--danger); font-size: 0.85em; margin-top: 8px; min-height: 1em;"></div>
+
+                <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+                    <a href="#" onclick="event.preventDefault(); document.getElementById('bfmManualSection').style.display='block'; this.style.display='none';" style="color: var(--text-faint); font-size: 0.85em; text-decoration: underline; cursor: pointer;">Or enter coordinates manually</a>
+                    <div id="bfmManualSection" style="display: none; margin-top: 10px;">
+                        <div style="color: var(--text-faint); font-size: 0.85em; margin-bottom: 6px;">
+                            Open Google Maps, right-click your home, click the lat/lng numbers to copy, paste here:
+                        </div>
+                        <input type="text" id="bfmManualCoordsInput" placeholder="e.g. 38.8654, -84.6088"
+                            style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 1em; box-sizing: border-box;">
+                        <div id="bfmManualCoordsError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
+                        <button class="btn btn-primary btn-sm" onclick="_bfmSubmitManualHomeCoords()" style="margin-top: 8px;">Save &amp; compute</button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="document.getElementById('bfmManualCoordsModal').remove()">Cancel</button>
-                <button class="btn btn-primary" onclick="_bfmSubmitManualHomeCoords()">Save &amp; compute</button>
             </div>
         </div>
     `;
     document.body.appendChild(el);
-    setTimeout(() => {
-        const input = document.getElementById('bfmManualCoordsInput');
-        if (input) {
-            input.focus();
-            input.addEventListener('keydown', e => {
-                if (e.key === 'Enter') _bfmSubmitManualHomeCoords();
-            });
-        }
-    }, 50);
+}
+
+// One-tap geolocation API — only works if she's at home right now.
+function _bfmUseMyCurrentLocation() {
+    const status = document.getElementById('bfmLocStatus');
+    const btn = document.getElementById('bfmUseMyLocationBtn');
+    if (!('geolocation' in navigator)) {
+        if (status) status.textContent = 'Your browser doesn\'t support geolocation. Use manual entry below.';
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = '📍 Getting location…'; }
+    if (status) status.textContent = '';
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            _saveHomeSetting({ homeCoords: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
+            const modal = document.getElementById('bfmManualCoordsModal');
+            if (modal) modal.remove();
+            showToast('Home location saved');
+            _bfmAutoComputeMiles();
+        },
+        (err) => {
+            if (btn) { btn.disabled = false; btn.textContent = '📍 Use my current location'; }
+            let msg;
+            switch (err.code) {
+                case 1: msg = 'Permission denied. Allow location in your browser settings or use manual entry.'; break;
+                case 2: msg = 'Location unavailable. Try manual entry below.'; break;
+                case 3: msg = 'Request timed out. Try again or use manual entry.'; break;
+                default: msg = 'Couldn\'t get location. Use manual entry below.';
+            }
+            if (status) status.textContent = msg;
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
 }
 
 function _bfmSubmitManualHomeCoords() {

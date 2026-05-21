@@ -709,8 +709,12 @@
             <div class="form-group"><label>Access Instructions</label><textarea id="cAccess" rows="2" placeholder="Gate code, lockbox, key location…"></textarea></div>
 
             <div class="form-group">
-                <label>Miles from Home <span style="color: var(--text-faint); font-weight: 400; font-size: 0.85em; text-transform: none; letter-spacing: 0;">one-way · used for mileage auto-calc</span></label>
-                <input type="number" id="cMilesFromHome" min="0" step="0.1" placeholder="e.g. 4.2">
+                <label>Miles from Home <span style="color: var(--text-faint); font-weight: 400; font-size: 0.85em; text-transform: none; letter-spacing: 0;">one-way · auto-computed when you set this client's location</span></label>
+                <div style="display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap;">
+                    <input type="number" id="cMilesFromHome" min="0" step="0.1" placeholder="e.g. 4.2" style="flex: 1; min-width: 100px;">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="captureClientLocation()" id="cCaptureBtn" style="white-space: nowrap;">📍 Use my location</button>
+                </div>
+                <div id="cCoordsStatus" style="color: var(--text-faint); font-size: 0.82em; margin-top: 4px; min-height: 1em;"></div>
             </div>
 
             <h3 class="form-section-title">Pricing</h3>
@@ -972,6 +976,77 @@ window.updateVisitFilter = function(key, value) {
 };
 
 let editingClientId = null;
+// Coords captured during the current client-edit session (from "Use my location" tap
+// or existing client.coords on edit). null = no coords yet. Merged into data on save.
+let _capturedCoords = null;
+
+// Compute miles between two lat/lng pairs using Haversine, then multiply by 1.3 to
+// approximate road distance from straight-line. Matches the formula used in index.html.
+function _hav(a, b) {
+    if (!a || !b) return null;
+    const toRad = (d) => d * Math.PI / 180;
+    const R = 3958.7613;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+    const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+// Reads home coords from the settings collection (set via index.html backfill workspace).
+function _getHomeCoords() {
+    const settings = Store.getSettings ? Store.getSettings() : [];
+    const homeRec = (settings || []).find(s => s && s.key === 'home');
+    return homeRec?.value?.homeCoords || null;
+}
+
+// One-tap capture this client's location from the browser. Most useful when you're
+// physically at the client's house. Saves coords + auto-fills miles from home.
+function captureClientLocation() {
+    const status = document.getElementById('cCoordsStatus');
+    const btn = document.getElementById('cCaptureBtn');
+    if (!('geolocation' in navigator)) {
+        if (status) { status.textContent = 'Your browser doesn\'t support geolocation.'; status.style.color = 'var(--danger)'; }
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = '📍 Getting location…'; }
+    if (status) { status.textContent = ''; status.style.color = 'var(--text-faint)'; }
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            _capturedCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            // Try to auto-fill miles from home if home coords are known
+            const home = _getHomeCoords();
+            if (home) {
+                const straight = _hav(home, _capturedCoords);
+                const oneway = Math.round(straight * 1.3 * 10) / 10;
+                document.getElementById('cMilesFromHome').value = oneway;
+                if (status) {
+                    status.textContent = `✓ Location saved. Auto-filled ${oneway} mi from home.`;
+                    status.style.color = 'var(--success)';
+                }
+            } else {
+                if (status) {
+                    status.textContent = '✓ Location saved. Set home coords once and miles auto-fills next time.';
+                    status.style.color = 'var(--success)';
+                }
+            }
+            if (btn) { btn.disabled = false; btn.textContent = '📍 Recapture'; }
+        },
+        (err) => {
+            if (btn) { btn.disabled = false; btn.textContent = '📍 Use my location'; }
+            let msg;
+            switch (err.code) {
+                case 1: msg = 'Permission denied. Allow location in your browser settings.'; break;
+                case 2: msg = 'Location unavailable. Are you indoors with no GPS signal?'; break;
+                case 3: msg = 'Timed out. Try again.'; break;
+                default: msg = 'Couldn\'t get location.';
+            }
+            if (status) { status.textContent = msg; status.style.color = 'var(--danger)'; }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+}
+window.captureClientLocation = captureClientLocation;
 
 function uploadLogo(e) {
     const file = e.target.files[0]; if (!file) return;
@@ -1323,6 +1398,7 @@ function scheduleVisitFor(clientId) {
 
 function openClientModal() {
     editingClientId = null;
+    _capturedCoords = null;
     document.getElementById('clientModalTitle').textContent = 'Add Client';
     document.getElementById('saveClientBtn').textContent = 'Save Client';
     ['cName','cPhone','cEmail','cAddress','cCity','cState','cZip','cAccess','cNotes',
@@ -1332,6 +1408,10 @@ function openClientModal() {
     document.getElementById('cPreferredContact').value = '';
     document.getElementById('petsContainer').innerHTML = '';
     document.getElementById('timeWindowsContainer').innerHTML = '';
+    const stat = document.getElementById('cCoordsStatus');
+    if (stat) { stat.textContent = ''; }
+    const btn = document.getElementById('cCaptureBtn');
+    if (btn) btn.textContent = '📍 Use my location';
     openModal('clientModal');
     setTimeout(() => document.getElementById('cName').focus(), 50);
 }
@@ -1340,6 +1420,8 @@ function editClient(clientId) {
     const c = Store.getClients().find(x => x.id === clientId);
     if (!c) return;
     editingClientId = clientId;
+    // Carry over any existing coords (from prior capture or geocoder run)
+    _capturedCoords = c.coords || c.coordsCache || null;
     document.getElementById('clientModalTitle').textContent = 'Edit Client';
     document.getElementById('saveClientBtn').textContent = 'Save Changes';
     document.getElementById('cName').value = c.name || '';
@@ -1352,6 +1434,17 @@ function editClient(clientId) {
     document.getElementById('cZip').value = c.zip || '';
     document.getElementById('cAccess').value = c.accessInstructions || '';
     document.getElementById('cMilesFromHome').value = (c.milesFromHome != null && c.milesFromHome !== '') ? c.milesFromHome : '';
+    // Show a status if we already have coords for this client
+    const stat = document.getElementById('cCoordsStatus');
+    const capBtn = document.getElementById('cCaptureBtn');
+    if (_capturedCoords && stat) {
+        stat.textContent = `✓ Location on file: ${_capturedCoords.lat.toFixed(4)}, ${_capturedCoords.lng.toFixed(4)}`;
+        stat.style.color = 'var(--text-faint)';
+        if (capBtn) capBtn.textContent = '📍 Recapture';
+    } else {
+        if (stat) stat.textContent = '';
+        if (capBtn) capBtn.textContent = '📍 Use my location';
+    }
     document.getElementById('cNotes').value = c.notes || '';
     document.getElementById('cPrice30').value = c.pricing?.['30min'] || '';
     document.getElementById('cPrice60').value = c.pricing?.['60min'] || '';
@@ -1501,6 +1594,7 @@ function saveClient() {
         })(),
         notes: document.getElementById('cNotes').value.trim(),
         pricing, pets,
+        coords: _capturedCoords,
         defaultPaymentMethod: document.getElementById('cDefaultPaymentMethod').value || null,
         timeWindows: collectTimeWindows(),
         emergencyContact: {

@@ -5731,11 +5731,67 @@ function _bfCalcDayDriverMiles(visits, clientsById) {
     if (!visits || visits.length === 0) return { miles: 0, breakdown: [], missing: [] };
     const sorted = visits.slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
     const missing = new Set();
-    const milesFor = (cid) => {
+
+    // Get coords for a client. Prefer client.coords (captured via geolocation or saved
+    // by user), fall back to coordsCache (from geocoder runs).
+    const coordsFor = (cid) => {
         const c = clientsById[cid];
-        if (!c || c.milesFromHome == null || c.milesFromHome === '') { missing.add(cid); return null; }
-        return parseFloat(c.milesFromHome) || 0;
+        if (!c) return null;
+        return c.coords || c.coordsCache || null;
     };
+
+    // Pull homeCoords from settings so we can compute Home→Client legs precisely.
+    let homeCoords = null;
+    try {
+        const settings = Store.getSettings ? Store.getSettings() : [];
+        const homeRec = (settings || []).find(s => s && s.key === 'home');
+        homeCoords = homeRec?.value?.homeCoords || null;
+    } catch (e) {}
+
+    // Haversine straight-line miles between two {lat,lng} points × road factor.
+    const hav = (a, b) => {
+        if (!a || !b) return null;
+        const toRad = (d) => d * Math.PI / 180;
+        const R = 3958.7613;
+        const dLat = toRad(b.lat - a.lat);
+        const dLng = toRad(b.lng - a.lng);
+        const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+        const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+        return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 1.3 * 10) / 10;
+    };
+
+    // For a Home → Client leg, prefer real coords distance; fall back to stored milesFromHome.
+    const homeToClient = (cid) => {
+        const c = clientsById[cid];
+        if (!c) { missing.add(cid); return null; }
+        const cc = coordsFor(cid);
+        if (homeCoords && cc) return hav(homeCoords, cc);
+        if (c.milesFromHome != null && c.milesFromHome !== '') return parseFloat(c.milesFromHome) || 0;
+        missing.add(cid);
+        return null;
+    };
+
+    // For a Client → Client leg, prefer haversine between captured coords.
+    // Fallback only if coords are missing for either: rough estimate using sum of
+    // distances from home (works for clients on opposite sides of home, fails for
+    // clients in the same direction — that's why coords matter).
+    const clientToClient = (a, b) => {
+        const ac = coordsFor(a), bc = coordsFor(b);
+        if (ac && bc) return hav(ac, bc);
+        const ca = clientsById[a], cb = clientsById[b];
+        const am = ca && ca.milesFromHome != null ? parseFloat(ca.milesFromHome) : null;
+        const bm = cb && cb.milesFromHome != null ? parseFloat(cb.milesFromHome) : null;
+        if (am != null && bm != null) {
+            // Heuristic: assume the clients are roughly in the same general direction
+            // from home. Distance ≈ |am - bm| + small lateral spread. Use average to
+            // smooth, but mark this leg as approximate.
+            return Math.round(((am + bm) / 2) * 10) / 10;
+        }
+        if (!ac) missing.add(a);
+        if (!bc) missing.add(b);
+        return null;
+    };
+
     let total = 0;
     const breakdown = [];
     let prevClient = null;
@@ -5743,44 +5799,36 @@ function _bfCalcDayDriverMiles(visits, clientsById) {
     for (const v of sorted) {
         const startMin = _bfTimeToMin(v.time);
         const dur = BF_VISIT_DURATION[v.visitType] || 30;
-        const cMiles = milesFor(v.clientId);
         const cName = (v.clientName || 'Client').slice(0, 18);
+
         if (prevClient === null) {
-            // First visit of the day — leave home
-            if (cMiles != null) {
-                total += cMiles;
-                breakdown.push({ label: `Home → ${cName}`, miles: cMiles });
-            } else {
-                breakdown.push({ label: `Home → ${cName}`, miles: null });
-            }
+            // First visit of the day — Home → this client
+            const m = homeToClient(v.clientId);
+            if (m != null) { total += m; breakdown.push({ label: `Home → ${cName}`, miles: m }); }
+            else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
         } else {
             const gap = startMin - (prevEndMin || startMin);
-            const prevMiles = milesFor(prevClient);
             if (gap >= 60) {
-                // Drove home then back out (regardless of same or different client)
-                if (prevMiles != null) {
-                    total += prevMiles;
-                    breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: prevMiles });
-                } else {
-                    breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: null });
-                }
-                if (cMiles != null) {
-                    total += cMiles;
-                    breakdown.push({ label: `Home → ${cName}`, miles: cMiles });
-                } else {
-                    breakdown.push({ label: `Home → ${cName}`, miles: null });
-                }
+                // Long gap: assume drove home and back out
+                const back = homeToClient(prevClient);
+                if (back != null) { total += back; breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: back }); }
+                else { breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: null }); }
+                const out = homeToClient(v.clientId);
+                if (out != null) { total += out; breakdown.push({ label: `Home → ${cName}`, miles: out }); }
+                else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
             } else if (v.clientId === prevClient) {
-                // Same client, short gap — stayed nearby, no driving
+                // Same client, short gap — no drive
                 breakdown.push({ label: `at ${cName} (${gap}min · no drive)`, miles: 0 });
             } else {
-                // Different client, short gap — direct hop, approximate as average
-                if (prevMiles != null && cMiles != null) {
-                    const direct = Math.round(((prevMiles + cMiles) / 2) * 10) / 10;
-                    total += direct;
-                    breakdown.push({ label: `prev → ${cName} (${gap}min · direct)`, miles: direct });
+                // Direct hop client → client
+                const m = clientToClient(prevClient, v.clientId);
+                const haveBothCoords = coordsFor(prevClient) && coordsFor(v.clientId);
+                const tag = haveBothCoords ? '' : ' · approx';
+                if (m != null) {
+                    total += m;
+                    breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: m });
                 } else {
-                    breakdown.push({ label: `prev → ${cName} (${gap}min · direct)`, miles: null });
+                    breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: null });
                 }
             }
         }
@@ -5789,13 +5837,9 @@ function _bfCalcDayDriverMiles(visits, clientsById) {
     }
     // End of day — back home
     if (prevClient) {
-        const lastMiles = milesFor(prevClient);
-        if (lastMiles != null) {
-            total += lastMiles;
-            breakdown.push({ label: `last → Home`, miles: lastMiles });
-        } else {
-            breakdown.push({ label: `last → Home`, miles: null });
-        }
+        const m = homeToClient(prevClient);
+        if (m != null) { total += m; breakdown.push({ label: `last → Home`, miles: m }); }
+        else { breakdown.push({ label: `last → Home`, miles: null }); }
     }
     return { miles: Math.round(total * 10) / 10, breakdown, missing: [...missing] };
 }
@@ -6019,17 +6063,19 @@ function _bfParseUSAddress(s) {
 // Free, no API key, CORS-enabled. Returns { lat, lng } or null.
 async function _bfCensusGeocode(addressStr) {
     const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(addressStr)}&benchmark=Public_AR_Current&format=json`;
+    console.log(`[census] trying: ${addressStr}`);
     try {
         const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!r.ok) { console.warn(`[census] HTTP ${r.status}`); return null; }
+        console.log(`[census] HTTP ${r.status}`);
+        if (!r.ok) { console.warn(`[census] non-OK response`); return null; }
         const data = await r.json();
         const matches = data?.result?.addressMatches;
-        if (!Array.isArray(matches) || matches.length === 0) { console.log('[census] no match'); return null; }
+        if (!Array.isArray(matches) || matches.length === 0) { console.log('[census] no matches in response'); return null; }
         // Census API: x = longitude, y = latitude
         const lat = parseFloat(matches[0].coordinates?.y);
         const lng = parseFloat(matches[0].coordinates?.x);
         if (isNaN(lat) || isNaN(lng)) return null;
-        console.log(`[census] hit: ${matches[0].matchedAddress}`);
+        console.log(`[census] ✓ HIT: ${matches[0].matchedAddress} → ${lat}, ${lng}`);
         return { lat, lng };
     } catch (e) {
         console.warn('[census] error:', e.message);
@@ -6037,20 +6083,46 @@ async function _bfCensusGeocode(addressStr) {
     }
 }
 
-// Geocode strategy: Census Bureau first (best for US rural), then Nominatim variations as fallback.
+// Photon (by Komoot) — OSM-based with much better fuzzy matching than Nominatim,
+// no rate-limit (within reason), free, no key. Good fallback for rural addresses
+// that Census also missed.
+async function _bfPhotonGeocode(addressStr) {
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(addressStr)}&limit=1&lang=en`;
+    console.log(`[photon] trying: ${addressStr}`);
+    try {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        console.log(`[photon] HTTP ${r.status}`);
+        if (!r.ok) return null;
+        const data = await r.json();
+        const feat = data?.features?.[0];
+        if (!feat) { console.log('[photon] no features'); return null; }
+        const [lng, lat] = feat.geometry?.coordinates || [];
+        if (isNaN(lat) || isNaN(lng)) return null;
+        console.log(`[photon] ✓ HIT: ${feat.properties?.name || ''} → ${lat}, ${lng}`);
+        return { lat, lng };
+    } catch (e) {
+        console.warn('[photon] error:', e.message);
+        return null;
+    }
+}
+
+// Geocode strategy: Census (US TIGER/Line) → Photon (OSM fuzzy) → Nominatim variations.
 // Returns { lat, lng } on success, null on failure.
 async function _bfGeocodeAddress(addressStr) {
-    // Strategy 0 (PRIMARY): US Census Bureau Geocoder. Handles rural addresses Nominatim can't.
+    console.log(`[geocode] === starting lookup: "${addressStr}" ===`);
+
+    // Strategy 0 (PRIMARY): US Census Bureau — best for US rural
     const census = await _bfCensusGeocode(addressStr);
     if (census) return census;
 
-    // Fallback strategies use Nominatim with the rate-limit policy (1 req/sec).
-    const attempts = [];
+    // Strategy 0.5: Photon — OSM with better fuzzy matching
+    const photon = await _bfPhotonGeocode(addressStr);
+    if (photon) return photon;
 
-    // Strategy 1: freeform Nominatim
+    // Nominatim fallback chain (rate-limited to 1 req/sec)
+    const attempts = [];
     attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`);
 
-    // Strategy 2: structured query
     const parts = _bfParseUSAddress(addressStr);
     if (parts.street && (parts.city || parts.zip)) {
         const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'us' });
@@ -6061,13 +6133,11 @@ async function _bfGeocodeAddress(addressStr) {
         attempts.push('https://nominatim.openstreetmap.org/search?' + params.toString());
     }
 
-    // Strategy 3: drop the street suffix
     const simplified = addressStr.replace(/\b(rd|dr|st|ln|ct|ave|blvd|hwy|way|trl|pl)\b\.?/gi, '').replace(/\s+/g, ' ').trim();
     if (simplified !== addressStr) {
         attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(simplified)}&format=json&limit=1&countrycodes=us`);
     }
 
-    // Strategy 4: drop the street number (road-level fallback)
     const noNumber = addressStr.replace(/^\d+\s+/, '').trim();
     if (noNumber !== addressStr) {
         attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(noNumber)}&format=json&limit=1&countrycodes=us`);
@@ -6077,14 +6147,16 @@ async function _bfGeocodeAddress(addressStr) {
         const url = attempts[i];
         try {
             if (i > 0) await _bfSleep(1100);
+            console.log(`[nominatim] attempt ${i+1}: ${url}`);
             const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-            if (!r.ok) { console.warn(`[nominatim] HTTP ${r.status} on attempt ${i+1}`); continue; }
+            console.log(`[nominatim] HTTP ${r.status}`);
+            if (!r.ok) continue;
             const data = await r.json();
             if (Array.isArray(data) && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lng = parseFloat(data[0].lon);
                 if (!isNaN(lat) && !isNaN(lng)) {
-                    console.log(`[nominatim] hit on attempt ${i+1}: ${data[0].display_name}`);
+                    console.log(`[nominatim] ✓ HIT on attempt ${i+1}: ${data[0].display_name}`);
                     return { lat, lng };
                 }
             }
@@ -6093,6 +6165,7 @@ async function _bfGeocodeAddress(addressStr) {
             console.error(`[nominatim] error on attempt ${i+1}:`, e);
         }
     }
+    console.log(`[geocode] === all strategies exhausted for "${addressStr}" ===`);
     return null;
 }
 
@@ -6193,10 +6266,10 @@ function _bfEditHomeAddress() {
     `;
 }
 
-// Prompts the user to paste lat/lng coordinates for their home address when
-// Nominatim can't find it (common with rural / uncommon road names).
-// Accepts "37.123, -84.567" or "37.123 -84.567" (just two numbers).
-// On valid input, saves homeCoords and re-runs the auto-compute flow.
+// Prompts the user for home coordinates when all geocoders failed.
+// Leads with ONE-TAP "Use my current location" (browser geolocation API) — works
+// instantly if user is at home right now. Manual lat/lng entry is hidden behind
+// a link as a last resort.
 function _bfPromptManualHomeCoords() {
     const existing = document.getElementById('bfManualCoordsModal');
     if (existing) existing.remove();
@@ -6211,38 +6284,77 @@ function _bfPromptManualHomeCoords() {
     el.innerHTML = `
         <div class="modal modal-sm">
             <div class="modal-header">
-                <h2>Enter home coordinates</h2>
+                <h2>Pin your home</h2>
                 <button class="modal-close" onclick="document.getElementById('bfManualCoordsModal').remove()">×</button>
             </div>
             <div class="modal-body">
-                <div style="color: var(--text-dim); margin-bottom: 10px; font-size: 0.92em; line-height: 1.45;">
-                    Couldn't find <em>${escapeHtml(homeAddress)}</em> in OpenStreetMap (common for rural addresses). Grab coordinates from Google Maps instead:
+                <div style="color: var(--text-dim); margin-bottom: 14px; font-size: 0.92em; line-height: 1.45;">
+                    Couldn't auto-locate <em>${escapeHtml(homeAddress)}</em>. The fastest fix:
                 </div>
-                <ol style="color: var(--text-dim); font-size: 0.9em; padding-left: 20px; margin: 0 0 14px 0; line-height: 1.55;">
-                    <li>Open Google Maps and search your address</li>
-                    <li>Right-click the pin, then click the lat/lng numbers at the top to copy</li>
-                    <li>Paste below</li>
-                </ol>
-                <input type="text" id="bfManualCoordsInput" placeholder="e.g. 38.8654, -84.6088"
-                    style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 1em; box-sizing: border-box;">
-                <div id="bfManualCoordsError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
+                <button class="btn btn-primary" id="bfUseMyLocationBtn" onclick="_bfUseMyCurrentLocation()" style="width: 100%; padding: 14px; font-size: 1em;">
+                    📍 Use my current location
+                </button>
+                <div style="color: var(--text-faint); font-size: 0.82em; margin-top: 6px; line-height: 1.4;">
+                    One tap. Your browser will ask permission. Only works if you're at home right now.
+                </div>
+                <div id="bfLocStatus" style="color: var(--danger); font-size: 0.85em; margin-top: 8px; min-height: 1em;"></div>
+
+                <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+                    <a href="#" id="bfShowManualLink" onclick="event.preventDefault(); document.getElementById('bfManualSection').style.display='block'; this.style.display='none';" style="color: var(--text-faint); font-size: 0.85em; text-decoration: underline; cursor: pointer;">Or enter coordinates manually</a>
+                    <div id="bfManualSection" style="display: none; margin-top: 10px;">
+                        <div style="color: var(--text-faint); font-size: 0.85em; margin-bottom: 6px;">
+                            Open Google Maps, right-click your home, click the lat/lng numbers to copy, paste here:
+                        </div>
+                        <input type="text" id="bfManualCoordsInput" placeholder="e.g. 38.8654, -84.6088"
+                            style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 1em; box-sizing: border-box;">
+                        <div id="bfManualCoordsError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
+                        <button class="btn btn-primary btn-sm" onclick="_bfSubmitManualHomeCoords()" style="margin-top: 8px;">Save &amp; compute</button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="document.getElementById('bfManualCoordsModal').remove()">Cancel</button>
-                <button class="btn btn-primary" onclick="_bfSubmitManualHomeCoords()">Save &amp; compute</button>
             </div>
         </div>
     `;
     document.body.appendChild(el);
-    setTimeout(() => {
-        const input = document.getElementById('bfManualCoordsInput');
-        if (input) {
-            input.focus();
-            input.addEventListener('keydown', e => {
-                if (e.key === 'Enter') _bfSubmitManualHomeCoords();
-            });
-        }
-    }, 50);
+}
+
+// One-tap home-coords using the browser geolocation API.
+// Only works if user is currently AT home — which is exactly when most people
+// would be sitting at the computer setting this up.
+function _bfUseMyCurrentLocation() {
+    const status = document.getElementById('bfLocStatus');
+    const btn = document.getElementById('bfUseMyLocationBtn');
+    if (!('geolocation' in navigator)) {
+        if (status) status.textContent = 'Your browser doesn\'t support geolocation. Use manual entry below.';
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = '📍 Getting location…'; }
+    if (status) status.textContent = '';
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            _bfSaveHomeSetting({ homeCoords: { lat, lng } });
+            const modal = document.getElementById('bfManualCoordsModal');
+            if (modal) modal.remove();
+            showToast('Home location saved');
+            _bfAutoComputeMiles();
+        },
+        (err) => {
+            if (btn) { btn.disabled = false; btn.textContent = '📍 Use my current location'; }
+            let msg;
+            switch (err.code) {
+                case 1: msg = 'Permission denied. Allow location in your browser settings or use manual entry.'; break;
+                case 2: msg = 'Location unavailable. Try manual entry below.'; break;
+                case 3: msg = 'Request timed out. Try again or use manual entry.'; break;
+                default: msg = 'Couldn\'t get location. Use manual entry below.';
+            }
+            if (status) status.textContent = msg;
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
 }
 
 // Parses the manual-coords input, saves homeCoords if valid, and resumes auto-compute.
