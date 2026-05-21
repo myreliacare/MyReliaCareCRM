@@ -465,6 +465,11 @@ function _saveCollection(coll, newArr) {
 
     // Optimistic local update — caller's next get*() returns fresh data
     _state[coll.stateKey] = JSON.parse(JSON.stringify(newArr));
+    // Notify the UI immediately. The listener's later snapshot will diff equal
+    // and skip — so this is the ONLY signal that fires for local writes.
+    // Without this, summaries on other parts of the page (finances totals, tax
+    // projection, etc.) stay stale until a page reload or focus event.
+    _scheduleNotify();
     // localStorage cache write — surface quota / corruption failures
     try {
         localStorage.setItem(coll.storageKey, JSON.stringify(newArr));

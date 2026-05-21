@@ -709,7 +709,7 @@
             <div class="form-group"><label>Access Instructions</label><textarea id="cAccess" rows="2" placeholder="Gate code, lockbox, key location…"></textarea></div>
 
             <div class="form-group">
-                <label>Miles from Home <span style="color: var(--text-faint); font-weight: 400; font-size: 0.85em; text-transform: none; letter-spacing: 0;">one-way · auto-computed when you set this client's location</span></label>
+                <label>Miles from Home <span style="color: var(--text-faint); font-weight: 400; font-size: 0.85em; text-transform: none; letter-spacing: 0;">one-way · typing here OVERRIDES the auto-computed value everywhere</span></label>
                 <div style="display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap;">
                     <input type="number" id="cMilesFromHome" min="0" step="0.1" placeholder="e.g. 4.2" style="flex: 1; min-width: 100px;">
                     <button type="button" class="btn btn-ghost btn-sm" onclick="captureClientLocation()" id="cCaptureBtn" style="white-space: nowrap;">📍 Use my location</button>
@@ -1433,7 +1433,12 @@ function editClient(clientId) {
     document.getElementById('cState').value = c.state || '';
     document.getElementById('cZip').value = c.zip || '';
     document.getElementById('cAccess').value = c.accessInstructions || '';
-    document.getElementById('cMilesFromHome').value = (c.milesFromHome != null && c.milesFromHome !== '') ? c.milesFromHome : '';
+    document.getElementById('cMilesFromHome').value = (() => {
+        // Prefer manual override (if set), else legacy auto-computed milesFromHome
+        if (c.milesFromHomeOverride != null && c.milesFromHomeOverride !== '') return c.milesFromHomeOverride;
+        if (c.milesFromHome != null && c.milesFromHome !== '') return c.milesFromHome;
+        return '';
+    })();
     // Show a status if we already have coords for this client
     const stat = document.getElementById('cCoordsStatus');
     const capBtn = document.getElementById('cCaptureBtn');
@@ -1588,7 +1593,7 @@ function saveClient() {
         state: document.getElementById('cState').value.trim(),
         zip: document.getElementById('cZip').value.trim(),
         accessInstructions: document.getElementById('cAccess').value.trim(),
-        milesFromHome: (() => {
+        milesFromHomeOverride: (() => {
             const v = parseFloat(document.getElementById('cMilesFromHome').value);
             return (isNaN(v) || v < 0) ? null : v;
         })(),
@@ -1774,7 +1779,14 @@ function viewClient(clientId) {
             ${c.email ? `<div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">${escapeHtml(c.email)}</div></div>` : ''}
             ${c.preferredContact ? `<div class="detail-row"><div class="detail-label">Preferred</div><div class="detail-value">${escapeHtml(c.preferredContact)}</div></div>` : ''}
             ${addressLine ? `<div class="detail-row"><div class="detail-label">Address</div><div class="detail-value">${renderClickableAddress(addressLine)}</div></div>` : ''}
-            ${(c.milesFromHome != null && c.milesFromHome !== '') ? `<div class="detail-row"><div class="detail-label">Miles from Home</div><div class="detail-value">${c.milesFromHome} mi (one-way)</div></div>` : ''}
+            ${(() => {
+                const hasOverride = c.milesFromHomeOverride != null && c.milesFromHomeOverride !== '';
+                const hasLegacy = c.milesFromHome != null && c.milesFromHome !== '';
+                if (!hasOverride && !hasLegacy) return '';
+                const eff = hasOverride ? c.milesFromHomeOverride : c.milesFromHome;
+                const tag = hasOverride ? ` <span style="color: var(--accent); font-size: 0.78em;">(manual)</span>` : '';
+                return `<div class="detail-row"><div class="detail-label">Miles from Home</div><div class="detail-value">${eff} mi (one-way)${tag}</div></div>`;
+            })()}
         </div>`;
     if ((c.pets || []).length > 0) {
         html += `<div class="detail-section"><h3>Pets (${c.pets.length})</h3>`;

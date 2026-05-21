@@ -2704,8 +2704,8 @@ function _bfmCalcDayDriverMiles(visits, clientsById) {
     let homeCoords = null;
     try {
         const settings = Store.getSettings ? Store.getSettings() : [];
-        const homeRec = (settings || []).find(s => s && s.key === 'home');
-        homeCoords = homeRec?.value?.homeCoords || null;
+        const homeRec = (settings || []).find(s => s && s.id === 'global');
+        homeCoords = homeRec?.homeCoords || null;
     } catch (e) {}
 
     const hav = (a, b) => {
@@ -2722,6 +2722,11 @@ function _bfmCalcDayDriverMiles(visits, clientsById) {
     const homeToClient = (cid) => {
         const c = clientsById[cid];
         if (!c) { missing.add(cid); return null; }
+        // PRIORITY: user's manual override wins. Then coords. Then legacy milesFromHome.
+        if (c.milesFromHomeOverride != null && c.milesFromHomeOverride !== '') {
+            const o = parseFloat(c.milesFromHomeOverride);
+            if (!isNaN(o)) return o;
+        }
         const cc = coordsFor(cid);
         if (homeCoords && cc) return hav(homeCoords, cc);
         if (c.milesFromHome != null && c.milesFromHome !== '') return parseFloat(c.milesFromHome) || 0;
@@ -2730,14 +2735,28 @@ function _bfmCalcDayDriverMiles(visits, clientsById) {
     };
 
     const clientToClient = (a, b) => {
-        const ac = coordsFor(a), bc = coordsFor(b);
-        if (ac && bc) return hav(ac, bc);
         const ca = clientsById[a], cb = clientsById[b];
-        const am = ca && ca.milesFromHome != null ? parseFloat(ca.milesFromHome) : null;
-        const bm = cb && cb.milesFromHome != null ? parseFloat(cb.milesFromHome) : null;
-        if (am != null && bm != null) return Math.round(((am + bm) / 2) * 10) / 10;
-        if (!ac) missing.add(a);
-        if (!bc) missing.add(b);
+        // Override marks the client's coords as untrusted — don't use them for haversine
+        const aOverridden = ca && ca.milesFromHomeOverride != null && ca.milesFromHomeOverride !== '';
+        const bOverridden = cb && cb.milesFromHomeOverride != null && cb.milesFromHomeOverride !== '';
+        const ac = !aOverridden ? coordsFor(a) : null;
+        const bc = !bOverridden ? coordsFor(b) : null;
+        if (ac && bc) return hav(ac, bc);
+        const milesOf = (x) => {
+            if (!x) return null;
+            if (x.milesFromHomeOverride != null && x.milesFromHomeOverride !== '') {
+                const o = parseFloat(x.milesFromHomeOverride);
+                if (!isNaN(o)) return o;
+            }
+            return x.milesFromHome != null ? parseFloat(x.milesFromHome) : null;
+        };
+        const am = milesOf(ca);
+        const bm = milesOf(cb);
+        // sqrt(am² + bm²) — expected client→client distance averaged over all angles.
+        // Way more accurate than (am+bm)/2.
+        if (am != null && bm != null) return Math.round(Math.sqrt(am*am + bm*bm) * 10) / 10;
+        if (!ac && !aOverridden) missing.add(a);
+        if (!bc && !bOverridden) missing.add(b);
         return null;
     };
 
@@ -2767,7 +2786,10 @@ function _bfmCalcDayDriverMiles(visits, clientsById) {
                 breakdown.push({ label: `at ${cName} (${gap}min · no drive)`, miles: 0 });
             } else {
                 const m = clientToClient(prevClient, v.clientId);
-                const haveBothCoords = coordsFor(prevClient) && coordsFor(v.clientId);
+                const prevC = clientsById[prevClient], curC = clientsById[v.clientId];
+                const prevOverridden = prevC && prevC.milesFromHomeOverride != null && prevC.milesFromHomeOverride !== '';
+                const curOverridden = curC && curC.milesFromHomeOverride != null && curC.milesFromHomeOverride !== '';
+                const haveBothCoords = !prevOverridden && !curOverridden && coordsFor(prevClient) && coordsFor(v.clientId);
                 const tag = haveBothCoords ? '' : ' · approx';
                 if (m != null) { total += m; breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: m }); }
                 else { breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: null }); }
@@ -2956,7 +2978,7 @@ async function _geocodioSingle(addressStr, apiKey) {
         const lng = parseFloat(top.location?.lng);
         if (isNaN(lat) || isNaN(lng)) return null;
         console.log(`[geocodio] ✓ HIT: ${top.formatted_address} (accuracy=${top.accuracy})`);
-        return { lat, lng };
+        return { lat, lng, matched: top.formatted_address || null, accuracy: typeof top.accuracy === 'number' ? top.accuracy : null };
     } catch (e) {
         console.warn('[geocodio] error:', e.message);
         return null;
@@ -2983,7 +3005,7 @@ async function _geocodioBatch(addresses, apiKey) {
             const lat = parseFloat(top.location?.lat);
             const lng = parseFloat(top.location?.lng);
             if (isNaN(lat) || isNaN(lng)) return null;
-            return { lat, lng };
+            return { lat, lng, matched: top.formatted_address || null, accuracy: typeof top.accuracy === 'number' ? top.accuracy : null };
         });
     } catch (e) {
         console.warn('[geocodio] batch error:', e.message);
@@ -3392,8 +3414,11 @@ async function _bfmAutoComputeMiles() {
                 const straight = _haversineMiles(homeCoords, coords);
                 const oneway = Math.round(straight * 1.3 * 10) / 10;
                 c.milesFromHome = oneway;
-                c.coords = coords;
-                c.coordsCache = coords;
+                c.coords = { lat: coords.lat, lng: coords.lng };
+                c.coordsCache = c.coords;
+                c.coordsMatched = coords.matched || null;
+                c.coordsAccuracy = (typeof coords.accuracy === 'number') ? coords.accuracy : null;
+                c.coordsSource = 'geocodio';
                 done++;
             } else {
                 failed++;
@@ -3410,8 +3435,11 @@ async function _bfmAutoComputeMiles() {
                 const straight = _haversineMiles(homeCoords, coords);
                 const oneway = Math.round(straight * 1.3 * 10) / 10;
                 c.milesFromHome = oneway;
-                c.coords = coords;
-                c.coordsCache = coords;
+                c.coords = { lat: coords.lat, lng: coords.lng };
+                c.coordsCache = c.coords;
+                c.coordsMatched = null;
+                c.coordsAccuracy = null;
+                c.coordsSource = 'free';
                 done++;
             } else {
                 failed++;
