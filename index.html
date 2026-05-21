@@ -6272,11 +6272,19 @@ function _bfRenderSetupPanel(missingClients) {
     }
 
     if (missingClients.length === 0) {
+        const gk = _bfGetGeocodioKey();
+        const gStatus = gk
+            ? `<span style="color: var(--success); font-size: 0.82em;">✓ Geocodio active</span>`
+            : `<span style="color: var(--text-faint); font-size: 0.82em;">Geocodio not configured · using free fallback</span>`;
         el.style.display = 'block';
         el.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
                 <div style="color: var(--text-dim); font-size: 0.9em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
                 <button class="btn btn-ghost btn-sm" onclick="_bfEditHomeAddress()">Edit</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; background: var(--bg-input); border-radius: 6px;">
+                <div>${gStatus}</div>
+                <button class="btn btn-ghost btn-sm" onclick="_bfShowGeocodioKeyModal()" style="padding: 3px 10px;">${gk ? 'Change key' : '+ Add Geocodio key'}</button>
             </div>
         `;
         return;
