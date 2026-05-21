@@ -2932,6 +2932,65 @@ function _saveHomeSetting(patch) {
     return Store.saveSettings(arr);
 }
 
+// ============================================================
+//   GEOCODIO (mirror of the helpers in index.html — both files
+//   read the SAME key from the global settings record.)
+// ============================================================
+function _getGeocodioKey() {
+    const s = _getHomeSetting();
+    return (s && s.geocodioKey) || null;
+}
+
+async function _geocodioSingle(addressStr, apiKey) {
+    const url = `https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(addressStr)}&limit=1&api_key=${encodeURIComponent(apiKey)}`;
+    console.log(`[geocodio] single: ${addressStr}`);
+    try {
+        const r = await fetch(url);
+        console.log(`[geocodio] HTTP ${r.status}`);
+        if (r.status === 403) { showToast('Geocodio API key rejected — check settings', 'error'); return null; }
+        if (!r.ok) return null;
+        const data = await r.json();
+        const top = data?.results?.[0];
+        if (!top) { console.log('[geocodio] no result'); return null; }
+        const lat = parseFloat(top.location?.lat);
+        const lng = parseFloat(top.location?.lng);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        console.log(`[geocodio] ✓ HIT: ${top.formatted_address} (accuracy=${top.accuracy})`);
+        return { lat, lng };
+    } catch (e) {
+        console.warn('[geocodio] error:', e.message);
+        return null;
+    }
+}
+
+async function _geocodioBatch(addresses, apiKey) {
+    const url = `https://api.geocod.io/v1.12/geocode?api_key=${encodeURIComponent(apiKey)}&limit=1`;
+    console.log(`[geocodio] BATCH ${addresses.length} addresses`);
+    try {
+        const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(addresses)
+        });
+        console.log(`[geocodio] batch HTTP ${r.status}`);
+        if (r.status === 403) { showToast('Geocodio API key rejected — check settings', 'error'); return addresses.map(() => null); }
+        if (r.status === 422) { showToast('Geocodio quota exceeded for today (2500/day free)', 'error'); return addresses.map(() => null); }
+        if (!r.ok) return addresses.map(() => null);
+        const data = await r.json();
+        return (data?.results || []).map(item => {
+            const top = item?.response?.results?.[0];
+            if (!top) return null;
+            const lat = parseFloat(top.location?.lat);
+            const lng = parseFloat(top.location?.lng);
+            if (isNaN(lat) || isNaN(lng)) return null;
+            return { lat, lng };
+        });
+    } catch (e) {
+        console.warn('[geocodio] batch error:', e.message);
+        return addresses.map(() => null);
+    }
+}
+
 function _haversineMiles(a, b) {
     const R = 3959; // earth radius, miles
     const toRad = d => d * Math.PI / 180;
@@ -3007,9 +3066,17 @@ async function _photonGeocode(addressStr) {
     }
 }
 
-// Multi-strategy geocoder. Census → Photon → Nominatim chain.
+// Multi-strategy geocoder. Geocodio (if API key) → Census → Photon → Nominatim chain.
 async function _geocodeAddress(addressStr) {
     console.log(`[geocode] === starting lookup: "${addressStr}" ===`);
+
+    // PRIMARY: Geocodio if user has signed up and added a key
+    const apiKey = _getGeocodioKey();
+    if (apiKey) {
+        const g = await _geocodioSingle(addressStr, apiKey);
+        if (g) return g;
+        // Fall through to free options if Geocodio missed
+    }
 
     const census = await _censusGeocode(addressStr);
     if (census) return census;
@@ -3312,22 +3379,46 @@ async function _bfmAutoComputeMiles() {
 
     let done = 0, failed = 0;
     const failedNames = [];
-    for (const c of targets) {
-        if (progress) progress.textContent = `Geocoding ${done + 1} of ${targets.length}: ${c.name || 'client'}…`;
-        const addr = _clientAddressStr(c);
-        const coords = await _geocodeAddress(addr);
-        if (coords) {
-            const straight = _haversineMiles(homeCoords, coords);
-            const oneway = Math.round(straight * 1.3 * 10) / 10;  // road-distance factor
-            c.milesFromHome = oneway;
-            c.coordsCache = coords;     // cache for future runs
-            done++;
-        } else {
-            failed++;
-            failedNames.push(c.name || 'Unnamed');
+    const apiKey = _getGeocodioKey();
+
+    if (apiKey) {
+        // BATCH path: one POST for all addresses. ~1 second total regardless of count.
+        if (progress) progress.textContent = `Geocoding ${targets.length} clients via Geocodio (batch)…`;
+        const addrs = targets.map(c => _clientAddressStr(c));
+        const results = await _geocodioBatch(addrs, apiKey);
+        results.forEach((coords, i) => {
+            const c = targets[i];
+            if (coords) {
+                const straight = _haversineMiles(homeCoords, coords);
+                const oneway = Math.round(straight * 1.3 * 10) / 10;
+                c.milesFromHome = oneway;
+                c.coords = coords;
+                c.coordsCache = coords;
+                done++;
+            } else {
+                failed++;
+                failedNames.push(c.name || 'Unnamed');
+            }
+        });
+    } else {
+        // SEQUENTIAL: free chain throttled
+        for (const c of targets) {
+            if (progress) progress.textContent = `Geocoding ${done + failed + 1} of ${targets.length}: ${c.name || 'client'}…`;
+            const addr = _clientAddressStr(c);
+            const coords = await _geocodeAddress(addr);
+            if (coords) {
+                const straight = _haversineMiles(homeCoords, coords);
+                const oneway = Math.round(straight * 1.3 * 10) / 10;
+                c.milesFromHome = oneway;
+                c.coords = coords;
+                c.coordsCache = coords;
+                done++;
+            } else {
+                failed++;
+                failedNames.push(c.name || 'Unnamed');
+            }
+            await _sleep(300);
         }
-        // Census doesn't enforce strict rate limits; small buffer for Nominatim fallback path.
-        await _sleep(300);
     }
 
     const ok = Store.saveClients(clients);
