@@ -6009,6 +6009,73 @@ function bfMileageToggleBd(key) {
    (Mirrors logic in invoices.html for the Finances backfill modal)
    ============================================================ */
 
+// ============================================================
+//   GEOCODIO INTEGRATION (purpose-built US geocoder, 95%+ accuracy)
+//   Free tier: 2500 lookups/day. API key from https://www.geocod.io
+//   When key is set: PRIMARY geocoder, supports batch (one call per N clients).
+//   When key not set: falls back to free chain (Census → Photon → Nominatim).
+// ============================================================
+function _bfGetGeocodioKey() {
+    const s = _bfGetHomeSetting();
+    return (s && s.geocodioKey) || null;
+}
+function _bfSaveGeocodioKey(key) {
+    return _bfSaveHomeSetting({ geocodioKey: (key || '').trim() || null });
+}
+
+// Single-address Geocodio lookup. Returns {lat,lng} or null.
+async function _bfGeocodioSingle(addressStr, apiKey) {
+    const url = `https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(addressStr)}&limit=1&api_key=${encodeURIComponent(apiKey)}`;
+    console.log(`[geocodio] single: ${addressStr}`);
+    try {
+        const r = await fetch(url);
+        console.log(`[geocodio] HTTP ${r.status}`);
+        if (r.status === 403) { showToast('Geocodio API key rejected — check settings', 'error'); return null; }
+        if (!r.ok) return null;
+        const data = await r.json();
+        const top = data?.results?.[0];
+        if (!top) { console.log('[geocodio] no result'); return null; }
+        const lat = parseFloat(top.location?.lat);
+        const lng = parseFloat(top.location?.lng);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        console.log(`[geocodio] ✓ HIT: ${top.formatted_address} (accuracy=${top.accuracy})`);
+        return { lat, lng };
+    } catch (e) {
+        console.warn('[geocodio] error:', e.message);
+        return null;
+    }
+}
+
+// Batch Geocodio — sends ALL addresses in one POST. Massive speedup vs sequential.
+// Returns an array of {lat,lng} | null in the same order as input.
+async function _bfGeocodioBatch(addresses, apiKey) {
+    const url = `https://api.geocod.io/v1.12/geocode?api_key=${encodeURIComponent(apiKey)}&limit=1`;
+    console.log(`[geocodio] BATCH ${addresses.length} addresses`);
+    try {
+        const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(addresses)
+        });
+        console.log(`[geocodio] batch HTTP ${r.status}`);
+        if (r.status === 403) { showToast('Geocodio API key rejected — check settings', 'error'); return addresses.map(() => null); }
+        if (r.status === 422) { showToast('Geocodio quota exceeded for today (2500/day free)', 'error'); return addresses.map(() => null); }
+        if (!r.ok) return addresses.map(() => null);
+        const data = await r.json();
+        return (data?.results || []).map(item => {
+            const top = item?.response?.results?.[0];
+            if (!top) return null;
+            const lat = parseFloat(top.location?.lat);
+            const lng = parseFloat(top.location?.lng);
+            if (isNaN(lat) || isNaN(lng)) return null;
+            return { lat, lng };
+        });
+    } catch (e) {
+        console.warn('[geocodio] batch error:', e.message);
+        return addresses.map(() => null);
+    }
+}
+
 function _bfGetHomeSetting() {
     const arr = Store.getSettings() || [];
     return arr.find(s => s.id === 'global') || null;
@@ -6106,12 +6173,20 @@ async function _bfPhotonGeocode(addressStr) {
     }
 }
 
-// Geocode strategy: Census (US TIGER/Line) → Photon (OSM fuzzy) → Nominatim variations.
-// Returns { lat, lng } on success, null on failure.
+// Geocode strategy: Geocodio (if API key) → Census → Photon → Nominatim variations.
 async function _bfGeocodeAddress(addressStr) {
     console.log(`[geocode] === starting lookup: "${addressStr}" ===`);
 
-    // Strategy 0 (PRIMARY): US Census Bureau — best for US rural
+    // PRIMARY: Geocodio if user has signed up and added a key
+    const apiKey = _bfGetGeocodioKey();
+    if (apiKey) {
+        const g = await _bfGeocodioSingle(addressStr, apiKey);
+        if (g) return g;
+        // Fall through to free options if Geocodio missed (rare for US addresses)
+    }
+
+    // FREE FALLBACKS:
+    // Strategy 0 (PRIMARY when no Geocodio key): US Census Bureau — best for US rural
     const census = await _bfCensusGeocode(addressStr);
     if (census) return census;
 
@@ -6218,15 +6293,26 @@ function _bfRenderSetupPanel(missingClients) {
         `;
     }).join('');
 
+    const geocodioKey = _bfGetGeocodioKey();
+    const geocodioStatus = geocodioKey
+        ? `<span style="color: var(--success); font-size: 0.82em;">✓ Geocodio active (batch, ~1 sec)</span>`
+        : `<span style="color: var(--text-faint); font-size: 0.82em;">Using free fallback (slower, some addresses may miss)</span>`;
+
     el.style.display = 'block';
     el.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
             <div style="color: var(--text-dim); font-size: 0.88em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
             <button class="btn btn-ghost btn-sm" onclick="_bfEditHomeAddress()" style="padding: 3px 8px;">Edit</button>
         </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 8px 12px; background: var(--bg-input); border-radius: 6px;">
+            <div>${geocodioStatus}</div>
+            <button class="btn btn-ghost btn-sm" onclick="_bfShowGeocodioKeyModal()" style="padding: 3px 10px;">${geocodioKey ? 'Change key' : '+ Add Geocodio key'}</button>
+        </div>
         ${withAddr.length > 0 ? `
             <div class="bf-setup-header">Auto-compute miles for ${withAddr.length} client${withAddr.length === 1 ? '' : 's'}</div>
-            <div class="bf-setup-sub">We'll look up each address and compute distance from your home. Takes about ${Math.ceil(withAddr.length * 1.2)} seconds.</div>
+            <div class="bf-setup-sub">${geocodioKey
+                ? `All ${withAddr.length} addresses geocoded in one batch call — about 1 second.`
+                : `Slow (~${Math.ceil(withAddr.length * 1.2)} sec) and may miss rural addresses. Adding a free Geocodio key fixes both.`}</div>
             <button class="btn btn-primary btn-sm" onclick="_bfAutoComputeMiles()" id="bfAutoComputeBtn" style="margin-bottom: 14px;">Auto-compute from addresses</button>
             <div id="bfComputeProgress" style="color: var(--text-faint); font-size: 0.88em; margin-bottom: 12px;"></div>
         ` : ''}
@@ -6238,6 +6324,76 @@ function _bfRenderSetupPanel(missingClients) {
             <button class="btn btn-ghost btn-sm" onclick="_bfDismissSetup()">Skip for now</button>
         </div>
     `;
+}
+
+// Modal for entering / changing the Geocodio API key
+function _bfShowGeocodioKeyModal() {
+    const existing = document.getElementById('bfGeocodioKeyModal');
+    if (existing) existing.remove();
+    const currentKey = _bfGetGeocodioKey() || '';
+    const el = document.createElement('div');
+    el.id = 'bfGeocodioKeyModal';
+    el.className = 'modal-overlay active';
+    el.style.zIndex = '1200';
+    el.innerHTML = `
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2>Geocodio API Key</h2>
+                <button class="modal-close" onclick="document.getElementById('bfGeocodioKeyModal').remove()">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="color: var(--text-dim); font-size: 0.92em; line-height: 1.5; margin-bottom: 12px;">
+                    Geocodio is purpose-built for US addresses. Free tier: 2,500 lookups/day. No credit card needed.
+                </div>
+                <ol style="color: var(--text-dim); font-size: 0.88em; padding-left: 20px; margin: 0 0 14px 0; line-height: 1.55;">
+                    <li>Go to <a href="https://www.geocod.io/" target="_blank" rel="noopener" style="color: var(--accent);">geocod.io</a> and sign up</li>
+                    <li>From the dashboard, copy your API key</li>
+                    <li>Paste it below</li>
+                </ol>
+                <input type="text" id="bfGeocodioKeyInput" value="${escapeHtml(currentKey)}" placeholder="Paste API key here"
+                    style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 0.95em; box-sizing: border-box;">
+                <div id="bfGeocodioKeyError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
+            </div>
+            <div class="modal-footer">
+                ${currentKey ? `<button class="btn btn-ghost" onclick="_bfRemoveGeocodioKey()" style="color: var(--danger);">Remove</button>` : ''}
+                <button class="btn btn-ghost" onclick="document.getElementById('bfGeocodioKeyModal').remove()">Cancel</button>
+                <button class="btn btn-primary" onclick="_bfSaveGeocodioKeyFromModal()">Save</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => {
+        const inp = document.getElementById('bfGeocodioKeyInput');
+        if (inp) inp.focus();
+    }, 50);
+}
+
+function _bfSaveGeocodioKeyFromModal() {
+    const inp = document.getElementById('bfGeocodioKeyInput');
+    const err = document.getElementById('bfGeocodioKeyError');
+    if (!inp) return;
+    const key = (inp.value || '').trim();
+    if (!key) {
+        if (err) err.textContent = 'Paste your API key.';
+        return;
+    }
+    // Geocodio keys are typically 40+ chars alphanumeric — sanity check length
+    if (key.length < 20) {
+        if (err) err.textContent = "Doesn't look like a valid key — too short.";
+        return;
+    }
+    _bfSaveGeocodioKey(key);
+    document.getElementById('bfGeocodioKeyModal').remove();
+    showToast('Geocodio key saved');
+    _bfRenderMileage();
+}
+
+function _bfRemoveGeocodioKey() {
+    if (!confirm('Remove the Geocodio key? Mileage lookups will use the slower free chain.')) return;
+    _bfSaveGeocodioKey('');
+    document.getElementById('bfGeocodioKeyModal').remove();
+    showToast('Geocodio key removed');
+    _bfRenderMileage();
 }
 
 function _bfSaveHomeAddress() {
@@ -6416,26 +6572,49 @@ async function _bfAutoComputeMiles() {
         return;
     }
 
+    const apiKey = _bfGetGeocodioKey();
     let done = 0, failed = 0;
     const failedNames = [];
-    for (const c of targets) {
-        if (progress) progress.textContent = `Geocoding ${done + 1} of ${targets.length}: ${c.name || 'client'}…`;
-        const addr = _bfClientAddressStr(c);
-        const coords = await _bfGeocodeAddress(addr);
-        if (coords) {
-            const straight = _bfHaversineMiles(homeCoords, coords);
-            const oneway = Math.round(straight * 1.3 * 10) / 10;
-            c.milesFromHome = oneway;
-            c.coordsCache = coords;
-            done++;
-        } else {
-            failed++;
-            failedNames.push(c.name || 'Unnamed');
+
+    if (apiKey) {
+        // BATCH path: one POST for all addresses. ~1 second total, regardless of N.
+        if (progress) progress.textContent = `Geocoding ${targets.length} clients via Geocodio (batch)…`;
+        const addrs = targets.map(c => _bfClientAddressStr(c));
+        const results = await _bfGeocodioBatch(addrs, apiKey);
+        results.forEach((coords, i) => {
+            const c = targets[i];
+            if (coords) {
+                const straight = _bfHaversineMiles(homeCoords, coords);
+                const oneway = Math.round(straight * 1.3 * 10) / 10;
+                c.milesFromHome = oneway;
+                c.coords = coords;
+                c.coordsCache = coords;
+                done++;
+            } else {
+                failed++;
+                failedNames.push(c.name || 'Unnamed');
+            }
+        });
+    } else {
+        // SEQUENTIAL fallback: free geocoder chain, throttled
+        for (const c of targets) {
+            if (progress) progress.textContent = `Geocoding ${done + failed + 1} of ${targets.length}: ${c.name || 'client'}…`;
+            const addr = _bfClientAddressStr(c);
+            const coords = await _bfGeocodeAddress(addr);
+            if (coords) {
+                const straight = _bfHaversineMiles(homeCoords, coords);
+                const oneway = Math.round(straight * 1.3 * 10) / 10;
+                c.milesFromHome = oneway;
+                c.coords = coords;
+                c.coordsCache = coords;
+                done++;
+            } else {
+                failed++;
+                failedNames.push(c.name || 'Unnamed');
+            }
+            // Small buffer so the Nominatim fallback doesn't get rate-limited
+            await _bfSleep(300);
         }
-        // Sleep between clients. Census doesn't enforce a strict rate limit, but we keep
-        // a small buffer in case the per-client geocode falls through to Nominatim fallback,
-        // which DOES require 1 req/sec.
-        await _bfSleep(300);
     }
 
     const ok = Store.saveClients(clients);
