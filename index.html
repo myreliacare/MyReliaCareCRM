@@ -476,6 +476,78 @@
         .todo-more-link { display: block; text-align: center; padding: 8px; color: var(--text-faint); font-size: 0.88em; cursor: pointer; background: none; border: none; width: 100%; font-family: inherit; margin-top: 4px; }
         .todo-more-link:hover { color: var(--accent); }
 
+        /* ===== INBOX TYPED-ITEM EXTENSIONS ===== */
+        /* Type picker row in the add form */
+        .item-type-toggle { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin: 10px 0; }
+        .item-type-btn { background: var(--bg); color: var(--text-faint); border: none; border-right: 1px solid var(--border); padding: 7px 14px; cursor: pointer; font-family: inherit; font-size: 0.88em; font-weight: 600; transition: all 0.1s; }
+        .item-type-btn:last-child { border-right: none; }
+        .item-type-btn:hover { background: var(--bg-input); color: var(--text); }
+        .item-type-btn.active { background: var(--accent); color: white; }
+        /* Pin-to-home toggle in note form */
+        .item-pin-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 0.88em; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+        .item-pin-toggle input { margin: 0; cursor: pointer; }
+        /* Repeat dropdown */
+        .item-recur-select { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 9px; font-family: inherit; font-size: 0.92em; }
+        .item-recur-select:focus { outline: none; border-color: var(--accent); }
+
+        /* Section labels in the home dashboard + Today tab */
+        .item-section-label { font-size: 0.74em; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-faint); padding: 12px 4px 4px 4px; }
+        .item-section-label:first-child { padding-top: 4px; }
+
+        /* Reminder + Note items use flex (variable child set) instead of grid */
+        .todo-item.item-reminder, .todo-item.item-note {
+            display: flex; flex-wrap: wrap; align-items: center;
+        }
+        .todo-item.item-reminder .todo-text,
+        .todo-item.item-note .todo-text { flex: 1 1 140px; min-width: 0; }
+
+        /* Type tag (small label at left of reminder/note rows) */
+        .item-type-tag { font-size: 0.66em; font-weight: 700; letter-spacing: 1.4px; padding: 3px 7px; border-radius: 4px; flex: 0 0 auto; }
+        .item-type-tag.reminder { background: rgba(123, 162, 196, 0.18); color: #7ba2c4; }
+        .item-type-tag.note { background: rgba(196, 167, 123, 0.18); color: #c4a77b; }
+        .item-recur-badge { font-size: 0.7em; color: var(--text-faint); font-style: italic; flex: 0 0 auto; padding: 0 4px; }
+
+        /* Reminder action buttons (got it / snooze) */
+        .item-reminder-action { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 4px 9px; cursor: pointer; font-family: inherit; font-size: 0.78em; font-weight: 600; flex: 0 0 auto; transition: all 0.1s; }
+        .item-reminder-action:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        .item-reminder-action.gotit:hover { background: var(--success, #6c9); border-color: var(--success, #6c9); }
+
+        /* Pin button on notes */
+        .item-pin-btn { background: transparent; border: 1px solid var(--border); border-radius: 5px; color: var(--text-faint); cursor: pointer; padding: 4px 7px; line-height: 0; transition: all 0.1s; flex: 0 0 auto; }
+        .item-pin-btn:hover { color: var(--accent); border-color: var(--accent); }
+        .item-pin-btn.pinned { color: var(--accent); border-color: var(--accent); background: rgba(196, 167, 123, 0.1); }
+        .todo-item.item-note.pinned { border-color: rgba(196, 167, 123, 0.4); }
+
+        /* Snooze popup */
+        .snooze-popup {
+            position: absolute;
+            z-index: 9000;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 160px;
+        }
+        .snooze-popup button {
+            background: transparent; border: none; color: var(--text); cursor: pointer;
+            padding: 8px 12px; text-align: left; border-radius: 4px;
+            font-family: inherit; font-size: 0.92em;
+        }
+        .snooze-popup button:hover { background: var(--bg-input); color: var(--accent); }
+        .snooze-popup-date {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px; color: var(--text-dim); font-size: 0.88em;
+            border-top: 1px solid var(--border); margin-top: 2px; padding-top: 10px;
+        }
+        .snooze-popup-date input {
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px;
+            color: var(--text); padding: 4px 6px; font-family: inherit; font-size: 0.85em;
+        }
+
         @media (max-width: 700px) {
             .todo-item { grid-template-columns: auto 1fr auto auto auto; gap: 8px; padding: 10px; }
             .todo-item .todo-due { grid-column: 2 / -1; grid-row: 2; font-size: 0.78em; margin-top: 2px; }
@@ -1948,22 +2020,43 @@
             <div id="todayList" class="schedule-list"></div>
         </div>
 
-        <!-- To-Do -->
+        <!-- Inbox -->
         <div class="card">
             <div class="todo-card-header">
-                <h2 class="card-title">To-Do</h2>
+                <h2 class="card-title">Inbox</h2>
                 <button class="btn btn-ghost btn-sm" onclick="openTodoModal()" id="todoManageBtn">Manage all</button>
             </div>
-            <div class="todo-add-form" id="todoDashboardForm">
+            <div class="todo-add-form item-add-form" id="todoDashboardForm">
                 <input type="text" id="todoDashText" placeholder="What needs doing?"
                        onkeydown="if(event.key==='Enter') addOrUpdateTodo('dash')">
+                <div class="item-type-toggle">
+                    <button type="button" class="item-type-btn active" id="todoDashType_task" onclick="setItemFormType('dash','task')">Task</button>
+                    <button type="button" class="item-type-btn" id="todoDashType_reminder" onclick="setItemFormType('dash','reminder')">Reminder</button>
+                    <button type="button" class="item-type-btn" id="todoDashType_note" onclick="setItemFormType('dash','note')">Note</button>
+                </div>
                 <div class="todo-add-meta">
-                    <div class="todo-priority-toggle" data-source="dash">
+                    <!-- Task only: priority -->
+                    <div class="item-conditional todo-priority-toggle" data-for-type="task" data-source="dash">
                         <button type="button" class="todo-prio-btn high" data-prio="high" onclick="setTodoFormPriority('dash','high')" title="High priority">H</button>
                         <button type="button" class="todo-prio-btn med active" data-prio="med" onclick="setTodoFormPriority('dash','med')" title="Medium priority">M</button>
                         <button type="button" class="todo-prio-btn low" data-prio="low" onclick="setTodoFormPriority('dash','low')" title="Low priority">L</button>
                     </div>
-                    <input type="date" id="todoDashDate" title="Due date (optional)">
+                    <!-- Task + Reminder: single shared date input -->
+                    <input type="date" id="todoDashDate" class="item-conditional" data-for-type="task reminder" title="Date">
+                    <!-- Reminder only: repeat dropdown -->
+                    <select id="todoDashRecur" class="item-conditional item-recur-select" data-for-type="reminder" onchange="setItemFormRecur('dash', this.value)" title="Repeat">
+                        <option value="">no repeat</option>
+                        <option value="daily">daily</option>
+                        <option value="weekly">weekly</option>
+                        <option value="monthly">monthly</option>
+                        <option value="quarterly">quarterly</option>
+                        <option value="yearly">yearly</option>
+                    </select>
+                    <!-- Note only: pin to home toggle -->
+                    <label class="item-conditional item-pin-toggle" data-for-type="note">
+                        <input type="checkbox" id="todoDashPinToggle" onchange="setItemFormPin('dash', this.checked)">
+                        <span>Pin to home</span>
+                    </label>
                     <button class="btn btn-primary btn-sm" onclick="addOrUpdateTodo('dash')" id="todoDashAddBtn">+ Add</button>
                     <button class="btn btn-ghost btn-sm" onclick="cancelEditTodo('dash')" id="todoDashCancelBtn" style="display: none;">Cancel</button>
                 </div>
@@ -2264,32 +2357,48 @@
     </div>
 </div>
 
-<!-- ========= TO-DO MODAL ========= -->
+<!-- ========= INBOX MODAL ========= -->
 <div class="modal-overlay" id="todoModal">
     <div class="modal modal-wide">
         <div class="modal-header">
-            <h2>To-Do</h2>
+            <h2>Inbox</h2>
             <button class="modal-close" onclick="closeModal('todoModal')">×</button>
         </div>
         <div class="modal-body modal-body-scrollable">
-            <div class="todo-add-form" id="todoModalForm" style="margin-bottom: 16px;">
+            <div class="todo-add-form item-add-form" id="todoModalForm" style="margin-bottom: 16px;">
                 <input type="text" id="todoModalText" placeholder="What needs doing?"
                        onkeydown="if(event.key==='Enter') addOrUpdateTodo('modal')">
+                <div class="item-type-toggle">
+                    <button type="button" class="item-type-btn active" id="todoModalType_task" onclick="setItemFormType('modal','task')">Task</button>
+                    <button type="button" class="item-type-btn" id="todoModalType_reminder" onclick="setItemFormType('modal','reminder')">Reminder</button>
+                    <button type="button" class="item-type-btn" id="todoModalType_note" onclick="setItemFormType('modal','note')">Note</button>
+                </div>
                 <div class="todo-add-meta">
-                    <div class="todo-priority-toggle" data-source="modal">
+                    <div class="item-conditional todo-priority-toggle" data-for-type="task" data-source="modal">
                         <button type="button" class="todo-prio-btn high" data-prio="high" onclick="setTodoFormPriority('modal','high')" title="High priority">H</button>
                         <button type="button" class="todo-prio-btn med active" data-prio="med" onclick="setTodoFormPriority('modal','med')" title="Medium priority">M</button>
                         <button type="button" class="todo-prio-btn low" data-prio="low" onclick="setTodoFormPriority('modal','low')" title="Low priority">L</button>
                     </div>
-                    <input type="date" id="todoModalDate" title="Due date (optional)">
+                    <input type="date" id="todoModalDate" class="item-conditional" data-for-type="task reminder" title="Date">
+                    <select id="todoModalRecur" class="item-conditional item-recur-select" data-for-type="reminder" onchange="setItemFormRecur('modal', this.value)" title="Repeat">
+                        <option value="">no repeat</option>
+                        <option value="daily">daily</option>
+                        <option value="weekly">weekly</option>
+                        <option value="monthly">monthly</option>
+                        <option value="quarterly">quarterly</option>
+                        <option value="yearly">yearly</option>
+                    </select>
+                    <label class="item-conditional item-pin-toggle" data-for-type="note">
+                        <input type="checkbox" id="todoModalPinToggle" onchange="setItemFormPin('modal', this.checked)">
+                        <span>Pin to home</span>
+                    </label>
                     <button class="btn btn-primary btn-sm" onclick="addOrUpdateTodo('modal')" id="todoModalAddBtn">+ Add</button>
                     <button class="btn btn-ghost btn-sm" onclick="cancelEditTodo('modal')" id="todoModalCancelBtn" style="display: none;">Cancel</button>
                 </div>
             </div>
             <div class="todo-tabs">
                 <button class="todo-tab active" data-tab="today" onclick="setTodoTab('today')">Today <span class="todo-tab-count" id="todoCountToday"></span></button>
-                <button class="todo-tab" data-tab="upcoming" onclick="setTodoTab('upcoming')">Upcoming <span class="todo-tab-count" id="todoCountUpcoming"></span></button>
-                <button class="todo-tab" data-tab="all" onclick="setTodoTab('all')">All open <span class="todo-tab-count" id="todoCountAll"></span></button>
+                <button class="todo-tab" data-tab="notes" onclick="setTodoTab('notes')">Notes <span class="todo-tab-count" id="todoCountNotes"></span></button>
                 <button class="todo-tab" data-tab="done" onclick="setTodoTab('done')">Done <span class="todo-tab-count" id="todoCountDone"></span></button>
             </div>
             <div id="todoModalList" class="todo-list"></div>
@@ -2298,6 +2407,16 @@
             <button class="btn btn-ghost" onclick="closeModal('todoModal')">Close</button>
         </div>
     </div>
+</div>
+
+<!-- ========= SNOOZE POPUP (anchored under the snooze button you click) ========= -->
+<div id="itemSnoozePopup" class="snooze-popup" style="display: none;">
+    <button onclick="snoozePopupAction(1)">Tomorrow</button>
+    <button onclick="snoozePopupAction(7)">+1 week</button>
+    <label class="snooze-popup-date">
+        Pick date
+        <input type="date" onchange="snoozePopupCustom(this.value); this.value='';">
+    </label>
 </div>
 
 <!-- ========= RECURRING DELETE MODAL ========= -->
@@ -4657,17 +4776,33 @@ function renderWeeklySnapshot() {
    defaults — old data still readable, new shape persists on next save.
    ============================================================ */
 
-let _todoTab = 'today';           // current modal tab
-let _todoEdit = { dash: null, modal: null };   // editing todo id per form source
+let _todoTab = 'today';           // current modal tab — 'today' | 'notes' | 'done'
+let _todoEdit = { dash: null, modal: null };   // editing item id per form source
 let _todoFormPrio = { dash: 'med', modal: 'med' };
+let _itemFormType = { dash: 'task', modal: 'task' };       // 'task' | 'reminder' | 'note'
+let _itemFormRecur = { dash: '', modal: '' };              // '' (none) | 'daily' | 'weekly' | etc
+let _itemFormPin = { dash: false, modal: false };          // pin-to-home for notes
 
 function _todoNormalize(t) {
     if (!t) return t;
+    // Legacy items (created before the typed inbox redesign) have no `type` —
+    // default them to 'task' so existing behavior is unchanged.
+    const type = (t.type === 'reminder' || t.type === 'note') ? t.type : 'task';
     return {
         id: t.id,
+        type,
         text: t.text || '',
+        clientId: t.clientId || null,
+        // task fields
         priority: (t.priority === 'high' || t.priority === 'low') ? t.priority : 'med',
         dueDate: t.dueDate || null,
+        // reminder fields
+        surfaceDate: t.surfaceDate || null,
+        recurrence: ['daily','weekly','monthly','quarterly','yearly'].includes(t.recurrence) ? t.recurrence : null,
+        recurrenceAnchor: t.recurrenceAnchor || null,
+        // note fields
+        pinned: !!t.pinned,
+        // shared
         done: !!t.done,
         doneAt: t.doneAt || null,
         createdAt: t.createdAt || null,
@@ -4679,6 +4814,45 @@ function getTodos() {
 }
 function _todoSave(todos) {
     return Store.saveQuickNotes(todos);
+}
+
+/* Advance a YYYY-MM-DD date by one recurrence interval. */
+function _advanceRecurrence(ymd, recurrence) {
+    if (!ymd || !recurrence) return ymd;
+    const d = new Date(ymd + 'T00:00:00');
+    switch (recurrence) {
+        case 'daily': d.setDate(d.getDate() + 1); break;
+        case 'weekly': d.setDate(d.getDate() + 7); break;
+        case 'monthly': d.setMonth(d.getMonth() + 1); break;
+        case 'quarterly': d.setMonth(d.getMonth() + 3); break;
+        case 'yearly': d.setFullYear(d.getFullYear() + 1); break;
+        default: return ymd;
+    }
+    return d.toISOString().slice(0, 10);
+}
+
+/* Add N days to a YYYY-MM-DD date. */
+function _addDaysYmd(ymd, days) {
+    const d = ymd ? new Date(ymd + 'T00:00:00') : new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+
+/* --- Type-specific home-dashboard filters --- */
+function _itemRemindersToday(today) {
+    return getTodos()
+        .filter(t => t.type === 'reminder' && !t.done && t.surfaceDate && t.surfaceDate <= today)
+        .sort((a, b) => (a.surfaceDate || '').localeCompare(b.surfaceDate || ''));
+}
+function _itemTasksToday(today) {
+    return getTodos()
+        .filter(t => t.type === 'task' && _todoInTodayView(t, today))
+        .sort(_todoSortOpen);
+}
+function _itemPinnedNotes() {
+    return getTodos()
+        .filter(t => t.type === 'note' && !t.done && t.pinned)
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
 }
 
 function _todoIsOverdue(t, today) {
@@ -4740,21 +4914,92 @@ function setTodoFormPriority(source, prio) {
     });
 }
 
+function setItemFormType(source, type) {
+    if (!['task', 'reminder', 'note'].includes(type)) return;
+    _itemFormType[source] = type;
+    const prefix = source === 'dash' ? 'todoDash' : 'todoModal';
+    // Toggle the type buttons' active state
+    ['task', 'reminder', 'note'].forEach(tp => {
+        const btn = document.getElementById(`${prefix}Type_${tp}`);
+        if (btn) btn.classList.toggle('active', tp === type);
+    });
+    // Show/hide conditional fields. data-for-type can be "task" or "task reminder" etc.
+    const formId = source === 'dash' ? 'todoDashboardForm' : 'todoModalForm';
+    const form = document.getElementById(formId);
+    if (form) {
+        form.querySelectorAll('.item-conditional').forEach(el => {
+            const types = (el.dataset.forType || '').split(/\s+/).filter(Boolean);
+            el.style.display = types.includes(type) ? '' : 'none';
+        });
+    }
+    // Adjust placeholder text on the text input
+    const textEl = document.getElementById(source === 'dash' ? 'todoDashText' : 'todoModalText');
+    if (textEl) {
+        textEl.placeholder = type === 'reminder' ? 'Remind me to...'
+            : type === 'note' ? 'Note or mental marker...'
+            : 'What needs doing?';
+    }
+}
+
+function setItemFormRecur(source, value) {
+    _itemFormRecur[source] = value;
+}
+function setItemFormPin(source, pinned) {
+    _itemFormPin[source] = !!pinned;
+    const prefix = source === 'dash' ? 'todoDash' : 'todoModal';
+    const cb = document.getElementById(`${prefix}PinToggle`);
+    if (cb) cb.checked = !!pinned;
+}
+
 function _todoIdsFor(source) {
     return source === 'dash'
-        ? { text: 'todoDashText', date: 'todoDashDate', addBtn: 'todoDashAddBtn', cancelBtn: 'todoDashCancelBtn' }
-        : { text: 'todoModalText', date: 'todoModalDate', addBtn: 'todoModalAddBtn', cancelBtn: 'todoModalCancelBtn' };
+        ? { text: 'todoDashText', date: 'todoDashDate', addBtn: 'todoDashAddBtn', cancelBtn: 'todoDashCancelBtn', recur: 'todoDashRecur', pin: 'todoDashPinToggle' }
+        : { text: 'todoModalText', date: 'todoModalDate', addBtn: 'todoModalAddBtn', cancelBtn: 'todoModalCancelBtn', recur: 'todoModalRecur', pin: 'todoModalPinToggle' };
 }
 
 function addOrUpdateTodo(source) {
     const ids = _todoIdsFor(source);
     const text = (document.getElementById(ids.text).value || '').trim();
     if (!text) return;
-    const dueDate = document.getElementById(ids.date).value || null;
-    const priority = _todoFormPrio[source] || 'med';
+    const type = _itemFormType[source] || 'task';
+    const dateInput = document.getElementById(ids.date)?.value || null;
     const editingId = _todoEdit[source];
 
+    // Validate type-specific requirements
+    if (type === 'reminder' && !dateInput) {
+        showToast('Reminders need a date — when should this surface?', 'error');
+        return;
+    }
+
     const todos = getTodos();
+
+    // Build the canonical record for this type — explicitly nulling fields that
+    // don't apply, so a "task → reminder" edit doesn't leave stale dueDate behind.
+    const baseFields = {
+        type,
+        text,
+        clientId: null,
+        priority: 'med',
+        dueDate: null,
+        surfaceDate: null,
+        recurrence: null,
+        recurrenceAnchor: null,
+        pinned: false,
+    };
+    if (type === 'task') {
+        baseFields.priority = _todoFormPrio[source] || 'med';
+        baseFields.dueDate = dateInput;
+    } else if (type === 'reminder') {
+        baseFields.surfaceDate = dateInput;
+        const recur = _itemFormRecur[source] || '';
+        if (recur) {
+            baseFields.recurrence = recur;
+            baseFields.recurrenceAnchor = dateInput; // anchor the schedule
+        }
+    } else if (type === 'note') {
+        baseFields.pinned = !!_itemFormPin[source];
+    }
+
     if (editingId) {
         const idx = todos.findIndex(t => t.id === editingId);
         if (idx === -1) {
@@ -4762,12 +5007,18 @@ function addOrUpdateTodo(source) {
             cancelEditTodo(source);
             return;
         }
-        todos[idx] = { ...todos[idx], text, dueDate, priority };
+        // Preserve done/doneAt/clientId/createdAt; overwrite the rest from the form
+        todos[idx] = {
+            ...todos[idx],
+            ...baseFields,
+            clientId: todos[idx].clientId || null,
+        };
     } else {
         todos.unshift({
-            id: 'note_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-            text, priority, dueDate,
-            done: false, doneAt: null,
+            id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+            ...baseFields,
+            done: false,
+            doneAt: null,
             createdAt: new Date().toISOString(),
         });
     }
@@ -4776,8 +5027,13 @@ function addOrUpdateTodo(source) {
 
     // Reset form for this source
     document.getElementById(ids.text).value = '';
-    document.getElementById(ids.date).value = '';
+    if (document.getElementById(ids.date)) document.getElementById(ids.date).value = '';
+    if (document.getElementById(ids.recur)) document.getElementById(ids.recur).value = '';
+    if (document.getElementById(ids.pin)) document.getElementById(ids.pin).checked = false;
+    _itemFormRecur[source] = '';
+    _itemFormPin[source] = false;
     setTodoFormPriority(source, 'med');
+    setItemFormType(source, 'task'); // back to default
     _todoEdit[source] = null;
     document.getElementById(ids.addBtn).textContent = '+ Add';
     document.getElementById(ids.cancelBtn).style.display = 'none';
@@ -4791,16 +5047,25 @@ function startEditTodo(id, source) {
     const todos = getTodos();
     const t = todos.find(x => x.id === id);
     if (!t) return;
-    // If user is editing from dashboard form but the modal is the only available slot
-    // (e.g., dashboard card hidden on small screens), fall back to modal source
     const ids = _todoIdsFor(source);
+    setItemFormType(source, t.type || 'task');
     document.getElementById(ids.text).value = t.text || '';
-    document.getElementById(ids.date).value = t.dueDate || '';
+    // The date input is shared between task (dueDate) and reminder (surfaceDate)
+    if (document.getElementById(ids.date)) {
+        document.getElementById(ids.date).value = (t.type === 'reminder') ? (t.surfaceDate || '') : (t.dueDate || '');
+    }
     setTodoFormPriority(source, t.priority || 'med');
+    if (document.getElementById(ids.recur)) {
+        document.getElementById(ids.recur).value = t.recurrence || '';
+        _itemFormRecur[source] = t.recurrence || '';
+    }
+    if (document.getElementById(ids.pin)) {
+        document.getElementById(ids.pin).checked = !!t.pinned;
+        _itemFormPin[source] = !!t.pinned;
+    }
     _todoEdit[source] = id;
     document.getElementById(ids.addBtn).textContent = 'Save';
     document.getElementById(ids.cancelBtn).style.display = '';
-    // Focus the text input
     setTimeout(() => document.getElementById(ids.text).focus(), 50);
     _renderAllTodoUI();
 }
@@ -4808,8 +5073,13 @@ function startEditTodo(id, source) {
 function cancelEditTodo(source) {
     const ids = _todoIdsFor(source);
     document.getElementById(ids.text).value = '';
-    document.getElementById(ids.date).value = '';
+    if (document.getElementById(ids.date)) document.getElementById(ids.date).value = '';
+    if (document.getElementById(ids.recur)) document.getElementById(ids.recur).value = '';
+    if (document.getElementById(ids.pin)) document.getElementById(ids.pin).checked = false;
+    _itemFormRecur[source] = '';
+    _itemFormPin[source] = false;
     setTodoFormPriority(source, 'med');
+    setItemFormType(source, 'task');
     _todoEdit[source] = null;
     document.getElementById(ids.addBtn).textContent = '+ Add';
     document.getElementById(ids.cancelBtn).style.display = 'none';
@@ -4828,13 +5098,149 @@ function toggleTodoDone(id) {
 }
 
 function deleteTodo(id) {
-    if (!confirm('Delete this task?')) return;
+    if (!confirm('Delete this item?')) return;
     const todos = getTodos().filter(t => t.id !== id);
     const ok = _todoSave(todos);
     if (ok === false) { showToast('Save failed', 'error'); return; }
     // If the deleted item was being edited in any form, cancel that edit
     ['dash', 'modal'].forEach(src => { if (_todoEdit[src] === id) cancelEditTodo(src); });
     _renderAllTodoUI();
+}
+
+/* "Got it" on a reminder.
+ *  - non-recurring: mark done (moves to Done tab)
+ *  - recurring:     advance the schedule anchor by one interval, set surfaceDate
+ *                   to the new anchor, stay active. One record forever.
+ */
+function gotItReminder(id) {
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (!t || t.type !== 'reminder') return;
+    if (t.recurrence) {
+        // Advance from the anchor (not the snoozed surfaceDate), so snoozes don't
+        // permanently drift the schedule.
+        const anchor = t.recurrenceAnchor || t.surfaceDate;
+        const next = _advanceRecurrence(anchor, t.recurrence);
+        t.recurrenceAnchor = next;
+        t.surfaceDate = next;
+        // Keep done=false — the next occurrence is immediately active in the data
+        // but won't show on home until its surfaceDate arrives.
+    } else {
+        t.done = true;
+        t.doneAt = new Date().toISOString();
+    }
+    const ok = _todoSave(todos);
+    if (ok === false) { showToast('Save failed', 'error'); return; }
+    closeSnoozePopup();
+    _renderAllTodoUI();
+}
+
+/* Snooze a reminder forward by N days, or to a specific YYYY-MM-DD date.
+ * Only touches surfaceDate — recurrenceAnchor stays put so the schedule is preserved.
+ */
+function snoozeReminderDays(id, days) {
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (!t || t.type !== 'reminder') return;
+    // Snooze relative to today (not surfaceDate), so snoozing an overdue
+    // reminder pushes it to days-from-now, not days-from-when-it-was-due.
+    const today = todayYmd();
+    t.surfaceDate = _addDaysYmd(today, days);
+    const ok = _todoSave(todos);
+    if (ok === false) { showToast('Save failed', 'error'); return; }
+    closeSnoozePopup();
+    _renderAllTodoUI();
+    const dayLabel = days === 1 ? 'tomorrow' : days === 7 ? 'next week' : `${days} days from now`;
+    showToast(`Snoozed until ${dayLabel}`);
+}
+
+function snoozeReminderToDate(id, ymd) {
+    if (!ymd) return;
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (!t || t.type !== 'reminder') return;
+    t.surfaceDate = ymd;
+    const ok = _todoSave(todos);
+    if (ok === false) { showToast('Save failed', 'error'); return; }
+    closeSnoozePopup();
+    _renderAllTodoUI();
+    showToast('Snoozed');
+}
+
+/* Toggle pin on a note (controls whether it shows on the home dashboard). */
+function togglePinNote(id) {
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (!t || t.type !== 'note') return;
+    t.pinned = !t.pinned;
+    const ok = _todoSave(todos);
+    if (ok === false) { showToast('Save failed', 'error'); return; }
+    _renderAllTodoUI();
+}
+
+/* Archive a note (moves to Done tab) or unarchive any item. */
+function archiveItem(id) {
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (!t) return;
+    t.done = true;
+    t.doneAt = new Date().toISOString();
+    if (t.type === 'note') t.pinned = false; // unpins when archived
+    const ok = _todoSave(todos);
+    if (ok === false) { showToast('Save failed', 'error'); return; }
+    _renderAllTodoUI();
+}
+
+function unarchiveItem(id) {
+    const todos = getTodos();
+    const t = todos.find(x => x.id === id);
+    if (!t) return;
+    t.done = false;
+    t.doneAt = null;
+    const ok = _todoSave(todos);
+    if (ok === false) { showToast('Save failed', 'error'); return; }
+    _renderAllTodoUI();
+}
+
+/* --- Snooze popup (global element, repositioned per click) --- */
+function openSnoozePopup(id, ev) {
+    if (ev) ev.stopPropagation();
+    const popup = document.getElementById('itemSnoozePopup');
+    if (!popup) return;
+    popup.dataset.itemId = id;
+    const btn = ev && ev.currentTarget;
+    if (btn && btn.getBoundingClientRect) {
+        const r = btn.getBoundingClientRect();
+        popup.style.top = (r.bottom + window.scrollY + 4) + 'px';
+        popup.style.left = (r.left + window.scrollX) + 'px';
+    }
+    popup.style.display = 'block';
+    // Outside-click closes — defer attach so the originating click doesn't close it
+    setTimeout(() => {
+        document.addEventListener('click', _snoozePopupOutsideClick);
+    }, 0);
+}
+function closeSnoozePopup() {
+    const popup = document.getElementById('itemSnoozePopup');
+    if (!popup) return;
+    popup.style.display = 'none';
+    popup.dataset.itemId = '';
+    document.removeEventListener('click', _snoozePopupOutsideClick);
+}
+function _snoozePopupOutsideClick(e) {
+    const popup = document.getElementById('itemSnoozePopup');
+    if (!popup) return;
+    if (!popup.contains(e.target)) closeSnoozePopup();
+}
+function snoozePopupAction(days) {
+    const popup = document.getElementById('itemSnoozePopup');
+    const id = popup?.dataset.itemId;
+    if (id) snoozeReminderDays(id, days);
+}
+function snoozePopupCustom(ymd) {
+    const popup = document.getElementById('itemSnoozePopup');
+    const id = popup?.dataset.itemId;
+    if (id && ymd) snoozeReminderToDate(id, ymd);
 }
 
 function setTodoTab(tab) {
@@ -4878,7 +5284,7 @@ function _todoDueClass(t, today) {
     return '';
 }
 
-function _renderTodoItem(t, today, source) {
+function _renderTaskItem(t, today, source) {
     const dueLabel = _todoDueLabel(t, today);
     const dueClass = _todoDueClass(t, today);
     const overdueClass = _todoIsOverdue(t, today) ? 'overdue' : '';
@@ -4891,7 +5297,7 @@ function _renderTodoItem(t, today, source) {
         : '';
     const pencilSvg = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5L13.5 5L5 13.5H2.5V11L11 2.5Z"/><path d="M9 4.5L11.5 7"/></svg>`;
     return `
-        <div class="todo-item ${doneClass} ${overdueClass} ${editingClass}">
+        <div class="todo-item item-task ${doneClass} ${overdueClass} ${editingClass}">
             <div class="todo-check" onclick="toggleTodoDone('${t.id}')" title="${t.done ? 'Mark not done' : 'Mark done'}">${checkSvg}</div>
             <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
             <span class="todo-prio-badge ${t.priority}">${prioLabel}</span>
@@ -4902,19 +5308,116 @@ function _renderTodoItem(t, today, source) {
     `;
 }
 
+function _renderReminderItem(t, today, source) {
+    const safeText = escapeHtml(t.text || '');
+    const editingClass = (_todoEdit.dash === t.id || _todoEdit.modal === t.id) ? 'editing' : '';
+    const doneClass = t.done ? 'done' : '';
+    // Label: "today" / "tomorrow" / overdue days / specific date
+    let dateLabel = '';
+    if (t.surfaceDate) {
+        if (t.surfaceDate === today) dateLabel = 'today';
+        else if (t.surfaceDate < today) dateLabel = `${_daysBetween(t.surfaceDate, today)}d overdue`;
+        else {
+            const days = _daysBetween(today, t.surfaceDate);
+            if (days === 1) dateLabel = 'tmrw';
+            else if (days < 7) dateLabel = `${days}d`;
+            else dateLabel = new Date(t.surfaceDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    }
+    const recurLabel = t.recurrence ? `<span class="item-recur-badge">${t.recurrence}</span>` : '';
+    const pencilSvg = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5L13.5 5L5 13.5H2.5V11L11 2.5Z"/><path d="M9 4.5L11.5 7"/></svg>`;
+    // Reminders that are done show simpler row (no action buttons)
+    const actions = t.done ? `
+            <button class="todo-edit-btn" onclick="unarchiveItem('${t.id}')" title="Restore">↶</button>
+            <button class="todo-del-btn" onclick="deleteTodo('${t.id}')" title="Delete">×</button>
+    ` : `
+            <button class="item-reminder-action gotit" onclick="gotItReminder('${t.id}')" title="Got it">got it</button>
+            <button class="item-reminder-action snooze" onclick="openSnoozePopup('${t.id}', event)" title="Snooze">snooze ▾</button>
+            <button class="todo-edit-btn" onclick="startEditTodo('${t.id}', '${source}')" title="Edit" aria-label="Edit">${pencilSvg}</button>
+            <button class="todo-del-btn" onclick="deleteTodo('${t.id}')" title="Delete">×</button>
+    `;
+    return `
+        <div class="todo-item item-reminder ${doneClass} ${editingClass}">
+            <span class="item-type-tag reminder">REMIND</span>
+            <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
+            ${recurLabel}
+            <span class="todo-due">${dateLabel}</span>
+            ${actions}
+        </div>
+    `;
+}
+
+function _renderNoteItem(t, today, source) {
+    const safeText = escapeHtml(t.text || '');
+    const editingClass = (_todoEdit.dash === t.id || _todoEdit.modal === t.id) ? 'editing' : '';
+    const doneClass = t.done ? 'done' : '';
+    const pinnedClass = t.pinned ? 'pinned' : '';
+    const pinSvg = t.pinned
+        ? `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M9.5 1.5l5 5-2 .5L11 9l1.5 4-1 1-4-1.5-2 1.5L4 13l1.5-2L4 9.5l1-1L9.5 1.5z"/></svg>`
+        : `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M9.5 1.5l5 5-2 .5L11 9l1.5 4-1 1-4-1.5-2 1.5L4 13l1.5-2L4 9.5l1-1L9.5 1.5z"/></svg>`;
+    const pencilSvg = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5L13.5 5L5 13.5H2.5V11L11 2.5Z"/><path d="M9 4.5L11.5 7"/></svg>`;
+    const actions = t.done ? `
+            <button class="todo-edit-btn" onclick="unarchiveItem('${t.id}')" title="Restore">↶</button>
+            <button class="todo-del-btn" onclick="deleteTodo('${t.id}')" title="Delete">×</button>
+    ` : `
+            <button class="item-pin-btn ${pinnedClass}" onclick="togglePinNote('${t.id}')" title="${t.pinned ? 'Unpin from home' : 'Pin to home'}">${pinSvg}</button>
+            <button class="item-reminder-action gotit" onclick="archiveItem('${t.id}')" title="Archive">archive</button>
+            <button class="todo-edit-btn" onclick="startEditTodo('${t.id}', '${source}')" title="Edit" aria-label="Edit">${pencilSvg}</button>
+            <button class="todo-del-btn" onclick="deleteTodo('${t.id}')" title="Delete">×</button>
+    `;
+    return `
+        <div class="todo-item item-note ${pinnedClass} ${doneClass} ${editingClass}">
+            <span class="item-type-tag note">NOTE</span>
+            <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
+            ${actions}
+        </div>
+    `;
+}
+
+/* Dispatch on type. Keeps old _renderTodoItem name for callers that still
+ * use it (none should remain, but defensive). */
+function _renderTodoItem(t, today, source) {
+    if (t.type === 'reminder') return _renderReminderItem(t, today, source);
+    if (t.type === 'note') return _renderNoteItem(t, today, source);
+    return _renderTaskItem(t, today, source);
+}
+
 function renderTodoDashboardCard() {
     const container = document.getElementById('todoDashList');
     if (!container) return;
     const today = todayYmd();
-    const items = _todoFilteredFor('today');
-    const visible = items.slice(0, 5);
-    if (items.length === 0) {
+    const reminders = _itemRemindersToday(today);
+    const tasks = _itemTasksToday(today);
+    const pinned = _itemPinnedNotes();
+
+    if (reminders.length === 0 && tasks.length === 0 && pinned.length === 0) {
         container.innerHTML = `<div class="todo-empty">All clear for today.</div>`;
         return;
     }
-    let html = visible.map(t => _renderTodoItem(t, today, 'dash')).join('');
-    if (items.length > 5) {
-        html += `<button class="todo-more-link" onclick="openTodoModal()">+ ${items.length - 5} more — view all</button>`;
+
+    // Cap each section on the dashboard; overflow rolls into "view all"
+    const cap = 5;
+    let html = '';
+    let overflowCount = 0;
+
+    if (reminders.length > 0) {
+        html += `<div class="item-section-label">Reminders today</div>`;
+        html += reminders.slice(0, cap).map(t => _renderReminderItem(t, today, 'dash')).join('');
+        if (reminders.length > cap) overflowCount += (reminders.length - cap);
+    }
+    if (tasks.length > 0) {
+        html += `<div class="item-section-label">Tasks</div>`;
+        html += tasks.slice(0, cap).map(t => _renderTaskItem(t, today, 'dash')).join('');
+        if (tasks.length > cap) overflowCount += (tasks.length - cap);
+    }
+    if (pinned.length > 0) {
+        html += `<div class="item-section-label">Pinned</div>`;
+        html += pinned.slice(0, cap).map(t => _renderNoteItem(t, today, 'dash')).join('');
+        if (pinned.length > cap) overflowCount += (pinned.length - cap);
+    }
+
+    if (overflowCount > 0) {
+        html += `<button class="todo-more-link" onclick="openTodoModal()">+ ${overflowCount} more — view all</button>`;
     }
     container.innerHTML = html;
 }
@@ -4923,30 +5426,59 @@ function _renderTodoModalList() {
     const container = document.getElementById('todoModalList');
     if (!container) return;
     const today = todayYmd();
-    const items = _todoFilteredFor(_todoTab);
+    const all = getTodos();
 
-    // Tab counts (computed from current data, not cached)
-    const allTodos = getTodos();
-    const openTodos = allTodos.filter(t => !t.done);
-    const doneTodos = allTodos.filter(t => t.done);
-    const horizonD = new Date(); horizonD.setDate(horizonD.getDate() + 14);
-    const horizon = horizonD.toISOString().slice(0, 10);
-    document.getElementById('todoCountToday').textContent = openTodos.filter(t => _todoInTodayView(t, today)).length || '';
-    document.getElementById('todoCountUpcoming').textContent = openTodos.filter(t => _todoInUpcomingView(t, today, horizon)).length || '';
-    document.getElementById('todoCountAll').textContent = openTodos.length || '';
-    document.getElementById('todoCountDone').textContent = doneTodos.length || '';
+    // Tab counts
+    const todayReminders = all.filter(t => t.type === 'reminder' && !t.done && t.surfaceDate && t.surfaceDate <= today);
+    const todayTasks = all.filter(t => t.type === 'task' && _todoInTodayView(t, today));
+    const pinnedNotes = all.filter(t => t.type === 'note' && !t.done && t.pinned);
+    const todayCount = todayReminders.length + todayTasks.length + pinnedNotes.length;
+    const notesCount = all.filter(t => t.type === 'note' && !t.done).length;
+    const doneCount = all.filter(t => t.done).length;
+    if (document.getElementById('todoCountToday')) document.getElementById('todoCountToday').textContent = todayCount || '';
+    if (document.getElementById('todoCountNotes')) document.getElementById('todoCountNotes').textContent = notesCount || '';
+    if (document.getElementById('todoCountDone')) document.getElementById('todoCountDone').textContent = doneCount || '';
 
-    if (items.length === 0) {
-        const emptyMsg = {
-            today: 'Nothing due today and no high-priority items waiting.',
-            upcoming: 'Nothing scheduled in the next two weeks.',
-            all: 'No open tasks.',
-            done: 'No completed tasks yet.'
-        }[_todoTab] || 'Nothing here.';
-        container.innerHTML = `<div class="todo-empty">${emptyMsg}</div>`;
-        return;
+    let html = '';
+    if (_todoTab === 'today') {
+        if (todayCount === 0) {
+            html = `<div class="todo-empty">Nothing on deck for today.</div>`;
+        } else {
+            if (todayReminders.length > 0) {
+                html += `<div class="item-section-label">Reminders</div>`;
+                html += todayReminders.sort((a,b)=>(a.surfaceDate||'').localeCompare(b.surfaceDate||''))
+                    .map(t => _renderReminderItem(t, today, 'modal')).join('');
+            }
+            if (todayTasks.length > 0) {
+                html += `<div class="item-section-label">Tasks</div>`;
+                html += todayTasks.sort(_todoSortOpen).map(t => _renderTaskItem(t, today, 'modal')).join('');
+            }
+            if (pinnedNotes.length > 0) {
+                html += `<div class="item-section-label">Pinned</div>`;
+                html += pinnedNotes.map(t => _renderNoteItem(t, today, 'modal')).join('');
+            }
+        }
+    } else if (_todoTab === 'notes') {
+        // All non-done notes — pinned first, then by recency
+        const notes = all.filter(t => t.type === 'note' && !t.done)
+            .sort((a, b) => {
+                if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+                return (b.createdAt || '').localeCompare(a.createdAt || '');
+            });
+        if (notes.length === 0) {
+            html = `<div class="todo-empty">No notes yet. Use the form above and pick "Note" to capture a thought without a deadline.</div>`;
+        } else {
+            html = notes.map(t => _renderNoteItem(t, today, 'modal')).join('');
+        }
+    } else if (_todoTab === 'done') {
+        const done = all.filter(t => t.done).sort(_todoSortDone);
+        if (done.length === 0) {
+            html = `<div class="todo-empty">Nothing archived yet.</div>`;
+        } else {
+            html = done.map(t => _renderTodoItem(t, today, 'modal')).join('');
+        }
     }
-    container.innerHTML = items.map(t => _renderTodoItem(t, today, 'modal')).join('');
+    container.innerHTML = html;
 }
 
 function _renderAllTodoUI() {
@@ -4954,18 +5486,20 @@ function _renderAllTodoUI() {
     if (document.getElementById('todoModal') && document.getElementById('todoModal').classList.contains('active')) {
         _renderTodoModalList();
     } else {
-        // Even if modal isn't visible, keep tab counts fresh for next open
+        // Keep tab counts fresh even when modal is closed
         try {
             const today = todayYmd();
-            const allTodos = getTodos();
-            const openTodos = allTodos.filter(t => !t.done);
-            const horizonD = new Date(); horizonD.setDate(horizonD.getDate() + 14);
-            const horizon = horizonD.toISOString().slice(0, 10);
+            const all = getTodos();
+            const todayReminders = all.filter(t => t.type === 'reminder' && !t.done && t.surfaceDate && t.surfaceDate <= today);
+            const todayTasks = all.filter(t => t.type === 'task' && _todoInTodayView(t, today));
+            const pinnedNotes = all.filter(t => t.type === 'note' && !t.done && t.pinned);
+            const todayCount = todayReminders.length + todayTasks.length + pinnedNotes.length;
+            const notesCount = all.filter(t => t.type === 'note' && !t.done).length;
+            const doneCount = all.filter(t => t.done).length;
             const el = (id) => document.getElementById(id);
-            if (el('todoCountToday')) el('todoCountToday').textContent = openTodos.filter(t => _todoInTodayView(t, today)).length || '';
-            if (el('todoCountUpcoming')) el('todoCountUpcoming').textContent = openTodos.filter(t => _todoInUpcomingView(t, today, horizon)).length || '';
-            if (el('todoCountAll')) el('todoCountAll').textContent = openTodos.length || '';
-            if (el('todoCountDone')) el('todoCountDone').textContent = allTodos.filter(t => t.done).length || '';
+            if (el('todoCountToday')) el('todoCountToday').textContent = todayCount || '';
+            if (el('todoCountNotes')) el('todoCountNotes').textContent = notesCount || '';
+            if (el('todoCountDone')) el('todoCountDone').textContent = doneCount || '';
         } catch {}
     }
 }
@@ -5006,6 +5540,9 @@ function initApp() {
     document.body.classList.remove('modal-open', 'menu-open');
     renderLogo();
     refreshAll();
+    // Set both Inbox forms to default 'task' type so conditional fields hide correctly
+    try { setItemFormType('dash', 'task'); } catch {}
+    try { setItemFormType('modal', 'task'); } catch {}
 
     // refresh data when tab regains focus (so changes from other tabs/pages show)
     window.addEventListener('focus', refreshAll);

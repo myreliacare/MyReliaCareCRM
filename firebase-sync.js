@@ -249,6 +249,128 @@ const _unsubscribers = [];
 const _pendingWrites = new Set();
 const _pendingDeletes = new Set();
 
+/* ============================================================
+   PERSISTENT PENDING-OPS LOG
+   Protects against the silent save-failure pattern:
+     1. User saves → optimistic update (_state + localStorage) succeeds instantly
+     2. Async Firestore write starts
+     3. Tab closes / laptop sleeps / connection drops BEFORE write completes
+     4. Next session: localStorage has user's changes, Firestore doesn't.
+        Without protection, the listener would overwrite localStorage with the
+        stale cloud state and the user's changes silently vanish.
+   The fix: every save also writes the operation (with full item data) to
+   localStorage BEFORE the async Firestore call. On next login, before
+   listeners attach, we replay any ops still in the log. Items still pending
+   after replay get added to _pendingWrites/_pendingDeletes so the listener
+   protects them.
+   ============================================================ */
+const PENDING_OPS_KEY = 'myreliacare_pending_ops_v1';
+let _pendingOpsLog = []; // [{ opId, coll, type: 'write'|'delete', item, ts }]
+
+function _loadPendingOpsLog() {
+    try {
+        const raw = localStorage.getItem(PENDING_OPS_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        _pendingOpsLog = Array.isArray(parsed) ? parsed : [];
+    } catch {
+        _pendingOpsLog = [];
+    }
+}
+
+function _savePendingOpsLog() {
+    try {
+        localStorage.setItem(PENDING_OPS_KEY, JSON.stringify(_pendingOpsLog));
+    } catch (e) {
+        console.error('[sync] pending ops log save failed:', e);
+        // Quota error: try to drop the oldest half and retry once.
+        if (e && e.name === 'QuotaExceededError' && _pendingOpsLog.length > 1) {
+            _pendingOpsLog = _pendingOpsLog.slice(Math.floor(_pendingOpsLog.length / 2));
+            try { localStorage.setItem(PENDING_OPS_KEY, JSON.stringify(_pendingOpsLog)); } catch {}
+        }
+    }
+}
+
+// Enqueue an op. Dedupes by (collection, item.id): if there's already a pending
+// op for this item, drop the older one. This way rapid successive edits to the
+// same item collapse to one final state in the log.
+function _enqueueOp(collName, opType, item) {
+    if (!item || !item.id) return null;
+    _pendingOpsLog = _pendingOpsLog.filter(op =>
+        !(op && op.coll === collName && op.item && op.item.id === item.id)
+    );
+    const opId = `op_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    _pendingOpsLog.push({
+        opId,
+        coll: collName,
+        type: opType,
+        item: JSON.parse(JSON.stringify(item)),
+        ts: Date.now()
+    });
+    _savePendingOpsLog();
+    return opId;
+}
+
+function _completeOps(opIds) {
+    if (!opIds || opIds.length === 0) return;
+    const set = new Set(opIds.filter(Boolean));
+    if (set.size === 0) return;
+    const before = _pendingOpsLog.length;
+    _pendingOpsLog = _pendingOpsLog.filter(op => !set.has(op.opId));
+    if (_pendingOpsLog.length !== before) _savePendingOpsLog();
+}
+
+async function _replayPendingOps() {
+    _loadPendingOpsLog();
+    if (_pendingOpsLog.length === 0) return;
+
+    const total = _pendingOpsLog.length;
+    console.log(`[sync] replaying ${total} pending op(s) from previous session`);
+    if (typeof showToast === 'function') {
+        showToast(`Restoring ${total} unsaved change${total === 1 ? '' : 's'} from last session…`);
+    }
+
+    const succeeded = [];
+    // Iterate over a copy so we can safely complete ops as we go.
+    for (const op of _pendingOpsLog.slice()) {
+        if (!op || !op.coll || !op.item || !op.item.id) {
+            succeeded.push(op && op.opId); // malformed op, drop it
+            continue;
+        }
+        try {
+            if (op.type === 'write') {
+                const { id, ...data } = op.item;
+                const cleaned = JSON.parse(JSON.stringify(data));
+                await db.collection(op.coll).doc(id).set(cleaned);
+                _pendingWrites.add(id);
+                succeeded.push(op.opId);
+            } else if (op.type === 'delete') {
+                await db.collection(op.coll).doc(op.item.id).delete();
+                _pendingDeletes.add(op.item.id);
+                succeeded.push(op.opId);
+            } else {
+                // Unknown op type — drop it rather than loop forever.
+                succeeded.push(op.opId);
+            }
+        } catch (e) {
+            console.error(`[sync] replay failed for ${op.opId} (${op.coll}/${op.item.id}):`, e);
+            // Leave in queue — will retry next session. Also mark as pending
+            // so the listener doesn't overwrite the in-memory copy in this session.
+            if (op.type === 'write') _pendingWrites.add(op.item.id);
+            else if (op.type === 'delete') _pendingDeletes.add(op.item.id);
+        }
+    }
+
+    _completeOps(succeeded);
+    const remaining = _pendingOpsLog.length;
+    console.log(`[sync] replay done: ${succeeded.length}/${total} succeeded, ${remaining} still pending`);
+    if (remaining > 0 && typeof showToast === 'function') {
+        showToast(`${remaining} change${remaining === 1 ? '' : 's'} couldn't be restored — will retry on next save`, 'error');
+    }
+}
+
+// Load ops log eagerly at module load so we know what's pending from the start.
+_loadPendingOpsLog();
+
 function attachListeners() {
     if (_listenersAttached) return;
     _listenersAttached = true;
@@ -427,6 +549,8 @@ window.SyncStatus = {
             try {
                 _syncPendingOps++;
                 await _persistToFirestore(f.coll, f.oldArr, f.newArr);
+                // Retry succeeded — clear the persistent ops log entries too.
+                _completeOps(f.opIds || []);
             } catch (err) {
                 _syncFailures.push({ ...f, err, ts: Date.now() });
             } finally {
@@ -450,17 +574,28 @@ function _saveCollection(coll, newArr) {
     const oldById = Object.fromEntries(oldArr.map(x => [x.id, x]));
     const newIds = new Set(newArr.map(x => x.id));
 
+    // Track op IDs queued for THIS save so we can clear them from the persistent
+    // log when Firestore confirms. The log is the safety net against the
+    // tab-closes-mid-write data-loss pattern — see PERSISTENT PENDING-OPS LOG above.
+    const opIds = [];
+
     // Mark items being written/updated as pending (so listener doesn't lose them to stale snapshots)
     for (const item of newArr) {
         if (!item.id) continue;
         const old = oldById[item.id];
         if (!old || JSON.stringify(old) !== JSON.stringify(item)) {
             _pendingWrites.add(item.id);
+            const id = _enqueueOp(coll.name, 'write', item);
+            if (id) opIds.push(id);
         }
     }
     // Mark deletes as pending
     for (const oldItem of oldArr) {
-        if (!newIds.has(oldItem.id)) _pendingDeletes.add(oldItem.id);
+        if (!newIds.has(oldItem.id)) {
+            _pendingDeletes.add(oldItem.id);
+            const id = _enqueueOp(coll.name, 'delete', oldItem);
+            if (id) opIds.push(id);
+        }
     }
 
     // Optimistic local update — caller's next get*() returns fresh data
@@ -486,11 +621,16 @@ function _saveCollection(coll, newArr) {
     // Push to Firestore (async). Listener will reconcile.
     _syncPendingOps++;
     _persistToFirestore(coll, oldArr, newArr)
-        .then(() => { _syncPendingOps--; })
+        .then(() => {
+            _syncPendingOps--;
+            // Firestore confirmed — clear these ops from the persistent log.
+            _completeOps(opIds);
+        })
         .catch(err => {
             _syncPendingOps--;
             console.error(`[sync] persist error on ${coll.name}:`, err);
-            _syncFailures.push({ coll, oldArr, newArr, err, ts: Date.now() });
+            // Keep opIds in the failure record so retry can complete them.
+            _syncFailures.push({ coll, oldArr, newArr, opIds, err, ts: Date.now() });
             _refreshBanner();
             if (typeof showToast === 'function') {
                 showToast(`Save failed — see banner at top to retry`, 'error');
@@ -1065,10 +1205,15 @@ auth.onAuthStateChanged(async user => {
 
         // CRITICAL ORDER:
         // 1) Run migration (uses _preMigrationCache; safe even before listeners)
-        // 2) Then attach listeners (which can safely overwrite localStorage now)
-        // 3) Then enforce PIN gate (which may need settings synced from Firestore)
-        // 4) Then render the app — but mainContent stays hidden until PIN passes
+        // 2) Replay any pending ops from a previous session (where save started
+        //    but never completed — e.g. tab closed mid-write). This MUST happen
+        //    before listeners attach, otherwise the listener would see Firestore
+        //    is missing those items and overwrite them out of local state.
+        // 3) Then attach listeners (which can safely overwrite localStorage now)
+        // 4) Then enforce PIN gate (which may need settings synced from Firestore)
+        // 5) Then render the app — but mainContent stays hidden until PIN passes
         try { await _maybeMigrate(); } catch (e) { console.error('[sync] migrate error:', e); }
+        try { await _replayPendingOps(); } catch (e) { console.error('[sync] replay error:', e); }
         attachListeners();
 
         if (typeof window.initApp === 'function' && !window._initialized) {
@@ -1103,3 +1248,21 @@ auth.onAuthStateChanged(async user => {
 });
 
 console.log('[sync] firebase-sync.js loaded');
+
+/* ============================================================
+   BEFOREUNLOAD GUARD
+   If the user tries to close the tab while there's an in-flight Firestore
+   write, prompt them. Catches the most common cause of silent data loss:
+   user clicks save, sees the toast (which fires on the optimistic update),
+   then immediately closes the tab before the async write finishes.
+   The ops log in localStorage would still catch this on next login, but
+   the prompt prevents the round-trip entirely.
+   ============================================================ */
+window.addEventListener('beforeunload', (e) => {
+    if (_syncPendingOps > 0) {
+        const msg = 'Saves still in progress — wait a moment so your changes reach the cloud.';
+        e.preventDefault();
+        e.returnValue = msg;
+        return msg;
+    }
+});
