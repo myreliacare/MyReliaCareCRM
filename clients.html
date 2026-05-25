@@ -1381,6 +1381,7 @@ function renderClientCard(c) {
                 </div>
                 <div class="client-card-actions">
                     <button class="btn btn-primary btn-sm" onclick="scheduleVisitFor('${c.id}')">Schedule</button>
+                    <button class="btn btn-ghost btn-sm" onclick="openClientTipModal('${c.id}')">+ Tip</button>
                     <button class="btn btn-ghost btn-sm" onclick="viewClient('${c.id}')">Details</button>
                     <button class="btn btn-ghost btn-sm" onclick="editClient('${c.id}')">Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteClient('${c.id}', event)">Delete</button>
@@ -1984,6 +1985,7 @@ function viewClient(clientId) {
     document.getElementById('detailFooter').innerHTML = `
         <button class="btn btn-danger" onclick="deleteClient('${c.id}', event)">Delete</button>
         <button class="btn btn-ghost" onclick="closeModal('detailModal')">Close</button>
+        <button class="btn btn-secondary" onclick="openClientTipModal('${c.id}')">+ Tip</button>
         <button class="btn btn-secondary" onclick="editClient('${c.id}')">Edit</button>
         <button class="btn btn-primary" onclick="scheduleVisitFor('${c.id}')">Schedule Visit</button>
     `;
