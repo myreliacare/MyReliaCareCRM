@@ -803,13 +803,11 @@
                 <label>How was it paid?</label>
                 <select id="clientTipMethod" style="background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 11px; font-family: inherit; font-size: 0.95em; width: 100%;">
                     <option value="">— not specified —</option>
-                    <option value="cash">Cash</option>
                     <option value="venmo">Venmo</option>
                     <option value="cashapp">CashApp</option>
-                    <option value="zelle">Zelle</option>
                     <option value="stripe">Stripe / card</option>
                     <option value="rover">Rover (via app)</option>
-                    <option value="check">Check</option>
+                    <option value="cash">Cash</option>
                     <option value="other">Other</option>
                 </select>
             </div>
@@ -1891,8 +1889,8 @@ function viewClient(clientId) {
                 ? `<div class="empty-state" style="padding: 12px;">No tips recorded yet</div>`
                 : `<div class="tip-list">${tipEntries.map(t => {
                     const methodLabel = ({
-                        cash: 'Cash', venmo: 'Venmo', cashapp: 'CashApp', zelle: 'Zelle',
-                        stripe: 'Stripe', rover: 'Rover', check: 'Check', other: 'Other'
+                        venmo: 'Venmo', cashapp: 'CashApp', stripe: 'Stripe',
+                        rover: 'Rover', cash: 'Cash', other: 'Other'
                     })[t.paymentMethod] || '';
                     const methodChip = methodLabel
                         ? `<span style="font-size: 0.74em; color: var(--text-faint); background: var(--bg-input); border: 1px solid var(--border); padding: 1px 7px; border-radius: 10px; margin-left: 4px;">${methodLabel}</span>`

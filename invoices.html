@@ -2384,6 +2384,22 @@ function renderIncomeBreakdown() {
         add(v.paymentMethod, g, f, n);
     });
 
+    // Tips — also count toward gross/fees/net (same byMethod buckets), but tracked
+    // separately so we can EXCLUDE them from KY sales-tax base (tips are gratuity,
+    // not service revenue).
+    let tipsGross = 0, tipsFee = 0, tipsNet = 0, tipsCount = 0;
+    Store.getClients().forEach(c => {
+        if (!Array.isArray(c.tips)) return;
+        c.tips.forEach(t => {
+            if (!inRange(t.date)) return;
+            const g = parseFloat(t.amount) || 0;
+            const f = t.paymentFee != null ? parseFloat(t.paymentFee) : (t.paymentMethod ? calcPaymentFee(t.paymentMethod, g) : 0);
+            const n = t.netAmount != null ? parseFloat(t.netAmount) : (g - f);
+            add(t.paymentMethod, g, f, n);
+            tipsGross += g; tipsFee += f; tipsNet += n; tipsCount += 1;
+        });
+    });
+
     // Totals
     let totalGross = 0, totalFee = 0, totalNet = 0, totalCount = 0;
     Object.values(byMethod).forEach(m => {
@@ -2397,13 +2413,23 @@ function renderIncomeBreakdown() {
     }
 
     const feePct = totalGross > 0 ? (totalFee / totalGross * 100) : 0;
-    const salesTaxOwed = Math.round((totalGross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE))) * 100) / 100;
+    // Sales tax base = gross EXCLUDING tips (tips aren't taxable)
+    const taxableGross = totalGross - tipsGross;
+    const salesTaxOwed = Math.round((taxableGross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE))) * 100) / 100;
+    const tipsCell = tipsCount > 0
+        ? `<div class="income-summary-cell">
+            <div class="label">Tips</div>
+            <div class="value">$${tipsGross.toFixed(2)}</div>
+            <div class="sub">${tipsCount} tip${tipsCount === 1 ? '' : 's'} · not sales-taxed</div>
+        </div>`
+        : '';
     body.innerHTML = `
         <div class="income-summary-cell">
             <div class="label">Gross</div>
             <div class="value">$${totalGross.toFixed(2)}</div>
             <div class="sub">${totalCount} payment${totalCount === 1 ? '' : 's'}</div>
         </div>
+        ${tipsCell}
         <div class="income-summary-cell fee">
             <div class="label">KY Sales Tax</div>
             <div class="value">$${salesTaxOwed.toFixed(2)}</div>
