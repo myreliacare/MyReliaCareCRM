@@ -68,7 +68,17 @@ async function _signOutAndShowExpired() {
 function _showSessionExpired() {
     // Banner-style modal that takes over the viewport
     let el = document.getElementById('sessionExpiredOverlay');
-    if (el) { el.style.display = 'flex'; return; }
+    if (el) {
+        // Already exists — clear any stale value before re-showing so the user
+        // doesn't have to delete leftover text from a previous timeout this session
+        const existingInput = el.querySelector('#sessionExpiredPw');
+        if (existingInput) existingInput.value = '';
+        const existingErr = el.querySelector('#sessionExpiredError');
+        if (existingErr) existingErr.style.display = 'none';
+        el.style.display = 'flex';
+        setTimeout(() => existingInput && existingInput.focus(), 100);
+        return;
+    }
     el = document.createElement('div');
     el.id = 'sessionExpiredOverlay';
     el.style.cssText = `
@@ -82,7 +92,7 @@ function _showSessionExpired() {
             <p style="margin: 0 0 20px; color: #C0B0B4; font-size: 0.95em; line-height: 1.5;">
                 You were signed out after 60 minutes of inactivity. Sign back in to continue.
             </p>
-            <input type="password" id="sessionExpiredPw" placeholder="Password" style="width: 100%; padding: 10px 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: inherit; font-size: 1em; box-sizing: border-box; margin-bottom: 10px;">
+            <input type="password" id="sessionExpiredPw" placeholder="Password" autocomplete="new-password" style="width: 100%; padding: 10px 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: inherit; font-size: 1em; box-sizing: border-box; margin-bottom: 10px;">
             <div id="sessionExpiredError" style="color: #A85A66; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
             <button id="sessionExpiredBtn" style="width: 100%; padding: 10px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Sign back in</button>
         </div>
@@ -834,9 +844,9 @@ function _showPinSetup() {
                 Pick a 4-6 digit PIN. You'll enter it each time you open the CRM in a new tab, after auto-logout, or after closing your browser. This protects client data even if your device is borrowed or lost while logged in.
             </p>
             <label style="display: block; color: #C0B0B4; font-size: 0.85em; margin-bottom: 6px;">New PIN</label>
-            <input type="password" id="pinSetup1" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 12px;">
+            <input type="password" id="pinSetup1" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="••••" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 12px;">
             <label style="display: block; color: #C0B0B4; font-size: 0.85em; margin-bottom: 6px;">Confirm PIN</label>
-            <input type="password" id="pinSetup2" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
+            <input type="password" id="pinSetup2" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="••••" style="width: 100%; padding: 12px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.4em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
             <div id="pinSetupError" style="color: #A85A66; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
             <button id="pinSetupBtn" style="width: 100%; padding: 12px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Set PIN</button>
             <p style="margin: 14px 0 0; color: #A85A66; font-size: 0.82em; line-height: 1.5;">
@@ -894,7 +904,7 @@ function _showPinChallenge() {
             <p style="margin: 0 0 20px; color: #C0B0B4; font-size: 0.92em; line-height: 1.5;">
                 Enter your PIN to unlock the CRM.
             </p>
-            <input type="password" id="pinChallenge" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" style="width: 100%; padding: 14px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.6em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
+            <input type="password" id="pinChallenge" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="••••" style="width: 100%; padding: 14px; background: #1A1614; border: 1px solid #4A413E; border-radius: 6px; color: #F0E6E8; font-family: monospace; font-size: 1.6em; letter-spacing: 0.5em; text-align: center; box-sizing: border-box; margin-bottom: 10px;">
             <div id="pinChallengeError" style="color: #A85A66; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
             <button id="pinChallengeBtn" style="width: 100%; padding: 12px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Unlock</button>
             <p id="pinAttemptsLeft" style="margin: 12px 0 0; color: #C0B0B4; font-size: 0.82em; text-align: center;">${failures > 0 ? remaining + ' attempts remaining before sign-out' : ''}</p>

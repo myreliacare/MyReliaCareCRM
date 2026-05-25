@@ -2010,7 +2010,7 @@
     <div class="password-container">
         <h1>MyReliaCare</h1>
         <p>Enter password to access CRM</p>
-        <input type="password" id="passwordInput" class="password-input" placeholder="Password" autocomplete="off"
+        <input type="password" id="passwordInput" class="password-input" placeholder="Password" autocomplete="new-password"
                onkeydown="if(event.key==='Enter') checkPassword()">
         <button onclick="checkPassword()" class="password-btn">Access CRM</button>
         <p class="password-error" id="passwordError">Incorrect password. Please try again.</p>
@@ -2242,6 +2242,20 @@
                     <label>Date</label>
                     <input type="date" id="addTipDate">
                 </div>
+            </div>
+            <div class="form-group">
+                <label>How was it paid?</label>
+                <select id="addTipMethod" style="background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 11px; font-family: inherit; font-size: 0.95em; width: 100%;">
+                    <option value="">— not specified —</option>
+                    <option value="cash">Cash</option>
+                    <option value="venmo">Venmo</option>
+                    <option value="cashapp">CashApp</option>
+                    <option value="zelle">Zelle</option>
+                    <option value="stripe">Stripe / card</option>
+                    <option value="rover">Rover (via app)</option>
+                    <option value="check">Check</option>
+                    <option value="other">Other</option>
+                </select>
             </div>
             <div class="form-group">
                 <label>Note (optional)</label>
@@ -3801,6 +3815,21 @@ function markVisitScheduled(id) { toggleVisitComplete(id); }
 
 // ---- Tip tab on client ----
 let _addTipClientId = null;
+
+// Mirror the fee structure used elsewhere — see _calcTipFee in clients.html
+// and PAYMENT_METHODS in invoices.html. Methods absent from this table
+// (cash, zelle, check, rover, other) have no processor fee.
+const _ADD_TIP_METHOD_FEES = {
+    venmo:   { pct: 0.019,  flat: 0.10 },
+    cashapp: { pct: 0,      flat: 0    },
+    stripe:  { pct: 0.029,  flat: 0.30 },
+};
+function _addTipCalcFee(method, gross) {
+    const m = _ADD_TIP_METHOD_FEES[method];
+    if (!m || !gross || gross <= 0) return 0;
+    return Math.round(((gross * m.pct) + m.flat) * 100) / 100;
+}
+
 function openAddTipModal(clientId) {
     if (!clientId) { showToast('No client linked to this visit', 'error'); return; }
     const client = Store.getClients().find(c => c.id === clientId);
@@ -3809,6 +3838,8 @@ function openAddTipModal(clientId) {
     document.getElementById('addTipClientName').textContent = client.name || 'Client';
     document.getElementById('addTipAmount').value = '';
     document.getElementById('addTipDate').value = todayYmd();
+    const methodEl = document.getElementById('addTipMethod');
+    if (methodEl) methodEl.value = '';
     document.getElementById('addTipNote').value = '';
     openModal('addTipModal');
 }
@@ -3819,6 +3850,9 @@ function saveTip() {
     if (!amount || amount <= 0) { showToast('Enter a tip amount', 'error'); return; }
     const date = document.getElementById('addTipDate').value || todayYmd();
     const note = document.getElementById('addTipNote').value.trim();
+    const method = (document.getElementById('addTipMethod')?.value || '').trim() || null;
+    const paymentFee = method ? _addTipCalcFee(method, amount) : 0;
+    const netAmount = Math.round((amount - paymentFee) * 100) / 100;
 
     const clients = Store.getClients();
     const c = clients.find(x => x.id === _addTipClientId);
@@ -3826,7 +3860,10 @@ function saveTip() {
     if (!Array.isArray(c.tips)) c.tips = [];
     c.tips.push({
         id: 'tip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-        date, amount, note
+        date, amount, note,
+        paymentMethod: method,
+        paymentFee,
+        netAmount
     });
     const ok = Store.saveClients(clients);
     if (ok === false) {
@@ -3836,7 +3873,7 @@ function saveTip() {
     closeModal('addTipModal');
     _addTipClientId = null;
     refreshAll();
-    showToast(`Added $${amount.toFixed(2)} tip for ${c.name}`);
+    showToast(`Added $${amount.toFixed(2)} tip for ${c.name}${paymentFee > 0 ? ` (net $${netAmount.toFixed(2)})` : ''}`);
 }
 
 let _recurringDeleteId = null;
@@ -4667,7 +4704,7 @@ function editTip(visitId) {
     cell.innerHTML = `
         <input type="number" id="tipInput-${visitId}" value="${current || ''}" min="0" step="0.01" placeholder="0.00"
                style="width: 100px; padding: 4px 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: 'Cormorant', serif;"
-               onblur="saveTip('${visitId}')"
+               onblur="saveLegacyVisitTip('${visitId}')"
                onkeydown="if(event.key==='Enter'){this.blur();} else if(event.key==='Escape'){cancelTip('${visitId}');}">
         <button class="btn btn-ghost btn-sm" style="margin-left: 6px;" onclick="event.stopPropagation(); cancelTip('${visitId}')">Cancel</button>
     `;
@@ -4675,7 +4712,7 @@ function editTip(visitId) {
     document.getElementById('tipInput-' + visitId).select();
 }
 
-function saveTip(visitId) {
+function saveLegacyVisitTip(visitId) {
     const input = document.getElementById('tipInput-' + visitId);
     if (!input) return;
     const tip = parseFloat(input.value) || 0;
