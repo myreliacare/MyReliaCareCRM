@@ -712,7 +712,7 @@
                 <label>Miles from Home <span style="color: var(--text-faint); font-weight: 400; font-size: 0.85em; text-transform: none; letter-spacing: 0;">one-way · typing here OVERRIDES the auto-computed value everywhere</span></label>
                 <div style="display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap;">
                     <input type="number" id="cMilesFromHome" min="0" step="0.1" placeholder="e.g. 4.2" style="flex: 1; min-width: 100px;">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="captureClientLocation()" id="cCaptureBtn" style="white-space: nowrap;">📍 Use my location</button>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="autofillMilesFromAddress()" id="cCaptureBtn" style="white-space: nowrap;">Auto-fill from address</button>
                 </div>
                 <div id="cCoordsStatus" style="color: var(--text-faint); font-size: 0.82em; margin-top: 4px; min-height: 1em;"></div>
             </div>
@@ -1013,46 +1013,131 @@ function _getHomeCoords() {
     return homeRec?.homeCoords || null;
 }
 
-// One-tap capture this client's location from the browser. Most useful when you're
-// physically at the client's house. Saves coords + auto-fills miles from home.
-function captureClientLocation() {
+// Read the Geocodio API key from settings (stored by the backfill workspace
+// in index.html). Returns null if not set.
+function _getGeocodioKey() {
+    const settings = Store.getSettings ? Store.getSettings() : [];
+    const homeRec = (settings || []).find(s => s && s.id === 'global');
+    return (homeRec && homeRec.geocodioKey) || null;
+}
+
+// Geocode a single address via Geocodio. Returns {lat,lng,matched,accuracy} or null.
+async function _geocodioLookup(addr, apiKey) {
+    const url = `https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(addr)}&limit=1&api_key=${encodeURIComponent(apiKey)}`;
+    try {
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        const data = await r.json();
+        const top = data?.results?.[0];
+        if (!top) return null;
+        const lat = parseFloat(top.location?.lat);
+        const lng = parseFloat(top.location?.lng);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        return { lat, lng, matched: top.formatted_address || null, accuracy: typeof top.accuracy === 'number' ? top.accuracy : null };
+    } catch { return null; }
+}
+
+// Free fallback: Census geocoder. US-only, no key needed.
+async function _censusLookup(addr) {
+    const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(addr)}&benchmark=Public_AR_Current&format=json`;
+    try {
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        const data = await r.json();
+        const top = data?.result?.addressMatches?.[0];
+        if (!top) return null;
+        const lat = parseFloat(top.coordinates?.y);
+        const lng = parseFloat(top.coordinates?.x);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        return { lat, lng, matched: top.matchedAddress || null };
+    } catch { return null; }
+}
+
+// Read the live address fields from the form. Returns a string or null if too sparse.
+function _readFormAddress() {
+    const parts = [
+        document.getElementById('cAddress')?.value,
+        document.getElementById('cCity')?.value,
+        document.getElementById('cState')?.value,
+        document.getElementById('cZip')?.value,
+    ].map(s => (s || '').trim()).filter(Boolean);
+    return parts.length >= 2 ? parts.join(', ') : null;
+}
+
+// Captured coords for the current edit session — declared once near editingClientId above
+
+// Look up this client's coords from the address typed into the form, then
+// compute miles from home and fill the miles field. Falls back to GPS only
+// when no address has been entered (e.g. creating a new client at their door).
+async function autofillMilesFromAddress() {
     const status = document.getElementById('cCoordsStatus');
     const btn = document.getElementById('cCaptureBtn');
-    if (!('geolocation' in navigator)) {
-        if (status) { status.textContent = 'Your browser doesn\'t support geolocation.'; status.style.color = 'var(--danger)'; }
+    if (status) { status.textContent = ''; status.style.color = 'var(--text-faint)'; }
+
+    const home = _getHomeCoords();
+    if (!home) {
+        if (status) {
+            status.textContent = 'No home coords saved yet. Open the homepage backfill workspace and set your home address first.';
+            status.style.color = 'var(--danger)';
+        }
         return;
     }
-    if (btn) { btn.disabled = true; btn.textContent = '📍 Getting location…'; }
-    if (status) { status.textContent = ''; status.style.color = 'var(--text-faint)'; }
+
+    const addr = _readFormAddress();
+
+    if (addr) {
+        // Geocode the typed address (this is what you want when editing from home)
+        if (btn) { btn.disabled = true; btn.textContent = 'Looking up address…'; }
+        const apiKey = _getGeocodioKey();
+        let result = apiKey ? await _geocodioLookup(addr, apiKey) : null;
+        if (!result) result = await _censusLookup(addr);
+        if (btn) { btn.disabled = false; btn.textContent = 'Auto-fill from address'; }
+
+        if (!result) {
+            if (status) {
+                status.textContent = "Couldn't find that address. Double-check the street/city/state/zip and try again.";
+                status.style.color = 'var(--danger)';
+            }
+            return;
+        }
+        _capturedCoords = { lat: result.lat, lng: result.lng };
+        const straight = _hav(home, _capturedCoords);
+        const oneway = Math.round(straight * 1.3 * 10) / 10;
+        document.getElementById('cMilesFromHome').value = oneway;
+        if (status) {
+            const matchedLine = result.matched ? ` Matched: ${result.matched}.` : '';
+            status.textContent = `Filled ${oneway} mi (one-way) from home.${matchedLine}`;
+            status.style.color = 'var(--success)';
+        }
+        return;
+    }
+
+    // No address typed — fall back to GPS (only useful if you're standing at the client's house)
+    if (!('geolocation' in navigator)) {
+        if (status) { status.textContent = "Type an address first, or allow location on your browser if you're at the client's house."; status.style.color = 'var(--danger)'; }
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = 'Getting GPS…'; }
     navigator.geolocation.getCurrentPosition(
         (pos) => {
             _capturedCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            // Try to auto-fill miles from home if home coords are known
-            const home = _getHomeCoords();
-            if (home) {
-                const straight = _hav(home, _capturedCoords);
-                const oneway = Math.round(straight * 1.3 * 10) / 10;
-                document.getElementById('cMilesFromHome').value = oneway;
-                if (status) {
-                    status.textContent = `✓ Location saved. Auto-filled ${oneway} mi from home.`;
-                    status.style.color = 'var(--success)';
-                }
-            } else {
-                if (status) {
-                    status.textContent = '✓ Location saved. Set home coords once and miles auto-fills next time.';
-                    status.style.color = 'var(--success)';
-                }
+            const straight = _hav(home, _capturedCoords);
+            const oneway = Math.round(straight * 1.3 * 10) / 10;
+            document.getElementById('cMilesFromHome').value = oneway;
+            if (status) {
+                status.textContent = `GPS captured. Filled ${oneway} mi from home (only accurate if you're at the client's location).`;
+                status.style.color = 'var(--success)';
             }
-            if (btn) { btn.disabled = false; btn.textContent = '📍 Recapture'; }
+            if (btn) { btn.disabled = false; btn.textContent = 'Auto-fill from address'; }
         },
         (err) => {
-            if (btn) { btn.disabled = false; btn.textContent = '📍 Use my location'; }
+            if (btn) { btn.disabled = false; btn.textContent = 'Auto-fill from address'; }
             let msg;
             switch (err.code) {
                 case 1: msg = 'Permission denied. Allow location in your browser settings.'; break;
                 case 2: msg = 'Location unavailable. Are you indoors with no GPS signal?'; break;
-                case 3: msg = 'Timed out. Try again.'; break;
-                default: msg = 'Couldn\'t get location.';
+                case 3: msg = "Timed out. Try again."; break;
+                default: msg = "Couldn't get location.";
             }
             if (status) { status.textContent = msg; status.style.color = 'var(--danger)'; }
         },
@@ -1425,7 +1510,7 @@ function openClientModal() {
     const stat = document.getElementById('cCoordsStatus');
     if (stat) { stat.textContent = ''; }
     const btn = document.getElementById('cCaptureBtn');
-    if (btn) btn.textContent = '📍 Use my location';
+    if (btn) btn.textContent = 'Auto-fill from address';
     openModal('clientModal');
     setTimeout(() => document.getElementById('cName').focus(), 50);
 }
@@ -1457,12 +1542,12 @@ function editClient(clientId) {
     const stat = document.getElementById('cCoordsStatus');
     const capBtn = document.getElementById('cCaptureBtn');
     if (_capturedCoords && stat) {
-        stat.textContent = `✓ Location on file: ${_capturedCoords.lat.toFixed(4)}, ${_capturedCoords.lng.toFixed(4)}`;
+        stat.textContent = `Location on file: ${_capturedCoords.lat.toFixed(4)}, ${_capturedCoords.lng.toFixed(4)}`;
         stat.style.color = 'var(--text-faint)';
-        if (capBtn) capBtn.textContent = '📍 Recapture';
+        if (capBtn) capBtn.textContent = 'Auto-fill from address';
     } else {
         if (stat) stat.textContent = '';
-        if (capBtn) capBtn.textContent = '📍 Use my location';
+        if (capBtn) capBtn.textContent = 'Auto-fill from address';
     }
     document.getElementById('cNotes').value = c.notes || '';
     document.getElementById('cPrice30').value = c.pricing?.['30min'] || '';

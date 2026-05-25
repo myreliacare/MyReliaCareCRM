@@ -284,6 +284,13 @@
         .bfm-driver-line { display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
         .bfm-driver-label { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.05em; }
         .bfm-driver-miles { color: var(--text); font-size: 1em; font-weight: 500; min-width: 56px; text-align: right; }
+        .bfm-miles-input { width: 80px; padding: 5px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.95em; font-variant-numeric: tabular-nums; text-align: right; }
+        .bfm-miles-input:focus { outline: none; border-color: var(--accent); }
+        .bfm-miles-input::placeholder { color: var(--text-faint); opacity: 0.7; }
+        .bfm-mi-suffix { color: var(--text-faint); font-size: 0.82em; }
+        .bfm-row-actions { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+        .bfm-row-clear { background: none; border: none; color: var(--text-faint); font-size: 0.78em; cursor: pointer; padding: 4px 0 0 0; font-family: inherit; }
+        .bfm-row-clear:hover { color: var(--danger); }
         .backfill-day-row input.user-edited { border-color: var(--accent); }
         .backfill-day-bd-toggle { background: none; border: none; color: var(--text-faint); font-size: 0.78em; cursor: pointer; padding: 4px 0 0 0; font-family: inherit; }
         .backfill-day-bd-toggle:hover { color: var(--accent); }
@@ -1025,7 +1032,10 @@
             <button class="modal-close" onclick="closeModal('backfillMilesModal')">×</button>
         </div>
         <div class="modal-body modal-body-scrollable">
-            <p style="color: var(--text-faint); margin-bottom: 14px;">Days with completed visits but no mileage logged yet. Miles are auto-computed from each visit's assignment — Kasey-only goes to Kasey, Charlie-only to Charlie, and "Both" goes to Kasey (assumes her car). Expand a day to see the route or override.</p>
+            <p style="color: var(--text-faint); margin-bottom: 10px;">Auto-estimates are pre-filled but rarely match Google Maps. Tap <em style="color: var(--text-dim); font-style: normal;">Get real miles from Google Maps</em> on a day, read the total it tells you, and type that into Kasey or Charlie's box below it.</p>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="bfmClearAllMiles()">Clear all estimates</button>
+            </div>
             <div id="backfillMilesWarning" class="backfill-miles-warning" style="display: none;"></div>
             <div id="backfillMilesList"></div>
         </div>
@@ -2983,32 +2993,62 @@ function _bfmRenderDayRow(d, clientsById) {
                 ${mapsBtnHtml}
             </div>
             <div class="bfm-day-totals">
-                <div class="bfm-driver-line"><span class="bfm-driver-label">Kasey</span> <span class="bfm-driver-miles">${fmt(kCalc.miles)}</span></div>
-                ${cVisits.length > 0
-                    ? `<div class="bfm-driver-line"><span class="bfm-driver-label">Charlie</span> <span class="bfm-driver-miles">${fmt(cCalc.miles)}</span></div>`
-                    : ''}
-                <button type="button" class="backfill-day-bd-toggle" onclick="bfmToggleBd('${detailKey}')">${detailsOpen ? '▾ hide details' : '▸ details / edit'}</button>
+                <div class="bfm-driver-line">
+                    <span class="bfm-driver-label">Kasey</span>
+                    <input type="number" class="backfill-kasey bfm-miles-input" min="0" step="0.1"
+                        value="${kCalc.miles > 0 ? kCalc.miles.toFixed(1) : ''}"
+                        placeholder="${kCalc.miles > 0 ? 'auto: ' + kCalc.miles.toFixed(1) : '0.0'}"
+                        oninput="this.classList.add('user-edited');"
+                        title="Type from Google Maps to override the auto-estimate">
+                    <span class="bfm-mi-suffix">mi</span>
+                </div>
+                ${cVisits.length > 0 ? `
+                <div class="bfm-driver-line">
+                    <span class="bfm-driver-label">Charlie</span>
+                    <input type="number" class="backfill-charlie bfm-miles-input" min="0" step="0.1"
+                        value="${cCalc.miles > 0 ? cCalc.miles.toFixed(1) : ''}"
+                        placeholder="${cCalc.miles > 0 ? 'auto: ' + cCalc.miles.toFixed(1) : '0.0'}"
+                        oninput="this.classList.add('user-edited');"
+                        title="Type from Google Maps to override the auto-estimate">
+                    <span class="bfm-mi-suffix">mi</span>
+                </div>
+                ` : `<input type="hidden" class="backfill-charlie" value="">`}
+                <div class="bfm-row-actions">
+                    <button type="button" class="backfill-day-bd-toggle" onclick="bfmToggleBd('${detailKey}')">${detailsOpen ? '▾ hide breakdown' : '▸ breakdown'}</button>
+                    <button type="button" class="bfm-row-clear" onclick="bfmClearRow(this)" title="Clear this day's miles">clear</button>
+                </div>
             </div>
-            <!-- Inputs are always in the DOM (so the save handler can read them) but hidden until details are open. -->
-            <input type="hidden" class="backfill-kasey" value="${kCalc.miles > 0 ? kCalc.miles.toFixed(1) : ''}">
-            <input type="hidden" class="backfill-charlie" value="${cVisits.length > 0 && cCalc.miles > 0 ? cCalc.miles.toFixed(1) : ''}">
             ${detailsOpen ? `
                 <div class="backfill-day-bd">
                     ${renderRouteBlock('Kasey', kCalc)}
                     ${cVisits.length > 0 ? renderRouteBlock('Charlie', cCalc) : ''}
-                    <div class="bfm-override-row">
-                        <span class="bfm-override-label">Override:</span>
-                        <label class="bfm-override-field">Kasey <input type="number" min="0" step="0.1" class="backfill-kasey-edit"
-                            value="${kCalc.miles > 0 ? kCalc.miles.toFixed(1) : ''}"
-                            oninput="this.closest('.backfill-day-row').querySelector('.backfill-kasey').value = this.value; this.classList.add('user-edited');"></label>
-                        ${cVisits.length > 0 ? `<label class="bfm-override-field">Charlie <input type="number" min="0" step="0.1" class="backfill-charlie-edit"
-                            value="${cCalc.miles > 0 ? cCalc.miles.toFixed(1) : ''}"
-                            oninput="this.closest('.backfill-day-row').querySelector('.backfill-charlie').value = this.value; this.classList.add('user-edited');"></label>` : ''}
-                    </div>
                 </div>
             ` : ''}
         </div>
     `;
+}
+
+/* Clear all auto-estimates across every visible row. Forces a fresh entry workflow:
+ * tap Google Maps on each day, type the real number into the now-empty input. */
+function bfmClearAllMiles() {
+    const inputs = document.querySelectorAll('#backfillMilesList .bfm-miles-input');
+    if (inputs.length === 0) return;
+    if (!confirm('Clear all auto-computed estimates? You\'ll re-enter miles for each day from Google Maps.')) return;
+    inputs.forEach(inp => {
+        inp.value = '';
+        inp.classList.remove('user-edited');
+    });
+    showToast('Cleared. Enter miles per day from Google Maps.');
+}
+
+/* Clear just this row's miles (both drivers if present). */
+function bfmClearRow(btn) {
+    const row = btn.closest('.backfill-day-row');
+    if (!row) return;
+    row.querySelectorAll('.bfm-miles-input').forEach(inp => {
+        inp.value = '';
+        inp.classList.remove('user-edited');
+    });
 }
 
 /* ============================================================
