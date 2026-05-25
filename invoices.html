@@ -3892,9 +3892,17 @@ function renderTaxProjection() {
     const netServiceRevenue = Math.round((gross - salesTaxOwed) * 100) / 100;
 
     // ─── Tips (taxable income, but NOT subject to sales tax) ────
+    // Also accumulate any processor fees attached to tips — they're deductible
+    // business expenses just like invoice/visit fees, so they roll into totalFees.
     const tips = Store.getClients().reduce((sum, c) => {
         if (!Array.isArray(c.tips)) return sum;
-        return sum + c.tips.filter(t => inRange(t.date)).reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+        return sum + c.tips.filter(t => inRange(t.date)).reduce((s, t) => {
+            const amt = parseFloat(t.amount) || 0;
+            const fee = t.paymentFee != null ? parseFloat(t.paymentFee)
+                      : (t.paymentMethod ? calcPaymentFee(t.paymentMethod, amt) : 0);
+            totalFees += fee;
+            return s + amt;
+        }, 0);
     }, 0);
 
     // ─── Mileage deduction ──────────────────────────────────

@@ -129,7 +129,7 @@ function _injectSignedInIndicator() {
     const el = document.createElement('div');
     el.id = 'signedInIndicator';
     el.style.cssText = `
-        position: fixed; bottom: 14px; right: 14px; z-index: 9500;
+        position: fixed; top: 12px; right: 12px; z-index: 9500;
         background: rgba(42, 34, 32, 0.92); border: 1px solid #4A413E;
         color: #C0B0B4; padding: 6px 10px; border-radius: 20px;
         font-family: inherit; font-size: 0.78em;
@@ -147,7 +147,7 @@ function _injectSignedInIndicator() {
     const menu = document.createElement('div');
     menu.id = 'indicatorMenu';
     menu.style.cssText = `
-        position: fixed; bottom: 48px; right: 14px; z-index: 9501;
+        position: fixed; top: 48px; right: 12px; z-index: 9501;
         background: #2A2220; border: 1px solid #4A413E; border-radius: 8px;
         padding: 6px 0; min-width: 180px; display: none;
         box-shadow: 0 4px 14px rgba(0,0,0,0.45);

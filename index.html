@@ -489,6 +489,45 @@
         /* Repeat dropdown */
         .item-recur-select { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 9px; font-family: inherit; font-size: 0.92em; }
         .item-recur-select:focus { outline: none; border-color: var(--accent); }
+        .item-recur-select option { background: var(--bg); color: var(--text); }
+
+        /* Client picker (the optional client tag in the add form) */
+        .item-client-picker { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 9px; font-family: inherit; font-size: 0.92em; max-width: 160px; }
+        .item-client-picker:focus { outline: none; border-color: var(--accent); }
+        .item-client-picker option { background: var(--bg); color: var(--text); }
+
+        /* Client chip — shows on items that have a clientId, links to client detail */
+        .item-client-chip {
+            display: inline-flex; align-items: center;
+            background: rgba(123, 162, 196, 0.12);
+            color: #7ba2c4;
+            border: 1px solid rgba(123, 162, 196, 0.3);
+            padding: 2px 8px; border-radius: 12px;
+            font-size: 0.74em; font-weight: 600;
+            text-decoration: none; white-space: nowrap;
+            flex: 0 0 auto;
+            transition: all 0.12s;
+        }
+        .item-client-chip:hover { background: rgba(123, 162, 196, 0.25); border-color: rgba(123, 162, 196, 0.6); }
+
+        /* Inline FYI row on today's schedule when a client has tagged inbox items */
+        .schedule-inbox-row {
+            display: flex; flex-wrap: wrap; gap: 6px 10px;
+            margin-top: 6px;
+            padding: 6px 10px;
+            background: rgba(196, 167, 123, 0.06);
+            border-left: 2px solid rgba(196, 167, 123, 0.4);
+            border-radius: 0 4px 4px 0;
+            font-size: 0.82em;
+            color: var(--text-dim);
+        }
+        .schedule-inbox-item { display: inline-flex; align-items: baseline; gap: 5px; }
+        .schedule-inbox-tag {
+            font-size: 0.78em; font-weight: 700; letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: rgba(196, 167, 123, 0.85);
+        }
+        .schedule-inbox-more { color: var(--text-faint); font-style: italic; font-size: 0.82em; }
 
         /* Section labels in the home dashboard + Today tab */
         .item-section-label { font-size: 0.74em; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-faint); padding: 12px 4px 4px 4px; }
@@ -2057,6 +2096,10 @@
                         <input type="checkbox" id="todoDashPinToggle" onchange="setItemFormPin('dash', this.checked)">
                         <span>Pin to home</span>
                     </label>
+                    <!-- Client tag (always available; optional for any type) -->
+                    <select id="todoDashClient" class="item-client-picker" onchange="setItemFormClient('dash', this.value)" title="Tag a client (optional)">
+                        <option value="">No client</option>
+                    </select>
                     <button class="btn btn-primary btn-sm" onclick="addOrUpdateTodo('dash')" id="todoDashAddBtn">+ Add</button>
                     <button class="btn btn-ghost btn-sm" onclick="cancelEditTodo('dash')" id="todoDashCancelBtn" style="display: none;">Cancel</button>
                 </div>
@@ -2392,6 +2435,9 @@
                         <input type="checkbox" id="todoModalPinToggle" onchange="setItemFormPin('modal', this.checked)">
                         <span>Pin to home</span>
                     </label>
+                    <select id="todoModalClient" class="item-client-picker" onchange="setItemFormClient('modal', this.value)" title="Tag a client (optional)">
+                        <option value="">No client</option>
+                    </select>
                     <button class="btn btn-primary btn-sm" onclick="addOrUpdateTodo('modal')" id="todoModalAddBtn">+ Add</button>
                     <button class="btn btn-ghost btn-sm" onclick="cancelEditTodo('modal')" id="todoModalCancelBtn" style="display: none;">Cancel</button>
                 </div>
@@ -4567,11 +4613,26 @@ function renderListItem(e) {
         ? `${escapeHtml(e.clientName || 'Client')} <span class="schedule-pets">— ${escapeHtml(petNames)}</span>`
         : escapeHtml(e.clientName || 'Client');
     const badge = renderAssigneeBadge(e.assignedTo);
+    // Inbox items tagged to this client — show inline as small FYI line so the
+    // info is visible without an extra click while doing the visit.
+    let inboxLine = '';
+    try {
+        const tagged = _itemsForClient(e.clientId);
+        if (tagged.length > 0) {
+            const previews = tagged.slice(0, 3).map(it => {
+                const typeLabel = it.type === 'reminder' ? 'remind' : it.type === 'note' ? 'note' : 'task';
+                return `<span class="schedule-inbox-item"><span class="schedule-inbox-tag">${typeLabel}</span> ${escapeHtml((it.text || '').slice(0, 80))}</span>`;
+            }).join('');
+            const more = tagged.length > 3 ? `<span class="schedule-inbox-more">+${tagged.length - 3} more</span>` : '';
+            inboxLine = `<div class="schedule-inbox-row">${previews}${more}</div>`;
+        }
+    } catch {}
     return `
         <div class="schedule-item ${e.status === 'completed' ? 'completed' : ''}" onclick="closeModal('dayModal'); openEventDetail('${e.id}', 'visit')">
             ${badge}
             <div class="schedule-time">${formatTime12(e.time)} · ${t.label}</div>
             <div class="schedule-title">${titleHtml}</div>
+            ${inboxLine}
         </div>
     `;
 }
@@ -4782,6 +4843,7 @@ let _todoFormPrio = { dash: 'med', modal: 'med' };
 let _itemFormType = { dash: 'task', modal: 'task' };       // 'task' | 'reminder' | 'note'
 let _itemFormRecur = { dash: '', modal: '' };              // '' (none) | 'daily' | 'weekly' | etc
 let _itemFormPin = { dash: false, modal: false };          // pin-to-home for notes
+let _itemFormClient = { dash: '', modal: '' };             // optional client tag (client id or '')
 
 function _todoNormalize(t) {
     if (!t) return t;
@@ -4951,10 +5013,36 @@ function setItemFormPin(source, pinned) {
     if (cb) cb.checked = !!pinned;
 }
 
+function setItemFormClient(source, clientId) {
+    _itemFormClient[source] = clientId || '';
+}
+
+/* Populate both client-tag pickers from the current clients list. Called on
+ * init and after every form reset, so newly-added clients show up.
+ * Preserves the current selection if still valid. */
+function _populateClientPickers() {
+    const clients = (Store.getClients() || []).slice()
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    ['todoDashClient', 'todoModalClient'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const currentVal = sel.value || _itemFormClient[id === 'todoDashClient' ? 'dash' : 'modal'] || '';
+        let html = '<option value="">No client</option>';
+        clients.forEach(c => {
+            if (!c.id) return;
+            html += `<option value="${c.id}">${escapeHtml(c.name || 'Unnamed')}</option>`;
+        });
+        sel.innerHTML = html;
+        if (currentVal && clients.some(c => c.id === currentVal)) {
+            sel.value = currentVal;
+        }
+    });
+}
+
 function _todoIdsFor(source) {
     return source === 'dash'
-        ? { text: 'todoDashText', date: 'todoDashDate', addBtn: 'todoDashAddBtn', cancelBtn: 'todoDashCancelBtn', recur: 'todoDashRecur', pin: 'todoDashPinToggle' }
-        : { text: 'todoModalText', date: 'todoModalDate', addBtn: 'todoModalAddBtn', cancelBtn: 'todoModalCancelBtn', recur: 'todoModalRecur', pin: 'todoModalPinToggle' };
+        ? { text: 'todoDashText', date: 'todoDashDate', addBtn: 'todoDashAddBtn', cancelBtn: 'todoDashCancelBtn', recur: 'todoDashRecur', pin: 'todoDashPinToggle', client: 'todoDashClient' }
+        : { text: 'todoModalText', date: 'todoModalDate', addBtn: 'todoModalAddBtn', cancelBtn: 'todoModalCancelBtn', recur: 'todoModalRecur', pin: 'todoModalPinToggle', client: 'todoModalClient' };
 }
 
 function addOrUpdateTodo(source) {
@@ -4964,6 +5052,8 @@ function addOrUpdateTodo(source) {
     const type = _itemFormType[source] || 'task';
     const dateInput = document.getElementById(ids.date)?.value || null;
     const editingId = _todoEdit[source];
+    const clientPicker = document.getElementById(ids.client);
+    const clientId = (clientPicker && clientPicker.value) || _itemFormClient[source] || null;
 
     // Validate type-specific requirements
     if (type === 'reminder' && !dateInput) {
@@ -4978,7 +5068,7 @@ function addOrUpdateTodo(source) {
     const baseFields = {
         type,
         text,
-        clientId: null,
+        clientId: clientId || null,
         priority: 'med',
         dueDate: null,
         surfaceDate: null,
@@ -4994,7 +5084,7 @@ function addOrUpdateTodo(source) {
         const recur = _itemFormRecur[source] || '';
         if (recur) {
             baseFields.recurrence = recur;
-            baseFields.recurrenceAnchor = dateInput; // anchor the schedule
+            baseFields.recurrenceAnchor = dateInput;
         }
     } else if (type === 'note') {
         baseFields.pinned = !!_itemFormPin[source];
@@ -5007,12 +5097,8 @@ function addOrUpdateTodo(source) {
             cancelEditTodo(source);
             return;
         }
-        // Preserve done/doneAt/clientId/createdAt; overwrite the rest from the form
-        todos[idx] = {
-            ...todos[idx],
-            ...baseFields,
-            clientId: todos[idx].clientId || null,
-        };
+        // Overwrite all fields from the form (including clientId — user may have changed it)
+        todos[idx] = { ...todos[idx], ...baseFields };
     } else {
         todos.unshift({
             id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -5030,16 +5116,17 @@ function addOrUpdateTodo(source) {
     if (document.getElementById(ids.date)) document.getElementById(ids.date).value = '';
     if (document.getElementById(ids.recur)) document.getElementById(ids.recur).value = '';
     if (document.getElementById(ids.pin)) document.getElementById(ids.pin).checked = false;
+    if (document.getElementById(ids.client)) document.getElementById(ids.client).value = '';
     _itemFormRecur[source] = '';
     _itemFormPin[source] = false;
+    _itemFormClient[source] = '';
     setTodoFormPriority(source, 'med');
-    setItemFormType(source, 'task'); // back to default
+    setItemFormType(source, 'task');
     _todoEdit[source] = null;
     document.getElementById(ids.addBtn).textContent = '+ Add';
     document.getElementById(ids.cancelBtn).style.display = 'none';
 
     _renderAllTodoUI();
-    // Refocus text input for quick chained adds
     setTimeout(() => { const el = document.getElementById(ids.text); if (el) el.focus(); }, 30);
 }
 
@@ -5050,7 +5137,6 @@ function startEditTodo(id, source) {
     const ids = _todoIdsFor(source);
     setItemFormType(source, t.type || 'task');
     document.getElementById(ids.text).value = t.text || '';
-    // The date input is shared between task (dueDate) and reminder (surfaceDate)
     if (document.getElementById(ids.date)) {
         document.getElementById(ids.date).value = (t.type === 'reminder') ? (t.surfaceDate || '') : (t.dueDate || '');
     }
@@ -5062,6 +5148,10 @@ function startEditTodo(id, source) {
     if (document.getElementById(ids.pin)) {
         document.getElementById(ids.pin).checked = !!t.pinned;
         _itemFormPin[source] = !!t.pinned;
+    }
+    if (document.getElementById(ids.client)) {
+        document.getElementById(ids.client).value = t.clientId || '';
+        _itemFormClient[source] = t.clientId || '';
     }
     _todoEdit[source] = id;
     document.getElementById(ids.addBtn).textContent = 'Save';
@@ -5076,8 +5166,10 @@ function cancelEditTodo(source) {
     if (document.getElementById(ids.date)) document.getElementById(ids.date).value = '';
     if (document.getElementById(ids.recur)) document.getElementById(ids.recur).value = '';
     if (document.getElementById(ids.pin)) document.getElementById(ids.pin).checked = false;
+    if (document.getElementById(ids.client)) document.getElementById(ids.client).value = '';
     _itemFormRecur[source] = '';
     _itemFormPin[source] = false;
+    _itemFormClient[source] = '';
     setTodoFormPriority(source, 'med');
     setItemFormType(source, 'task');
     _todoEdit[source] = null;
@@ -5284,6 +5376,16 @@ function _todoDueClass(t, today) {
     return '';
 }
 
+/* Render a small chip showing the tagged client, if any. Clickable: links
+ * to the client's detail card in clients.html via the existing ?id= deep link. */
+function _itemClientChip(t, clientsById) {
+    if (!t || !t.clientId) return '';
+    const c = clientsById[t.clientId];
+    if (!c) return '';
+    const name = c.name || 'Client';
+    return `<a class="item-client-chip" href="clients.html?id=${encodeURIComponent(t.clientId)}" onclick="event.stopPropagation()" title="Open ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+}
+
 function _renderTaskItem(t, today, source) {
     const dueLabel = _todoDueLabel(t, today);
     const dueClass = _todoDueClass(t, today);
@@ -5292,6 +5394,8 @@ function _renderTaskItem(t, today, source) {
     const editingClass = (_todoEdit.dash === t.id || _todoEdit.modal === t.id) ? 'editing' : '';
     const prioLabel = { high: 'High', med: 'Med', low: 'Low' }[t.priority] || 'Med';
     const safeText = escapeHtml(t.text || '');
+    const clientsById = _itemClientsById();
+    const clientChip = _itemClientChip(t, clientsById);
     const checkSvg = t.done
         ? `<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8L7 12L13 4"/></svg>`
         : '';
@@ -5300,6 +5404,7 @@ function _renderTaskItem(t, today, source) {
         <div class="todo-item item-task ${doneClass} ${overdueClass} ${editingClass}">
             <div class="todo-check" onclick="toggleTodoDone('${t.id}')" title="${t.done ? 'Mark not done' : 'Mark done'}">${checkSvg}</div>
             <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
+            ${clientChip}
             <span class="todo-prio-badge ${t.priority}">${prioLabel}</span>
             <span class="todo-due ${dueClass}">${dueLabel}</span>
             <button class="todo-edit-btn" onclick="startEditTodo('${t.id}', '${source}')" title="Edit" aria-label="Edit">${pencilSvg}</button>
@@ -5308,11 +5413,25 @@ function _renderTaskItem(t, today, source) {
     `;
 }
 
+/* Memoizable lookup of clients by id. Recomputed each render — cheap (in-memory map). */
+function _itemClientsById() {
+    const map = {};
+    (Store.getClients() || []).forEach(c => { if (c && c.id) map[c.id] = c; });
+    return map;
+}
+
+/* Find all open (non-done) Inbox items tagged to a specific client. */
+function _itemsForClient(clientId) {
+    if (!clientId) return [];
+    return getTodos().filter(t => t && t.clientId === clientId && !t.done);
+}
+
 function _renderReminderItem(t, today, source) {
     const safeText = escapeHtml(t.text || '');
     const editingClass = (_todoEdit.dash === t.id || _todoEdit.modal === t.id) ? 'editing' : '';
     const doneClass = t.done ? 'done' : '';
-    // Label: "today" / "tomorrow" / overdue days / specific date
+    const clientsById = _itemClientsById();
+    const clientChip = _itemClientChip(t, clientsById);
     let dateLabel = '';
     if (t.surfaceDate) {
         if (t.surfaceDate === today) dateLabel = 'today';
@@ -5326,7 +5445,6 @@ function _renderReminderItem(t, today, source) {
     }
     const recurLabel = t.recurrence ? `<span class="item-recur-badge">${t.recurrence}</span>` : '';
     const pencilSvg = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5L13.5 5L5 13.5H2.5V11L11 2.5Z"/><path d="M9 4.5L11.5 7"/></svg>`;
-    // Reminders that are done show simpler row (no action buttons)
     const actions = t.done ? `
             <button class="todo-edit-btn" onclick="unarchiveItem('${t.id}')" title="Restore">↶</button>
             <button class="todo-del-btn" onclick="deleteTodo('${t.id}')" title="Delete">×</button>
@@ -5340,6 +5458,7 @@ function _renderReminderItem(t, today, source) {
         <div class="todo-item item-reminder ${doneClass} ${editingClass}">
             <span class="item-type-tag reminder">REMIND</span>
             <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
+            ${clientChip}
             ${recurLabel}
             <span class="todo-due">${dateLabel}</span>
             ${actions}
@@ -5352,6 +5471,8 @@ function _renderNoteItem(t, today, source) {
     const editingClass = (_todoEdit.dash === t.id || _todoEdit.modal === t.id) ? 'editing' : '';
     const doneClass = t.done ? 'done' : '';
     const pinnedClass = t.pinned ? 'pinned' : '';
+    const clientsById = _itemClientsById();
+    const clientChip = _itemClientChip(t, clientsById);
     const pinSvg = t.pinned
         ? `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M9.5 1.5l5 5-2 .5L11 9l1.5 4-1 1-4-1.5-2 1.5L4 13l1.5-2L4 9.5l1-1L9.5 1.5z"/></svg>`
         : `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M9.5 1.5l5 5-2 .5L11 9l1.5 4-1 1-4-1.5-2 1.5L4 13l1.5-2L4 9.5l1-1L9.5 1.5z"/></svg>`;
@@ -5369,6 +5490,7 @@ function _renderNoteItem(t, today, source) {
         <div class="todo-item item-note ${pinnedClass} ${doneClass} ${editingClass}">
             <span class="item-type-tag note">NOTE</span>
             <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
+            ${clientChip}
             ${actions}
         </div>
     `;
@@ -5482,6 +5604,8 @@ function _renderTodoModalList() {
 }
 
 function _renderAllTodoUI() {
+    // Keep client pickers fresh so newly added clients appear without a reload
+    try { _populateClientPickers(); } catch {}
     renderTodoDashboardCard();
     if (document.getElementById('todoModal') && document.getElementById('todoModal').classList.contains('active')) {
         _renderTodoModalList();

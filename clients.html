@@ -800,6 +800,20 @@
                 </div>
             </div>
             <div class="form-group">
+                <label>How was it paid?</label>
+                <select id="clientTipMethod" style="background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 11px; font-family: inherit; font-size: 0.95em; width: 100%;">
+                    <option value="">— not specified —</option>
+                    <option value="cash">Cash</option>
+                    <option value="venmo">Venmo</option>
+                    <option value="cashapp">CashApp</option>
+                    <option value="zelle">Zelle</option>
+                    <option value="stripe">Stripe / card</option>
+                    <option value="rover">Rover (via app)</option>
+                    <option value="check">Check</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Note (optional)</label>
                 <input type="text" id="clientTipNote" placeholder="e.g. Holiday tip, end of recurring series">
             </div>
@@ -994,10 +1008,11 @@ function _hav(a, b) {
 }
 
 // Reads home coords from the settings collection (set via index.html backfill workspace).
+// Settings are stored as a single record with id='global' and home fields flat on it.
 function _getHomeCoords() {
     const settings = Store.getSettings ? Store.getSettings() : [];
-    const homeRec = (settings || []).find(s => s && s.key === 'home');
-    return homeRec?.value?.homeCoords || null;
+    const homeRec = (settings || []).find(s => s && s.id === 'global');
+    return homeRec?.homeCoords || null;
 }
 
 // One-tap capture this client's location from the browser. Most useful when you're
@@ -1361,7 +1376,7 @@ function renderClientCard(c) {
             </div>
             <div class="client-card-body" style="${isExpanded ? '' : 'display: none;'}">
                 <div class="client-card-content">
-                    ${addressLine ? `<div class="client-info-row"><strong>Address</strong> ${renderClickableAddress(addressLine)}</div>` : ''}
+                    ${addressLine ? `<div class="client-info-row">${renderClickableAddress(addressLine)}</div>` : ''}
                     ${nextVisitHtml}
                 </div>
                 <div class="client-card-actions">
@@ -1666,6 +1681,20 @@ function _confirmNo() {
 
 // ---- Tip-tab management for a client ----
 let _clientTipEditId = null;
+// Payment method fee structure for tips (mirrors invoices.html PAYMENT_METHODS so
+// tip fees calculate the same way invoice fees do). Methods absent from this table
+// (cash, zelle, check, rover, other) have no processor fee.
+const _TIP_METHOD_FEES = {
+    venmo:   { pct: 0.019,  flat: 0.10 },  // Venmo: 1.9% + $0.10 (business)
+    cashapp: { pct: 0,      flat: 0    },  // Personal CashApp — no fee
+    stripe:  { pct: 0.029,  flat: 0.30 },  // Stripe: 2.9% + $0.30
+};
+function _calcTipFee(method, gross) {
+    const m = _TIP_METHOD_FEES[method];
+    if (!m || !gross || gross <= 0) return 0;
+    return Math.round(((gross * m.pct) + m.flat) * 100) / 100;
+}
+
 function openClientTipModal(clientId) {
     const c = Store.getClients().find(x => x.id === clientId);
     if (!c) return;
@@ -1673,6 +1702,8 @@ function openClientTipModal(clientId) {
     document.getElementById('clientTipClientName').textContent = c.name || 'Client';
     document.getElementById('clientTipAmount').value = '';
     document.getElementById('clientTipDate').value = new Date().toISOString().split('T')[0];
+    const methodEl = document.getElementById('clientTipMethod');
+    if (methodEl) methodEl.value = '';
     document.getElementById('clientTipNote').value = '';
     openModal('clientTipModal');
 }
@@ -1682,6 +1713,9 @@ function saveClientTip() {
     if (!amount || amount <= 0) { showToast('Enter a tip amount', 'error'); return; }
     const date = document.getElementById('clientTipDate').value || new Date().toISOString().split('T')[0];
     const note = document.getElementById('clientTipNote').value.trim();
+    const method = (document.getElementById('clientTipMethod')?.value || '').trim() || null;
+    const paymentFee = method ? _calcTipFee(method, amount) : 0;
+    const netAmount = Math.round((amount - paymentFee) * 100) / 100;
 
     const clients = Store.getClients();
     const c = clients.find(x => x.id === _clientTipEditId);
@@ -1689,17 +1723,19 @@ function saveClientTip() {
     if (!Array.isArray(c.tips)) c.tips = [];
     c.tips.push({
         id: 'tip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-        date, amount, note
+        date, amount, note,
+        paymentMethod: method,
+        paymentFee,
+        netAmount
     });
     const ok = Store.saveClients(clients);
     if (ok === false) { showToast('Could not save', 'error'); return; }
     closeModal('clientTipModal');
-    // Re-open the client detail to refresh
     const id = _clientTipEditId;
     _clientTipEditId = null;
-    openClientDetail(id);
+    viewClient(id);
     renderClients();
-    showToast(`Added $${amount.toFixed(2)} tip`);
+    showToast(`Added $${amount.toFixed(2)} tip${paymentFee > 0 ? ` (net $${netAmount.toFixed(2)})` : ''}`);
 }
 function deleteTip(clientId, tipId, ev) {
     if (ev) { ev.stopPropagation(); ev.preventDefault(); }
@@ -1710,7 +1746,7 @@ function deleteTip(clientId, tipId, ev) {
         c.tips = c.tips.filter(t => t.id !== tipId);
         const ok = Store.saveClients(clients);
         if (ok === false) { showToast('Could not save', 'error'); return; }
-        openClientDetail(clientId);
+        viewClient(clientId);
         renderClients();
         showToast('Tip removed');
     });
@@ -1788,6 +1824,45 @@ function viewClient(clientId) {
                 return `<div class="detail-row"><div class="detail-label">Miles from Home</div><div class="detail-value">${eff} mi (one-way)${tag}</div></div>`;
             })()}
         </div>`;
+    // Inbox items tagged to this client (reminders / tasks / notes from the
+    // home dashboard Inbox). Read-only here; click "Open Inbox" to edit.
+    const inboxItems = (Store.getQuickNotes() || []).filter(it => it && it.clientId === c.id && !it.done);
+    if (inboxItems.length > 0) {
+        inboxItems.sort((a, b) => {
+            const orderOf = (x) => x.type === 'reminder' ? 0 : x.type === 'task' ? 1 : 2;
+            if (orderOf(a) !== orderOf(b)) return orderOf(a) - orderOf(b);
+            if (a.type === 'reminder') return (a.surfaceDate || '9999').localeCompare(b.surfaceDate || '9999');
+            if (a.type === 'task') return (a.dueDate || '9999').localeCompare(b.dueDate || '9999');
+            return (b.createdAt || '').localeCompare(a.createdAt || '');
+        });
+        html += `<div class="detail-section"><h3>Inbox <span style="color:var(--text-faint); font-weight:400; font-size:0.7em;">(${inboxItems.length})</span></h3>`;
+        inboxItems.forEach(it => {
+            const typeLabel = it.type === 'reminder' ? 'REMIND' : it.type === 'note' ? 'NOTE' : 'TASK';
+            const tagColor = it.type === 'reminder' ? '#7ba2c4'
+                          : it.type === 'note' ? '#c4a77b'
+                          : 'var(--accent)';
+            const tagBg = it.type === 'reminder' ? 'rgba(123, 162, 196, 0.15)'
+                        : it.type === 'note' ? 'rgba(196, 167, 123, 0.15)'
+                        : 'rgba(181, 145, 151, 0.15)';
+            let dateLabel = '';
+            if (it.type === 'reminder' && it.surfaceDate) {
+                dateLabel = ` · ${it.surfaceDate}${it.recurrence ? ' (' + it.recurrence + ')' : ''}`;
+            } else if (it.type === 'task' && it.dueDate) {
+                dateLabel = ` · due ${it.dueDate}`;
+            } else if (it.type === 'note' && it.pinned) {
+                dateLabel = ` · pinned`;
+            }
+            html += `
+                <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; background: var(--bg-input); border-radius: 6px; margin-bottom: 6px;">
+                    <span style="background: ${tagBg}; color: ${tagColor}; font-size: 0.66em; font-weight: 700; letter-spacing: 1.2px; padding: 3px 7px; border-radius: 4px; flex-shrink: 0; line-height: 1.4;">${typeLabel}</span>
+                    <div style="flex: 1; color: var(--text); font-size: 0.95em; line-height: 1.4;">
+                        ${escapeHtml(it.text || '')}
+                        <span style="color: var(--text-faint); font-size: 0.85em;">${dateLabel}</span>
+                    </div>
+                </div>`;
+        });
+        html += `<div style="margin-top: 8px;"><a href="index.html" style="color: var(--accent); font-size: 0.85em; text-decoration: underline;">Open Inbox to edit →</a></div></div>`;
+    }
     if ((c.pets || []).length > 0) {
         html += `<div class="detail-section"><h3>Pets (${c.pets.length})</h3>`;
         c.pets.forEach(p => {
@@ -1813,13 +1888,32 @@ function viewClient(clientId) {
             </h3>
             ${tipEntries.length === 0
                 ? `<div class="empty-state" style="padding: 12px;">No tips recorded yet</div>`
-                : `<div class="tip-list">${tipEntries.map(t => `
+                : `<div class="tip-list">${tipEntries.map(t => {
+                    const methodLabel = ({
+                        cash: 'Cash', venmo: 'Venmo', cashapp: 'CashApp', zelle: 'Zelle',
+                        stripe: 'Stripe', rover: 'Rover', check: 'Check', other: 'Other'
+                    })[t.paymentMethod] || '';
+                    const methodChip = methodLabel
+                        ? `<span style="font-size: 0.74em; color: var(--text-faint); background: var(--bg-input); border: 1px solid var(--border); padding: 1px 7px; border-radius: 10px; margin-left: 4px;">${methodLabel}</span>`
+                        : '';
+                    // Display fee/net: prefer stored values, fall back to computing on the fly
+                    // so historical tips with only a paymentMethod still surface their fee.
+                    const gross = parseFloat(t.amount) || 0;
+                    const fee = (t.paymentFee != null) ? parseFloat(t.paymentFee)
+                              : (t.paymentMethod ? _calcTipFee(t.paymentMethod, gross) : 0);
+                    const net = (t.netAmount != null) ? parseFloat(t.netAmount)
+                              : Math.round((gross - fee) * 100) / 100;
+                    const feeLine = fee > 0
+                        ? `<div style="font-size: 0.78em; color: var(--text-faint); margin-top: 2px;">fee $${fee.toFixed(2)} · net $${net.toFixed(2)}</div>`
+                        : '';
+                    return `
                     <div class="tip-row" data-tip-id="${t.id}">
                         <div class="tip-date">${formatDateLong(t.date).replace(/, \\d{4}$/, '')}</div>
-                        <div class="tip-amount">$${(t.amount || 0).toFixed(2)}</div>
+                        <div class="tip-amount">$${gross.toFixed(2)}${methodChip}${feeLine}</div>
                         <div class="tip-note">${escapeHtml(t.note || '')}</div>
                         <button class="tip-delete" onclick="deleteTip('${c.id}', '${t.id}', event)" title="Remove">×</button>
-                    </div>`).join('')}</div>`
+                    </div>`;
+                }).join('')}</div>`
             }
         </div>
     `;
