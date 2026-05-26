@@ -478,7 +478,7 @@
 
         /* ===== INBOX TYPED-ITEM EXTENSIONS ===== */
         /* Type picker row in the add form */
-        .item-type-toggle { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin: 10px 0; }
+        .item-type-toggle { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
         .item-type-btn { background: var(--bg); color: var(--text-faint); border: none; border-right: 1px solid var(--border); padding: 7px 14px; cursor: pointer; font-family: inherit; font-size: 0.88em; font-weight: 600; transition: all 0.1s; }
         .item-type-btn:last-child { border-right: none; }
         .item-type-btn:hover { background: var(--bg-input); color: var(--text); }
@@ -1573,6 +1573,13 @@
             cursor: pointer;
         }
         select:focus { border-color: var(--accent) !important; outline: none; }
+        /* Make EVERY dropdown's option list readable — dark bg + cream text — by
+         * overriding browser defaults (Chrome on Mac in particular renders options
+         * in a light system popup that ignores parent select styling). */
+        select option, select optgroup {
+            background-color: var(--bg-input) !important;
+            color: var(--text) !important;
+        }
 
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
@@ -2068,12 +2075,12 @@
             <div class="todo-add-form item-add-form" id="todoDashboardForm">
                 <input type="text" id="todoDashText" placeholder="What needs doing?"
                        onkeydown="if(event.key==='Enter') addOrUpdateTodo('dash')">
-                <div class="item-type-toggle">
-                    <button type="button" class="item-type-btn active" id="todoDashType_task" onclick="setItemFormType('dash','task')">Task</button>
-                    <button type="button" class="item-type-btn" id="todoDashType_reminder" onclick="setItemFormType('dash','reminder')">Reminder</button>
-                    <button type="button" class="item-type-btn" id="todoDashType_note" onclick="setItemFormType('dash','note')">Note</button>
-                </div>
                 <div class="todo-add-meta">
+                    <div class="item-type-toggle">
+                        <button type="button" class="item-type-btn active" id="todoDashType_task" onclick="setItemFormType('dash','task')">Task</button>
+                        <button type="button" class="item-type-btn" id="todoDashType_reminder" onclick="setItemFormType('dash','reminder')">Reminder</button>
+                        <button type="button" class="item-type-btn" id="todoDashType_note" onclick="setItemFormType('dash','note')">Note</button>
+                    </div>
                     <!-- Task only: priority -->
                     <div class="item-conditional todo-priority-toggle" data-for-type="task" data-source="dash">
                         <button type="button" class="todo-prio-btn high" data-prio="high" onclick="setTodoFormPriority('dash','high')" title="High priority">H</button>
@@ -2418,12 +2425,12 @@
             <div class="todo-add-form item-add-form" id="todoModalForm" style="margin-bottom: 16px;">
                 <input type="text" id="todoModalText" placeholder="What needs doing?"
                        onkeydown="if(event.key==='Enter') addOrUpdateTodo('modal')">
-                <div class="item-type-toggle">
-                    <button type="button" class="item-type-btn active" id="todoModalType_task" onclick="setItemFormType('modal','task')">Task</button>
-                    <button type="button" class="item-type-btn" id="todoModalType_reminder" onclick="setItemFormType('modal','reminder')">Reminder</button>
-                    <button type="button" class="item-type-btn" id="todoModalType_note" onclick="setItemFormType('modal','note')">Note</button>
-                </div>
                 <div class="todo-add-meta">
+                    <div class="item-type-toggle">
+                        <button type="button" class="item-type-btn active" id="todoModalType_task" onclick="setItemFormType('modal','task')">Task</button>
+                        <button type="button" class="item-type-btn" id="todoModalType_reminder" onclick="setItemFormType('modal','reminder')">Reminder</button>
+                        <button type="button" class="item-type-btn" id="todoModalType_note" onclick="setItemFormType('modal','note')">Note</button>
+                    </div>
                     <div class="item-conditional todo-priority-toggle" data-for-type="task" data-source="modal">
                         <button type="button" class="todo-prio-btn high" data-prio="high" onclick="setTodoFormPriority('modal','high')" title="High priority">H</button>
                         <button type="button" class="todo-prio-btn med active" data-prio="med" onclick="setTodoFormPriority('modal','med')" title="Medium priority">M</button>

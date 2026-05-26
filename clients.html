@@ -311,6 +311,10 @@
             padding-right: 32px !important; cursor: pointer;
         }
         select:focus { border-color: var(--accent) !important; outline: none; }
+        select option, select optgroup {
+            background-color: var(--bg-input) !important;
+            color: var(--text) !important;
+        }
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
             filter: invert(0.7) sepia(0.3) saturate(1.5) hue-rotate(310deg);

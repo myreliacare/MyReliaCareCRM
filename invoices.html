@@ -268,7 +268,18 @@
 
         /* Tax Projection */
         .tax-projection-card { margin-bottom: 18px; }
+        /* On desktop, center the whole tax projection block (header + tables + caveat) so the
+         * narrow tables and the Tax Settings button sit together instead of being thrown to
+         * opposite sides of a wide card. */
+        .tax-projection-card .income-breakdown-title,
+        .tax-projection-card #taxSettingsPanel,
+        .tax-projection-card #taxProjectionBody { max-width: 720px; margin-left: auto; margin-right: auto; }
         .tax-section { margin-top: 14px; }
+        /* Section labels + the trailing "% of gross" line need to sit inside the same centered column as the tables */
+        .tax-section .tax-section-label,
+        .tax-section .tax-rate-note { max-width: 560px; margin-left: auto; margin-right: auto; }
+        .tax-table { margin-left: auto; margin-right: auto; }
+        .tax-caveat-toggle { max-width: 720px; margin-left: auto; margin-right: auto; }
         .tax-section-label { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
         .tax-row { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: baseline; padding: 6px 0; font-size: 0.98em; max-width: 560px; }
         .tax-row .tax-label { color: var(--text-dim); }
@@ -643,6 +654,10 @@
             padding-right: 32px !important; cursor: pointer;
         }
         select:focus { border-color: var(--accent) !important; outline: none; }
+        select option, select optgroup {
+            background-color: var(--bg-input) !important;
+            color: var(--text) !important;
+        }
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
             filter: invert(0.7) sepia(0.3) saturate(1.5) hue-rotate(310deg);
@@ -4178,7 +4193,7 @@ function renderTaxProjection() {
                     <div class="ttr-value">${fmt(setAside)}</div>
                 </div>
             </div>
-            <div style="color: var(--text-faint); font-size: 0.85em; margin-top: 8px; max-width: 560px; text-align: right;">
+            <div class="tax-rate-note" style="color: var(--text-faint); font-size: 0.85em; margin-top: 8px; text-align: right;">
                 ${effectiveRate.toFixed(1)}% of gross
             </div>
         </div>
