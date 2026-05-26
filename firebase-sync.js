@@ -1554,7 +1554,28 @@ async function _maybeMigrate() {
 /* =============================================================
    AUTH STATE → UI
 ============================================================= */
+/* ============================================================
+   AUTH WATCHDOG
+   On iOS Safari, rapidly navigating between pages can leave IndexedDB
+   transactions stuck. Firebase Auth uses IndexedDB to read the cached
+   session, so onAuthStateChanged can hang and never fire.
+   Since BOTH #passwordScreen and #mainContent start hidden in CSS,
+   the user sees only the brown body background until auth fires.
+   Watchdog: if auth doesn't fire within ~5s, reveal the password screen
+   as a fallback so the user has a way to recover (re-enter password).
+   ============================================================ */
+let _authStateFired = false;
+setTimeout(() => {
+    if (_authStateFired) return;
+    console.warn('[sync] auth state never fired in 5s — revealing password screen as fallback');
+    const passwordScreen = document.getElementById('passwordScreen');
+    if (passwordScreen && getComputedStyle(passwordScreen).display === 'none') {
+        passwordScreen.style.display = 'flex';
+    }
+}, 5000);
+
 auth.onAuthStateChanged(async user => {
+    _authStateFired = true;
     const passwordScreen = document.getElementById('passwordScreen');
     const mainContent = document.getElementById('mainContent');
 
@@ -1639,8 +1660,32 @@ console.log('[sync] firebase-sync.js loaded');
    then immediately closes the tab before the async write finishes.
    The ops log in localStorage would still catch this on next login, but
    the prompt prevents the round-trip entirely.
+
+   We SKIP the prompt when the user clicks an in-app nav link, because:
+   - the new page's beforeunload+preventDefault on iOS Safari can leave
+     the navigation in a half-loaded state (blank brown screen)
+   - the new page will continue the same Firestore session anyway, so
+     the in-flight write will still land (the SDK persists ops)
    ============================================================ */
+let _internalNav = false;
+let _internalNavResetTimer = null;
+document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    try {
+        const url = new URL(a.href, window.location.href);
+        if (url.origin === window.location.origin) {
+            _internalNav = true;
+            // Reset shortly in case the navigation was cancelled (e.g. modifier-click,
+            // target=_blank, or a JS handler called preventDefault)
+            if (_internalNavResetTimer) clearTimeout(_internalNavResetTimer);
+            _internalNavResetTimer = setTimeout(() => { _internalNav = false; }, 2500);
+        }
+    } catch {}
+}, true);
+
 window.addEventListener('beforeunload', (e) => {
+    if (_internalNav) return;  // in-app nav — don't block iOS Safari
     if (_syncPendingOps > 0) {
         const msg = 'Saves still in progress — wait a moment so your changes reach the cloud.';
         e.preventDefault();
