@@ -582,9 +582,32 @@
         @media (max-width: 700px) {
             .modal-body, .modal-body * { min-width: 0 !important; }
             .modal-body { overflow-wrap: normal; word-wrap: normal; }
-            /* Visit row: stack to single col on phones (was 2-col) so date input has room */
-            .modal-body .visit-row { grid-template-columns: 1fr !important; gap: 6px !important; }
-            .modal-body .visit-row > .visit-remove { grid-column: 1 !important; justify-self: end !important; }
+            /* Visit row: card-like layout with 2-col grid areas (date+time, type fullwidth, price+remove) */
+            .modal-body .visit-row {
+                grid-template-columns: 1fr 1fr !important;
+                grid-template-areas:
+                    "date time"
+                    "type type"
+                    "price remove"
+                    "hint hint" !important;
+                gap: 8px !important;
+                padding: 12px !important;
+                background: var(--bg-card-light) !important;
+                border: 1px solid var(--border) !important;
+                border-radius: 10px !important;
+                margin-bottom: 10px !important;
+            }
+            .modal-body .visit-row > .visit-date  { grid-area: date; }
+            .modal-body .visit-row > .visit-time  { grid-area: time; }
+            .modal-body .visit-row > .visit-type  { grid-area: type; }
+            .modal-body .visit-row > .visit-price { grid-area: price; }
+            .modal-body .visit-row > .visit-remove {
+                grid-area: remove !important;
+                grid-column: auto !important;
+                justify-self: end !important;
+                align-self: center !important;
+            }
+            .modal-body .visit-row > .window-hint { grid-area: hint; }
             /* Make the modal itself can't escape the viewport */
             .modal { max-width: calc(100vw - 24px) !important; }
         }
@@ -1348,6 +1371,8 @@ function showToast(msg, type = 'success') {
 
 let _modalScrollY = 0;
 function openModal(id) {
+    const modal = document.getElementById(id);
+    const wasAlreadyActive = modal.classList.contains('active');
     if (!document.querySelector('.modal-overlay.active')) {
         _modalScrollY = window.scrollY || window.pageYOffset || 0;
         if (window.matchMedia('(max-width: 700px)').matches) {
@@ -1355,7 +1380,16 @@ function openModal(id) {
         }
     }
     document.body.classList.add('modal-open');
-    document.getElementById(id).classList.add('active');
+    modal.classList.add('active');
+    // Reset modal-body scroll to top only on fresh opens — not when a function
+    // re-calls openModal to re-render an already-active modal in place.
+    if (!wasAlreadyActive) {
+        const body = modal.querySelector('.modal-body');
+        if (body) {
+            body.scrollTop = 0;
+            requestAnimationFrame(() => { body.scrollTop = 0; });
+        }
+    }
 }
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
