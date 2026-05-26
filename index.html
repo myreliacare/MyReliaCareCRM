@@ -8,6 +8,9 @@
     <meta name="apple-mobile-web-app-title" content="MyReliaCare">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1A1614">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <title>MyReliaCare CRM - Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,17 +52,12 @@
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
         }
-        body {
-            font-family: 'Cormorant', serif;
-            background: var(--bg-deep);
-            min-height: 100vh;
-            padding: 32px 20px 20px 20px;
-            color: var(--text);
-            line-height: 1.6;
-            font-size: 18px;
-            touch-action: manipulation;
-            -webkit-text-size-adjust: 100%;
-        }
+        body { font-family: 'Cormorant', serif; background: var(--bg-deep); min-height: 100vh; padding: 20px; color: var(--text); line-height: 1.6; font-size: 18px; }
+
+
+        h1, h2, h3 { font-family: 'Cormorant Unicase', serif; font-weight: 600; }
+        html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
         body.menu-open { overflow: hidden; }
         body.modal-open { overflow: hidden; }
         @media (max-width: 700px) {
@@ -145,8 +143,6 @@
         @media (min-width: 701px) {
             .menu-close { display: none; }
         }
-
-        h1, h2, h3 { font-family: 'Cormorant Unicase', serif; font-weight: 600; }
 
         /* === LOGIN SCREEN === */
         #passwordScreen {
@@ -624,6 +620,13 @@
             .todo-item .todo-del-btn { grid-row: 1; grid-column: 5; padding: 2px 4px; }
             .todo-add-meta { gap: 6px; }
             .todo-add-meta input[type="date"] { flex: 1; min-width: 0; }
+
+            /* MOBILE INBOX FORM: minimal by default — just the text input. Tap
+             * to expand the meta row (type, priority, date, recur, client, + Add). */
+            .todo-add-form .todo-add-meta { display: none; }
+            .todo-add-form.expanded .todo-add-meta { display: flex; }
+            .todo-add-form input[type="text"] { margin-bottom: 0; }
+            .todo-add-form.expanded input[type="text"] { margin-bottom: 10px; }
         }
 
 
@@ -2114,6 +2117,7 @@
             </div>
             <div class="todo-add-form item-add-form" id="todoDashboardForm">
                 <input type="text" id="todoDashText" placeholder="What needs doing?"
+                       onfocus="_itemFormSetExpanded('dash', true)"
                        onkeydown="if(event.key==='Enter') addOrUpdateTodo('dash')">
                 <div class="todo-add-meta">
                     <div class="item-type-toggle">
@@ -2464,6 +2468,7 @@
         <div class="modal-body modal-body-scrollable">
             <div class="todo-add-form item-add-form" id="todoModalForm" style="margin-bottom: 16px;">
                 <input type="text" id="todoModalText" placeholder="What needs doing?"
+                       onfocus="_itemFormSetExpanded('modal', true)"
                        onkeydown="if(event.key==='Enter') addOrUpdateTodo('modal')">
                 <div class="todo-add-meta">
                     <div class="item-type-toggle">
@@ -5090,8 +5095,7 @@ function setItemFormType(source, type) {
             const types = (el.dataset.forType || '').split(/\s+/).filter(Boolean);
             el.style.display = types.includes(type) ? '' : 'none';
         });
-    }
-    // Adjust placeholder text on the text input
+    }    // Adjust placeholder text on the text input
     const textEl = document.getElementById(source === 'dash' ? 'todoDashText' : 'todoModalText');
     if (textEl) {
         textEl.placeholder = type === 'reminder' ? 'Remind me to...'
@@ -5106,6 +5110,16 @@ function setItemFormRecur(source, value) {
 
 function setItemFormClient(source, clientId) {
     _itemFormClient[source] = clientId || '';
+}
+
+/* Toggle the .expanded class on the inbox form. On mobile (max-width: 700px)
+ * the CSS hides the meta row by default, so .expanded reveals the full
+ * Task/Reminder/Note + priority + date + client controls. Desktop ignores
+ * this class — the meta row is always visible. */
+function _itemFormSetExpanded(source, expanded) {
+    const formId = source === 'dash' ? 'todoDashboardForm' : 'todoModalForm';
+    const form = document.getElementById(formId);
+    if (form) form.classList.toggle('expanded', !!expanded);
 }
 
 /* Populate both client-tag pickers from the current clients list. Called on
@@ -5210,9 +5224,16 @@ function addOrUpdateTodo(source) {
     _todoEdit[source] = null;
     document.getElementById(ids.addBtn).textContent = '+ Add';
     document.getElementById(ids.cancelBtn).style.display = 'none';
+    // Collapse the meta row on mobile so the form returns to its minimal state
+    _itemFormSetExpanded(source, false);
 
     _renderAllTodoUI();
-    setTimeout(() => { const el = document.getElementById(ids.text); if (el) el.focus(); }, 30);
+    // Re-focus the input for rapid keyboard entry — but skip on mobile, where
+    // it would immediately re-expand the form via the onfocus handler.
+    const isMobile = window.matchMedia && window.matchMedia('(max-width: 700px)').matches;
+    if (!isMobile) {
+        setTimeout(() => { const el = document.getElementById(ids.text); if (el) el.focus(); }, 30);
+    }
 }
 
 function startEditTodo(id, source) {
@@ -5240,6 +5261,7 @@ function startEditTodo(id, source) {
     _todoEdit[source] = id;
     document.getElementById(ids.addBtn).textContent = 'Save';
     document.getElementById(ids.cancelBtn).style.display = '';
+    _itemFormSetExpanded(source, true);
     setTimeout(() => document.getElementById(ids.text).focus(), 50);
     _renderAllTodoUI();
 }
@@ -5257,6 +5279,7 @@ function cancelEditTodo(source) {
     _todoEdit[source] = null;
     document.getElementById(ids.addBtn).textContent = '+ Add';
     document.getElementById(ids.cancelBtn).style.display = 'none';
+    _itemFormSetExpanded(source, false);
     _renderAllTodoUI();
 }
 
