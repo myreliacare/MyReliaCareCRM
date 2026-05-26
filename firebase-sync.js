@@ -406,14 +406,60 @@ function _gsmEsc(s) {
 function _injectSignedInIndicator() {
     if (document.getElementById('signedInIndicator')) return;
 
-    // Global search button — sits just to the LEFT of the signed-in pill.
-    // Opens a modal that searches clients, visits, invoices, tips across the app.
+    // Positioning lives in CSS so it can be responsive — mobile centers the pill
+    // at the top with refresh on the left and search on the right; desktop keeps
+    // the older top-right cluster.
+    if (!document.getElementById('signedInIndicatorStyles')) {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'signedInIndicatorStyles';
+        styleEl.textContent = `
+            #signedInIndicator, #globalRefreshBtn, #globalSearchBtn {
+                position: fixed;
+                top: calc(env(safe-area-inset-top, 0px) + 8px);
+                z-index: 9500;
+            }
+            /* Mobile-first: pill centered at the very top, refresh + search on the edges */
+            #signedInIndicator { left: 50%; transform: translateX(-50%); }
+            #globalRefreshBtn { left: 12px; }
+            #globalSearchBtn { right: 12px; }
+            #indicatorMenu {
+                position: fixed;
+                top: calc(env(safe-area-inset-top, 0px) + 48px);
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 9501;
+            }
+            /* Desktop: revert to top-right cluster, no centering */
+            @media (min-width: 701px) {
+                #signedInIndicator { left: auto; right: 12px; transform: none; }
+                #globalRefreshBtn  { left: auto; right: 170px; }
+                #globalSearchBtn   { right: 130px; }
+                #indicatorMenu     { left: auto; right: 12px; transform: none; }
+            }
+            /* Hide ALL top chrome whenever a modal, the backfill workspace, or the
+             * nav drawer is open. Keeps the pill/refresh/search from overlapping
+             * modal headers, close buttons, or drawer content. Inline display:flex
+             * is set on these elements at sign-in, so !important is required. */
+            body.modal-open #signedInIndicator,
+            body.modal-open #globalRefreshBtn,
+            body.modal-open #globalSearchBtn,
+            body.modal-open #indicatorMenu,
+            body.menu-open  #signedInIndicator,
+            body.menu-open  #globalRefreshBtn,
+            body.menu-open  #globalSearchBtn,
+            body.menu-open  #indicatorMenu {
+                display: none !important;
+            }
+        `;
+        document.head.appendChild(styleEl);
+    }
+
+    // Global search button — opens a modal that searches clients, visits, invoices, tips.
     const searchBtn = document.createElement('button');
     searchBtn.id = 'globalSearchBtn';
     searchBtn.title = 'Search (Ctrl+K)';
     searchBtn.setAttribute('aria-label', 'Open global search');
     searchBtn.style.cssText = `
-        position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 130px; z-index: 9500;
         background: rgba(42, 34, 32, 0.92); border: 1px solid #4A413E;
         color: #C0B0B4; width: 32px; height: 32px; border-radius: 50%;
         cursor: pointer; display: none; align-items: center; justify-content: center;
@@ -424,13 +470,12 @@ function _injectSignedInIndicator() {
     document.body.appendChild(searchBtn);
 
     // REFRESH BUTTON — essential in PWA standalone mode where pull-to-refresh
-    // doesn't work. Sits to the left of the search button. Reloads current page.
+    // doesn't work. Reloads current page.
     const refreshBtn = document.createElement('button');
     refreshBtn.id = 'globalRefreshBtn';
     refreshBtn.title = 'Refresh page';
     refreshBtn.setAttribute('aria-label', 'Refresh page');
     refreshBtn.style.cssText = `
-        position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 170px; z-index: 9500;
         background: rgba(42, 34, 32, 0.92); border: 1px solid #4A413E;
         color: #C0B0B4; width: 32px; height: 32px; border-radius: 50%;
         cursor: pointer; display: none; align-items: center; justify-content: center;
@@ -440,8 +485,8 @@ function _injectSignedInIndicator() {
     refreshBtn.addEventListener('click', () => {
         // Brief visual feedback before reload
         refreshBtn.style.color = '#B59197';
-        refreshBtn.style.transform = 'rotate(180deg)';
         refreshBtn.style.transition = 'transform 0.25s, color 0.15s';
+        refreshBtn.style.transform = 'rotate(180deg)';
         setTimeout(() => location.reload(), 180);
     });
     document.body.appendChild(refreshBtn);
@@ -457,7 +502,6 @@ function _injectSignedInIndicator() {
     const el = document.createElement('div');
     el.id = 'signedInIndicator';
     el.style.cssText = `
-        position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 12px; z-index: 9500;
         background: rgba(42, 34, 32, 0.92); border: 1px solid #4A413E;
         color: #C0B0B4; padding: 6px 10px; border-radius: 20px;
         font-family: inherit; font-size: 0.78em;
@@ -475,7 +519,6 @@ function _injectSignedInIndicator() {
     const menu = document.createElement('div');
     menu.id = 'indicatorMenu';
     menu.style.cssText = `
-        position: fixed; top: calc(env(safe-area-inset-top, 0px) + 52px); right: 12px; z-index: 9501;
         background: #2A2220; border: 1px solid #4A413E; border-radius: 8px;
         padding: 6px 0; min-width: 180px; display: none;
         box-shadow: 0 4px 14px rgba(0,0,0,0.45);
