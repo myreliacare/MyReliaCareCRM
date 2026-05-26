@@ -83,6 +83,10 @@
                 padding: 10px 6px;
                 white-space: nowrap;
                 overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
             }
             /* Generic label-swap for ANY button with data-mobile-label.
              * .action-bar's rule above has higher specificity so it still wins there. */
@@ -178,7 +182,11 @@
                 cursor: pointer;
                 font-family: 'Cormorant', serif;
             }
-            .header { padding: 12px 14px !important; margin-bottom: 14px !important; gap: 10px !important; flex-wrap: nowrap !important; }
+            .header { padding: 12px 14px !important; margin-bottom: 14px !important; gap: 10px !important; flex-wrap: nowrap !important; justify-content: center !important; }
+            /* Bottom tabs + Account pill replace the nav drawer — hamburger is redundant */
+            .menu-toggle { display: none !important; }
+            .header-brand { flex: 0 1 auto !important; min-width: 0; justify-content: center; }
+            .header-title h1 { margin: 0; }
             .header-brand { flex: 1; min-width: 0; }
             .header-logo-container { width: 44px !important; height: 44px !important; flex-shrink: 0; }
             .header-title h1 { font-size: 1.4em !important; }
@@ -2119,7 +2127,6 @@
                 </div>
                 <div class="header-title">
                     <h1>MyReliaCare</h1>
-                    <div class="tagline">Pet care, with intention.</div>
                 </div>
             </a>
             <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
@@ -2895,12 +2902,54 @@ let editingEventType = null;     // 'visit' | 'personal'
 function uploadLogo(event) {
     const file = event.target.files[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('Please select an image file', 'error');
+        event.target.value = '';
+        return;
+    }
     const reader = new FileReader();
+    reader.onerror = () => { showToast('Could not read that file', 'error'); };
     reader.onload = (e) => {
-        localStorage.setItem(STORAGE_KEYS.logo, e.target.result);
-        renderLogo();
+        const img = new Image();
+        img.onerror = () => { showToast('That image could not be opened (try a JPEG or PNG)', 'error'); };
+        img.onload = () => {
+            // iPhone photos are 4032x3024 ~5MB; their data URL exceeds the
+            // ~5MB localStorage quota on iOS Safari. Downscale to <=400px and
+            // re-encode as JPEG → 30-80KB data URL, well under the cap.
+            const MAX = 400;
+            let w = img.naturalWidth || img.width;
+            let h = img.naturalHeight || img.height;
+            if (w > MAX || h > MAX) {
+                const scale = MAX / Math.max(w, h);
+                w = Math.max(1, Math.round(w * scale));
+                h = Math.max(1, Math.round(h * scale));
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            // Preserve transparency if the source is PNG; otherwise JPEG for size.
+            const isPng = file.type === 'image/png';
+            const dataUrl = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.85);
+            try {
+                localStorage.setItem(STORAGE_KEYS.logo, dataUrl);
+                renderLogo();
+                showToast('Logo updated');
+            } catch (err) {
+                if (err && (err.name === 'QuotaExceededError' || err.code === 22)) {
+                    showToast('Image too large to save — try a smaller photo', 'error');
+                } else {
+                    showToast('Could not save logo', 'error');
+                }
+                console.error('[uploadLogo] save failed:', err);
+            }
+        };
+        img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+    // Reset so picking the same file again re-fires onchange
+    event.target.value = '';
 }
 function renderLogo() {
     const saved = localStorage.getItem(STORAGE_KEYS.logo);

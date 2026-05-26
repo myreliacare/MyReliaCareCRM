@@ -113,6 +113,55 @@
             .cvr-table thead th, .cvr-table tbody td { padding: 7px 6px; }
             /* Hide less-critical columns on mobile */
             .cvr-table .cvr-col-avg, .cvr-table .cvr-col-tip { display: none; }
+
+            /* Summary stats: clean 2-col grid; Lifetime tips spans both columns */
+            .cvr-summary {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px 14px;
+                padding: 12px;
+            }
+            .cvr-summary-stat:last-child { grid-column: 1 / -1; }
+            .cvr-summary-num { font-size: 1.2em; }
+            .cvr-summary-label { font-size: 0.68em; }
+
+            /* Mobile-only card list (replaces the table view) */
+            .cvr-card {
+                background: var(--bg-input);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 10px 12px;
+                margin-bottom: 6px;
+                cursor: pointer;
+                transition: background 0.12s;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .cvr-card:active { background: var(--bg-card); }
+            .cvr-card.dormant { border-left: 3px solid var(--warn); padding-left: 9px; }
+            .cvr-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 10px;
+            }
+            .cvr-card-name {
+                color: var(--accent);
+                font-weight: 500;
+                font-size: 1em;
+                font-family: 'Cormorant', serif;
+            }
+            .cvr-card-revenue {
+                color: var(--success);
+                font-weight: 500;
+                font-variant-numeric: tabular-nums;
+                flex-shrink: 0;
+            }
+            .cvr-card-meta {
+                color: var(--text-faint);
+                font-size: 0.82em;
+                margin-top: 3px;
+            }
+            .cvr-card-dormant { color: var(--warn); }
         }
         .search-bar { flex: 1; min-width: 240px; padding: 10px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; }
         .search-bar:focus { outline: none; border-color: var(--accent); }
@@ -389,7 +438,11 @@
             .nav a { padding: 14px 16px; font-size: 1.15em; border-radius: 8px; margin-bottom: 4px; }
             .nav .logout-btn { margin-top: auto; padding: 12px 16px; font-size: 1em; }
             .menu-close { display: flex; align-items: center; justify-content: flex-end; font-size: 1.6em; color: var(--text-faint); background: transparent; border: none; padding: 4px 8px; margin-bottom: 14px; cursor: pointer; font-family: 'Cormorant', serif; }
-            .header { padding: 12px 14px !important; margin-bottom: 14px !important; gap: 10px !important; flex-wrap: nowrap !important; }
+            .header { padding: 12px 14px !important; margin-bottom: 14px !important; gap: 10px !important; flex-wrap: nowrap !important; justify-content: center !important; }
+            /* Bottom tabs + Account pill replace the nav drawer — hamburger is redundant */
+            .menu-toggle { display: none !important; }
+            .header-brand { flex: 0 1 auto !important; min-width: 0; justify-content: center; }
+            .header-title h1 { margin: 0; }
             .header-brand { flex: 1; min-width: 0; }
             .header-logo-container { width: 44px !important; height: 44px !important; flex-shrink: 0; }
             .header-title h1 { font-size: 1.4em !important; }
@@ -661,7 +714,6 @@
                 </div>
                 <div class="header-title">
                     <h1>MyReliaCare</h1>
-                    <div class="tagline">Pet care, with intention.</div>
                 </div>
             </a>
             <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
@@ -1189,9 +1241,54 @@ async function autofillMilesFromAddress() {
     );
 }
 
-function uploadLogo(e) {
-    const file = e.target.files[0]; if (!file) return;
-    const r = new FileReader(); r.onload = (e) => { localStorage.setItem(STORAGE_KEYS.logo, e.target.result); renderLogo(); }; r.readAsDataURL(file);
+function uploadLogo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('Please select an image file', 'error');
+        event.target.value = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => { showToast('Could not read that file', 'error'); };
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = () => { showToast('That image could not be opened (try a JPEG or PNG)', 'error'); };
+        img.onload = () => {
+            // iPhone photos exceed the ~5MB localStorage quota when stored as data URL.
+            // Downscale to <=400px and re-encode as JPEG → 30-80KB.
+            const MAX = 400;
+            let w = img.naturalWidth || img.width;
+            let h = img.naturalHeight || img.height;
+            if (w > MAX || h > MAX) {
+                const scale = MAX / Math.max(w, h);
+                w = Math.max(1, Math.round(w * scale));
+                h = Math.max(1, Math.round(h * scale));
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const isPng = file.type === 'image/png';
+            const dataUrl = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.85);
+            try {
+                localStorage.setItem(STORAGE_KEYS.logo, dataUrl);
+                renderLogo();
+                showToast('Logo updated');
+            } catch (err) {
+                if (err && (err.name === 'QuotaExceededError' || err.code === 22)) {
+                    showToast('Image too large to save — try a smaller photo', 'error');
+                } else {
+                    showToast('Could not save logo', 'error');
+                }
+                console.error('[uploadLogo] save failed:', err);
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
 }
 function renderLogo() {
     const s = localStorage.getItem(STORAGE_KEYS.logo);
@@ -1589,12 +1686,16 @@ function renderClientValueReport() {
         const tips = Array.isArray(c.tips)
             ? c.tips.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0)
             : 0;
-        const sortedByDate = cv.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        // Last COMPLETED visit on or before today — never future-scheduled visits.
+        // Without this filter, a client with a scheduled visit next month would show
+        // a negative "days ago" and would never qualify as dormant.
+        const completedPast = earned.filter(v => v.date && v.date <= todayStr);
+        const sortedByDate = completedPast.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
         const lastVisitDate = sortedByDate.length > 0 ? sortedByDate[0].date : null;
         let daysSince = null;
         if (lastVisitDate) {
             const lv = new Date(lastVisitDate + 'T00:00:00');
-            daysSince = Math.round((todayDate - lv) / (1000 * 60 * 60 * 24));
+            daysSince = Math.max(0, Math.round((todayDate - lv) / (1000 * 60 * 60 * 24)));
         }
         const avgRevenue = earned.length > 0 ? revenue / earned.length : 0;
         return {
@@ -1659,6 +1760,48 @@ function renderClientValueReport() {
         return `<th class="${cls}" onclick="_cvrSort('${key}')">${label}</th>`;
     };
 
+    // Compact date formatter for mobile cards: "May 24, 2026" → "May 24"
+    const fmtShortDate = (ymd) => {
+        if (!ymd) return '';
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const [y, m, d] = ymd.split('-').map(Number);
+        if (!y || !m || !d) return ymd;
+        const thisYear = new Date().getFullYear();
+        return y === thisYear ? `${months[m-1]} ${d}` : `${months[m-1]} ${d}, ${y}`;
+    };
+
+    const isMobile = window.matchMedia('(max-width: 700px)').matches;
+
+    if (isMobile) {
+        // MOBILE: tappable card list — much easier to scan on a phone than a 6-column table
+        wrap.innerHTML = filtered.map(r => {
+            const lastText = r.lastVisit
+                ? `${fmtShortDate(r.lastVisit)} · ${r.daysSince === 0 ? 'today' : r.daysSince + 'd ago'}`
+                : '<span style="font-style: italic;">no past visits</span>';
+            return `
+                <div class="cvr-card${r.isDormant ? ' dormant' : ''}" data-cid="${r.id}">
+                    <div class="cvr-card-header">
+                        <span class="cvr-card-name">${escapeHtml(r.name)}</span>
+                        <span class="cvr-card-revenue">$${r.revenue.toFixed(0)}</span>
+                    </div>
+                    <div class="cvr-card-meta">
+                        ${r.visits} visit${r.visits === 1 ? '' : 's'} · ${lastText}${r.isDormant ? ' · <span class="cvr-card-dormant">dormant</span>' : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        // Wire taps — entire card opens the client page
+        wrap.querySelectorAll('.cvr-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const id = card.dataset.cid;
+                closeModal('clientValueReportModal');
+                window.location.href = 'clients.html?id=' + encodeURIComponent(id);
+            });
+        });
+        return;
+    }
+
+    // DESKTOP: full sortable table
     const tbody = filtered.map(r => {
         const dormantClass = r.isDormant ? 'dormant' : '';
         const lastVisitDisplay = r.lastVisit
@@ -1709,86 +1852,84 @@ function _cvrSort(key) {
 }
 
 function bookAgainFor(clientId) {
+    // Uses the client's MOST RECENT past visit as a template, scheduling another
+    // for the next occurrence of that day-of-week from today. Works for any
+    // client who's ever had a visit — no recurring pattern required.
     const client = Store.getClients().find(c => c.id === clientId);
     if (!client) { showToast('Client not found', 'error'); return; }
 
     const allVisits = Store.getVisits().filter(v => v.clientId === clientId);
-    // Look at recent visits (last 6 months) for pattern; older ones may be stale
     const todayStr = todayYmd();
-    const sixMonthsAgo = _addDaysYmd(todayStr, -180);
-    const recent = allVisits.filter(v => v.date && v.date >= sixMonthsAgo);
 
-    if (recent.length === 0) {
-        showToast('No recent visits to base a recurring booking on — opening the full scheduler', 'info');
+    // Pick the template: most recent past visit with time + visitType set.
+    // Prefer completed visits, but fall back to any past visit if no completed ones.
+    const usable = allVisits.filter(v =>
+        v.date && v.date <= todayStr && v.time && v.visitType
+    );
+    if (usable.length === 0) {
+        showToast('No past visits yet — opening the full scheduler', 'info');
         setTimeout(() => scheduleVisitFor(clientId), 300);
         return;
     }
+    const completed = usable.filter(v => v.status === 'completed');
+    const pool = completed.length > 0 ? completed : usable;
+    pool.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const template = pool[0];
 
-    // Tally (dayOfWeek, time, visitType) tuples
-    const tally = {};
-    recent.forEach(v => {
-        if (!v.date || !v.time || !v.visitType) return;
-        const dow = new Date(v.date + 'T00:00:00').getDay();
-        const key = `${dow}|${v.time}|${v.visitType}`;
-        if (!tally[key]) tally[key] = { count: 0, dow, time: v.time, visitType: v.visitType, samples: [] };
-        tally[key].count++;
-        tally[key].samples.push(v);
-    });
-
-    const ranked = Object.values(tally).sort((a, b) => b.count - a.count);
-    const top = ranked[0];
-
-    if (!top || top.count < 2) {
-        showToast('No clear recurring pattern yet — opening the full scheduler', 'info');
-        setTimeout(() => scheduleVisitFor(clientId), 400);
-        return;
-    }
-
-    // Find the next occurrence of that day-of-week from today (strictly future)
+    // Next occurrence of the template's day-of-week (strictly future)
+    const templateDow = new Date(template.date + 'T00:00:00').getDay();
     const today = new Date(todayStr + 'T00:00:00');
     const todayDow = today.getDay();
-    let daysUntil = (top.dow - todayDow + 7) % 7;
-    if (daysUntil === 0) daysUntil = 7;  // skip today, go to next week
+    let daysUntil = (templateDow - todayDow + 7) % 7;
+    if (daysUntil === 0) daysUntil = 7;
     const next = new Date(today);
     next.setDate(today.getDate() + daysUntil);
     const nextYmd = ymdFromDate(next);
-    const nextDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][top.dow];
+    const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][templateDow];
 
-    // Pull price from most recent matching visit (or client default)
-    const sampleVisit = top.samples.sort((a, b) => b.date.localeCompare(a.date))[0];
-    let price = parseFloat(sampleVisit.price);
+    // Price from template, fall back to client defaults
+    let price = parseFloat(template.price);
     if (isNaN(price) || price <= 0) {
-        if (top.visitType === '30min') price = parseFloat(client.price30) || 0;
-        else if (top.visitType === '60min') price = parseFloat(client.price60) || 0;
+        if (template.visitType === '30min') price = parseFloat(client.price30) || 0;
+        else if (template.visitType === '60min') price = parseFloat(client.price60) || 0;
         else price = 0;
     }
-    const visitTypeLabel = top.visitType === 'meet-greet' ? 'Meet & Greet'
-        : top.visitType === '60min' ? '60 min Visit'
-        : top.visitType === '30min' ? '30 min Visit'
-        : top.visitType;
+    const typeLabel = template.visitType === 'meet-greet' ? 'Meet & Greet'
+        : template.visitType === '60min' ? '60 min Visit'
+        : template.visitType === '30min' ? '30 min Visit'
+        : template.visitType;
 
-    const confirmMsg = `Book another ${visitTypeLabel} for ${client.name} on ${nextDayName} ${nextYmd} at ${top.time}?\n\n` +
-        `Based on ${top.count} recent visits matching this pattern.\n` +
+    // 24h "07:00" → "7:00 AM" for the confirm dialog
+    const fmtTime = (t) => {
+        if (!t || !/^\d{1,2}:\d{2}$/.test(t)) return t;
+        const [h, m] = t.split(':').map(Number);
+        const period = h >= 12 ? 'PM' : 'AM';
+        const h12 = ((h + 11) % 12) + 1;
+        return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+    };
+
+    const confirmMsg =
+        `Book ${typeLabel} for ${client.name}?\n\n` +
+        `${dayName}, ${nextYmd} at ${fmtTime(template.time)}\n` +
         `Price: $${price.toFixed(2)}\n\n` +
+        `Same as their last visit on ${template.date}.\n` +
         `OK to book · Cancel to use the full scheduler`;
     if (!confirm(confirmMsg)) {
-        // User cancelled — offer full scheduler instead
         if (confirm('Open the full scheduler instead?')) scheduleVisitFor(clientId);
         return;
     }
 
-    // Build visit record
     const newVisit = {
         id: 'visit_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
         clientId: client.id,
         clientName: client.name,
         date: nextYmd,
-        time: top.time,
-        visitType: top.visitType,
+        time: template.time,
+        visitType: template.visitType,
         price: price,
         status: 'scheduled',
-        assignedTo: sampleVisit.assignedTo || 'kasey',
-        address: sampleVisit.address || '',
+        assignedTo: template.assignedTo || 'kasey',
+        address: template.address || '',
         notes: '',
         paid: false,
         invoiced: false,
@@ -1799,7 +1940,7 @@ function bookAgainFor(clientId) {
     visits.push(newVisit);
     const ok = Store.saveVisits(visits);
     if (ok !== false) {
-        showToast(`Booked ${visitTypeLabel} for ${client.name} on ${nextYmd}`);
+        showToast(`Booked ${typeLabel} for ${client.name} on ${nextYmd}`);
     } else {
         showToast('Save failed', 'error');
     }

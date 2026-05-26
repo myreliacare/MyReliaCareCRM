@@ -248,9 +248,42 @@
         .imr-cell.imr-net { color: var(--success); font-weight: 500; }
         .income-method-row.imr-header .imr-cell { color: var(--text-faint); font-weight: 600; }
         @media (max-width: 700px) {
-            .income-method-row { grid-template-columns: 1.3fr 1fr 1fr; gap: 6px; padding: 8px 10px; font-size: 0.87em; }
+            /* Make the by-method table horizontally scrollable so all 5 columns
+             * (Method, Count, Gross, Fees, Net) stay visible at full size.
+             * Better than hiding columns — fees + net are critical info. */
+            .income-method-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                /* Extend to card edges so there's more horizontal room to scroll into */
+                margin-left: -14px;
+                margin-right: -14px;
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+            .income-method-row {
+                /* Force min-width so the row doesn't shrink — overflow scrolls instead */
+                min-width: 460px;
+                grid-template-columns: 1.3fr 0.55fr 1fr 1fr 1fr;
+                gap: 8px;
+                font-size: 0.88em;
+                padding: 9px 10px;
+            }
+            /* Make sure ALL cells stay visible (overrides the old hide-on-mobile rules) */
             .income-method-row .imr-cell.imr-count,
-            .income-method-row .imr-cell.imr-fee { display: none; }
+            .income-method-row .imr-cell.imr-fee {
+                display: block;
+            }
+            /* Subtle hint that the table scrolls — fade on the right edge */
+            .income-method-table::after {
+                content: '';
+                position: sticky;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                width: 18px;
+                background: linear-gradient(to left, var(--bg-card), transparent);
+                pointer-events: none;
+            }
         }
         .income-method-row:last-child { border-bottom: none; }
         .income-method-row.header { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; }
@@ -259,10 +292,8 @@
         .income-method-row .imr-net { color: var(--success); }
         .income-empty { color: var(--text-faint); font-size: 0.95em; padding: 14px 0; text-align: center; }
         @media (max-width: 700px) {
+            /* Summary cells stack vertically on mobile (one per row instead of grid) */
             .income-breakdown-body { grid-template-columns: 1fr; }
-            .income-method-row { grid-template-columns: 1.5fr 1fr 1fr; }
-            .income-method-row .imr-fee { display: none; }
-            .income-method-row.header .imr-fee { display: none; }
         }
 
         /* Mileage section */
@@ -691,7 +722,11 @@
             .nav a { padding: 14px 16px; font-size: 1.15em; border-radius: 8px; margin-bottom: 4px; }
             .nav .logout-btn { margin-top: auto; padding: 12px 16px; font-size: 1em; }
             .menu-close { display: flex; align-items: center; justify-content: flex-end; font-size: 1.6em; color: var(--text-faint); background: transparent; border: none; padding: 4px 8px; margin-bottom: 14px; cursor: pointer; font-family: 'Cormorant', serif; }
-            .header { padding: 12px 14px !important; margin-bottom: 14px !important; gap: 10px !important; flex-wrap: nowrap !important; }
+            .header { padding: 12px 14px !important; margin-bottom: 14px !important; gap: 10px !important; flex-wrap: nowrap !important; justify-content: center !important; }
+            /* Bottom tabs + Account pill replace the nav drawer — hamburger is redundant */
+            .menu-toggle { display: none !important; }
+            .header-brand { flex: 0 1 auto !important; min-width: 0; justify-content: center; }
+            .header-title h1 { margin: 0; }
             .header-brand { flex: 1; min-width: 0; }
             .header-logo-container { width: 44px !important; height: 44px !important; flex-shrink: 0; }
             .header-title h1 { font-size: 1.4em !important; }
@@ -860,7 +895,6 @@
                 </div>
                 <div class="header-title">
                     <h1>MyReliaCare</h1>
-                    <div class="tagline">Pet care, with intention.</div>
                 </div>
             </a>
             <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
@@ -1199,12 +1233,54 @@ let editingInvoiceId = null;
 /* ============================================================
    LOGO / TOAST
    ============================================================ */
-function uploadLogo(e) {
-    const file = e.target.files[0];
+function uploadLogo(event) {
+    const file = event.target.files[0];
     if (!file) return;
-    const r = new FileReader();
-    r.onload = ev => { localStorage.setItem(STORAGE_KEYS.logo, ev.target.result); renderLogo(); };
-    r.readAsDataURL(file);
+    if (!file.type.startsWith('image/')) {
+        showToast('Please select an image file', 'error');
+        event.target.value = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => { showToast('Could not read that file', 'error'); };
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = () => { showToast('That image could not be opened (try a JPEG or PNG)', 'error'); };
+        img.onload = () => {
+            // iPhone photos exceed the ~5MB localStorage quota when stored as data URL.
+            // Downscale to <=400px and re-encode as JPEG → 30-80KB.
+            const MAX = 400;
+            let w = img.naturalWidth || img.width;
+            let h = img.naturalHeight || img.height;
+            if (w > MAX || h > MAX) {
+                const scale = MAX / Math.max(w, h);
+                w = Math.max(1, Math.round(w * scale));
+                h = Math.max(1, Math.round(h * scale));
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const isPng = file.type === 'image/png';
+            const dataUrl = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.85);
+            try {
+                localStorage.setItem(STORAGE_KEYS.logo, dataUrl);
+                renderLogo();
+                showToast('Logo updated');
+            } catch (err) {
+                if (err && (err.name === 'QuotaExceededError' || err.code === 22)) {
+                    showToast('Image too large to save — try a smaller photo', 'error');
+                } else {
+                    showToast('Could not save logo', 'error');
+                }
+                console.error('[uploadLogo] save failed:', err);
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
 }
 function renderLogo() {
     const saved = localStorage.getItem(STORAGE_KEYS.logo);
