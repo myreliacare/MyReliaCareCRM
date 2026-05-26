@@ -409,6 +409,38 @@
 
         /* To-Do list */
         .todo-card-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .today-header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        .view-filter-pills { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .view-filter-pill { padding: 5px 11px; background: transparent; border: none; color: var(--text-faint); font-family: inherit; font-size: 0.82em; cursor: pointer; transition: background 0.12s, color 0.12s; }
+        .view-filter-pill + .view-filter-pill { border-left: 1px solid var(--border); }
+        .view-filter-pill:hover { color: var(--text); }
+        .view-filter-pill.active { background: var(--accent); color: var(--bg-card); font-weight: 600; }
+
+        /* Mileage prompt banner — homepage nudge for days with completed visits but no mileage */
+        .mileage-prompt-banner {
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 14px;
+        }
+        .mpb-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+        .mpb-title { color: var(--accent); font-weight: 600; font-size: 1.02em; }
+        .mpb-dismiss { background: transparent; border: none; color: var(--text-faint); cursor: pointer; font-family: inherit; font-size: 0.82em; text-decoration: underline; padding: 0; }
+        .mpb-dismiss:hover { color: var(--text-dim); }
+        .mpb-day { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px dashed var(--border); }
+        .mpb-day:first-of-type { border-top: none; padding-top: 4px; }
+        .mpb-day-label { color: var(--text); font-weight: 500; }
+        .mpb-day-sub { color: var(--text-faint); font-size: 0.85em; margin-top: 2px; }
+        .mpb-driver-row { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; }
+        .mpb-driver-label { color: var(--text-dim); font-size: 0.85em; }
+        .mpb-mi-input { width: 70px; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.92em; }
+        .mpb-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+        .mpb-more-link { color: var(--text-faint); font-size: 0.82em; margin-left: auto; }
+        @media (max-width: 700px) {
+            .mpb-day { grid-template-columns: 1fr; gap: 6px; }
+        }
         .todo-card-header .card-title { margin: 0; }
         .todo-add-form { background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
         .todo-add-form input[type="text"] { width: 100%; padding: 9px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 1.02em; margin-bottom: 10px; box-sizing: border-box; }
@@ -552,9 +584,6 @@
         .item-reminder-action.gotit:hover { background: var(--success, #6c9); border-color: var(--success, #6c9); }
 
         /* Pin button on notes */
-        .item-pin-btn { background: transparent; border: 1px solid var(--border); border-radius: 5px; color: var(--text-faint); cursor: pointer; padding: 4px 7px; line-height: 0; transition: all 0.1s; flex: 0 0 auto; }
-        .item-pin-btn:hover { color: var(--accent); border-color: var(--accent); }
-        .item-pin-btn.pinned { color: var(--accent); border-color: var(--accent); background: rgba(196, 167, 123, 0.1); }
         .todo-item.item-note.pinned { border-color: rgba(196, 167, 123, 0.4); }
 
         /* Snooze popup */
@@ -2060,9 +2089,20 @@
             <button class="btn btn-ghost" onclick="openBackfill()" title="Rapid entry mode for historical visits">Backfill</button>
         </div>
 
+        <!-- Mileage prompt banner — surfaces days with completed visits but no mileage logged.
+             Hidden by default; _renderMileagePrompt() reveals it when there's pending work. -->
+        <div id="mileagePromptBanner" class="mileage-prompt-banner" style="display: none;"></div>
+
         <!-- Today's Schedule -->
         <div class="card">
-            <h2 class="card-title">Today's Schedule</h2>
+            <div class="today-header-row">
+                <h2 class="card-title" style="margin: 0;">Today's Schedule</h2>
+                <div class="view-filter-pills" id="viewFilterPills">
+                    <button type="button" class="view-filter-pill active" data-filter="all" onclick="setViewFilter('all')">All</button>
+                    <button type="button" class="view-filter-pill" data-filter="kasey" onclick="setViewFilter('kasey')">Kasey</button>
+                    <button type="button" class="view-filter-pill" data-filter="charlie" onclick="setViewFilter('charlie')">Charlie</button>
+                </div>
+            </div>
             <div id="todayList" class="schedule-list"></div>
         </div>
 
@@ -4046,8 +4086,41 @@ function escapeHtml(str) {
 /* ============================================================
    CALENDAR RENDERING
    ============================================================ */
+/* ============================================================
+   VIEW FILTER — show all visits / Kasey only / Charlie only
+   ============================================================
+   Per-device preference, persisted in localStorage. Applied at the display
+   layer (getEventsForDate, renderWeeklySnapshot) so that mutations and
+   total-revenue calcs always see the full visit set. */
+let _viewFilter = localStorage.getItem('myreliacare_view_filter') || 'all';
+
+function _filterVisitsByDriver(visits) {
+    if (_viewFilter === 'all') return visits;
+    if (_viewFilter === 'kasey')   return visits.filter(v => v.assignedTo === 'kasey'   || v.assignedTo === 'both');
+    if (_viewFilter === 'charlie') return visits.filter(v => v.assignedTo === 'charlie' || v.assignedTo === 'both');
+    return visits;
+}
+
+function setViewFilter(filter) {
+    if (!['all', 'kasey', 'charlie'].includes(filter)) return;
+    _viewFilter = filter;
+    localStorage.setItem('myreliacare_view_filter', filter);
+    // Update pill active state
+    document.querySelectorAll('#viewFilterPills .view-filter-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.filter === filter);
+    });
+    // Re-render the views that respect the filter
+    refreshAll();
+}
+
+function _initViewFilter() {
+    document.querySelectorAll('#viewFilterPills .view-filter-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.filter === _viewFilter);
+    });
+}
+
 function getEventsForDate(dateStr) {
-    const visits = Store.getVisits().filter(v => v.date === dateStr);
+    const visits = _filterVisitsByDriver(Store.getVisits().filter(v => v.date === dateStr));
     const personal = Store.getPersonalEvents().filter(p => p.date === dateStr);
     const all = [
         ...visits.map(v => ({ ...v, _type: 'visit', _sortTime: v.time || '' })),
@@ -4789,7 +4862,7 @@ function renderWeeklySnapshot() {
     const dates = [];
     for (let i = 0; i < 7; i++) dates.push(ymd(addDays(sundayStart, i)));
 
-    const visits = Store.getVisits();
+    const visits = _filterVisitsByDriver(Store.getVisits());
     const weekVisits = visits.filter(v => dates.includes(v.date));
     const earnedWeekVisits = weekVisits.filter(isVisitEarned);
     const totalCount = weekVisits.length;
@@ -4875,7 +4948,6 @@ let _todoEdit = { dash: null, modal: null };   // editing item id per form sourc
 let _todoFormPrio = { dash: 'med', modal: 'med' };
 let _itemFormType = { dash: 'task', modal: 'task' };       // 'task' | 'reminder' | 'note'
 let _itemFormRecur = { dash: '', modal: '' };              // '' (none) | 'daily' | 'weekly' | etc
-let _itemFormPin = { dash: false, modal: false };          // pin-to-home for notes
 let _itemFormClient = { dash: '', modal: '' };             // optional client tag (client id or '')
 
 function _todoNormalize(t) {
@@ -4972,16 +5044,6 @@ function _todoIsOverdue(t, today) {
 function _todoIsToday(t, today) {
     return !t.done && t.dueDate === today;
 }
-function _todoInTodayView(t, today) {
-    if (t.done) return false;
-    if (t.dueDate && t.dueDate <= today) return true;
-    if (!t.dueDate && t.priority === 'high') return true;
-    return false;
-}
-function _todoInUpcomingView(t, today, weeksOut) {
-    if (t.done || !t.dueDate) return false;
-    return t.dueDate > today && t.dueDate <= weeksOut;
-}
 
 const _PRIO_RANK = { high: 0, med: 1, low: 2 };
 function _todoSortOpen(a, b) {
@@ -5000,20 +5062,6 @@ function _todoSortOpen(a, b) {
 }
 function _todoSortDone(a, b) {
     return (b.doneAt || b.createdAt || '').localeCompare(a.doneAt || a.createdAt || '');
-}
-
-function _todoFilteredFor(tab) {
-    const today = todayYmd();
-    const allOpen = getTodos().filter(t => !t.done);
-    const allDone = getTodos().filter(t => t.done);
-    if (tab === 'today') return allOpen.filter(t => _todoInTodayView(t, today)).sort(_todoSortOpen);
-    if (tab === 'upcoming') {
-        const d = new Date(); d.setDate(d.getDate() + 14);
-        const horizon = d.toISOString().slice(0, 10);
-        return allOpen.filter(t => _todoInUpcomingView(t, today, horizon)).sort(_todoSortOpen);
-    }
-    if (tab === 'done') return allDone.sort(_todoSortDone);
-    return allOpen.sort(_todoSortOpen);  // 'all'
 }
 
 function setTodoFormPriority(source, prio) {
@@ -5055,12 +5103,6 @@ function setItemFormType(source, type) {
 function setItemFormRecur(source, value) {
     _itemFormRecur[source] = value;
 }
-function setItemFormPin(source, pinned) {
-    _itemFormPin[source] = !!pinned;
-    const prefix = source === 'dash' ? 'todoDash' : 'todoModal';
-    const cb = document.getElementById(`${prefix}PinToggle`);
-    if (cb) cb.checked = !!pinned;
-}
 
 function setItemFormClient(source, clientId) {
     _itemFormClient[source] = clientId || '';
@@ -5090,8 +5132,8 @@ function _populateClientPickers() {
 
 function _todoIdsFor(source) {
     return source === 'dash'
-        ? { text: 'todoDashText', date: 'todoDashDate', addBtn: 'todoDashAddBtn', cancelBtn: 'todoDashCancelBtn', recur: 'todoDashRecur', pin: 'todoDashPinToggle', client: 'todoDashClient' }
-        : { text: 'todoModalText', date: 'todoModalDate', addBtn: 'todoModalAddBtn', cancelBtn: 'todoModalCancelBtn', recur: 'todoModalRecur', pin: 'todoModalPinToggle', client: 'todoModalClient' };
+        ? { text: 'todoDashText', date: 'todoDashDate', addBtn: 'todoDashAddBtn', cancelBtn: 'todoDashCancelBtn', recur: 'todoDashRecur', client: 'todoDashClient' }
+        : { text: 'todoModalText', date: 'todoModalDate', addBtn: 'todoModalAddBtn', cancelBtn: 'todoModalCancelBtn', recur: 'todoModalRecur', client: 'todoModalClient' };
 }
 
 function addOrUpdateTodo(source) {
@@ -5133,8 +5175,6 @@ function addOrUpdateTodo(source) {
             baseFields.recurrenceAnchor = dateInput || todayYmd();
             if (!baseFields.surfaceDate) baseFields.surfaceDate = todayYmd();
         }
-    } else if (type === 'note') {
-        baseFields.pinned = !!_itemFormPin[source];
     }
 
     if (editingId) {
@@ -5162,10 +5202,8 @@ function addOrUpdateTodo(source) {
     document.getElementById(ids.text).value = '';
     if (document.getElementById(ids.date)) document.getElementById(ids.date).value = '';
     if (document.getElementById(ids.recur)) document.getElementById(ids.recur).value = '';
-    if (document.getElementById(ids.pin)) document.getElementById(ids.pin).checked = false;
     if (document.getElementById(ids.client)) document.getElementById(ids.client).value = '';
     _itemFormRecur[source] = '';
-    _itemFormPin[source] = false;
     _itemFormClient[source] = '';
     setTodoFormPriority(source, 'med');
     setItemFormType(source, 'task');
@@ -5194,7 +5232,6 @@ function startEditTodo(id, source) {
     }
     if (document.getElementById(ids.pin)) {
         document.getElementById(ids.pin).checked = !!t.pinned;
-        _itemFormPin[source] = !!t.pinned;
     }
     if (document.getElementById(ids.client)) {
         document.getElementById(ids.client).value = t.clientId || '';
@@ -5212,10 +5249,8 @@ function cancelEditTodo(source) {
     document.getElementById(ids.text).value = '';
     if (document.getElementById(ids.date)) document.getElementById(ids.date).value = '';
     if (document.getElementById(ids.recur)) document.getElementById(ids.recur).value = '';
-    if (document.getElementById(ids.pin)) document.getElementById(ids.pin).checked = false;
     if (document.getElementById(ids.client)) document.getElementById(ids.client).value = '';
     _itemFormRecur[source] = '';
-    _itemFormPin[source] = false;
     _itemFormClient[source] = '';
     setTodoFormPriority(source, 'med');
     setItemFormType(source, 'task');
@@ -5307,15 +5342,6 @@ function snoozeReminderToDate(id, ymd) {
 }
 
 /* Toggle pin on a note (controls whether it shows on the home dashboard). */
-function togglePinNote(id) {
-    const todos = getTodos();
-    const t = todos.find(x => x.id === id);
-    if (!t || t.type !== 'note') return;
-    t.pinned = !t.pinned;
-    const ok = _todoSave(todos);
-    if (ok === false) { showToast('Save failed', 'error'); return; }
-    _renderAllTodoUI();
-}
 
 /* Archive a note (moves to Done tab) or unarchive any item. */
 function archiveItem(id) {
@@ -5690,11 +5716,150 @@ function relativeTime(iso) {
 /* ============================================================
    REFRESH ALL
    ============================================================ */
+/* ============================================================
+   MILEAGE PROMPT BANNER
+   ============================================================
+   Surfaces on the homepage when there are completed visits in the last 7 days
+   that don't have mileage logged. Shows up to 3 most-recent pending days inline
+   with Google Maps buttons + miles inputs + save. Dismissable for the day. */
+function _renderMileagePrompt() {
+    const banner = document.getElementById('mileagePromptBanner');
+    if (!banner) return;
+
+    const today = todayYmd();
+    // Dismissed for today?
+    if (localStorage.getItem('myreliacare_mileage_prompt_dismissed') === today) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    // Look back 7 days for completed visits
+    const sevenAgo = _addDaysYmd(today, -7);
+    const completedVisits = Store.getVisits().filter(v =>
+        v.status === 'completed' &&
+        v.date >= sevenAgo &&
+        v.date <= today
+    );
+    if (completedVisits.length === 0) { banner.style.display = 'none'; return; }
+
+    // Map existing mileage by date|driver so we know what's already logged
+    const existingMileage = (Store.getMileage && Store.getMileage()) || [];
+    const loggedByDateDriver = new Set();
+    existingMileage.forEach(r => loggedByDateDriver.add(`${r.date}|${r.driver}`));
+
+    // For each date with completed visits, work out which drivers need logging
+    const dayMap = {};  // date -> { kVisits: [], cVisits: [] }
+    completedVisits.forEach(v => {
+        if (!dayMap[v.date]) dayMap[v.date] = { kVisits: [], cVisits: [] };
+        if (_visitCountsForDriver(v, 'kasey'))   dayMap[v.date].kVisits.push(v);
+        if (_visitCountsForDriver(v, 'charlie')) dayMap[v.date].cVisits.push(v);
+    });
+
+    const pendingDays = Object.keys(dayMap)
+        .map(date => {
+            const d = dayMap[date];
+            const kPending = d.kVisits.length > 0 && !loggedByDateDriver.has(`${date}|kasey`);
+            const cPending = d.cVisits.length > 0 && !loggedByDateDriver.has(`${date}|charlie`);
+            return { date, kPending, cPending, kVisits: d.kVisits, cVisits: d.cVisits };
+        })
+        .filter(d => d.kPending || d.cPending)
+        .sort((a, b) => b.date.localeCompare(a.date));
+
+    if (pendingDays.length === 0) { banner.style.display = 'none'; return; }
+
+    // Show up to 3 most-recent pending days inline. Anything beyond that, link to backfill.
+    const shown = pendingDays.slice(0, 3);
+    const hidden = pendingDays.length - shown.length;
+
+    const dayHtml = shown.map(d => {
+        const kMapsUrl = d.kVisits.length > 0 ? _bfBuildDayMapsUrl(d.date, d.kVisits) : null;
+        const cMapsUrl = d.cVisits.length > 0 ? _bfBuildDayMapsUrl(d.date, d.cVisits) : null;
+        const kBtn = (d.kPending && kMapsUrl)
+            ? `<a href="${kMapsUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 8px; text-decoration: none; font-size: 0.78em;">Kasey route →</a>`
+            : '';
+        const cBtn = (d.cPending && cMapsUrl)
+            ? `<a href="${cMapsUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 8px; text-decoration: none; font-size: 0.78em;">Charlie route →</a>`
+            : '';
+        const kInput = d.kPending
+            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Kasey</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="kasey" placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
+            : '';
+        const cInput = d.cPending
+            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Charlie</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="charlie" placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
+            : '';
+        const totalVisits = (d.kPending ? d.kVisits.length : 0) + (d.cPending ? d.cVisits.length : 0);
+        return `
+            <div class="mpb-day">
+                <div>
+                    <div class="mpb-day-label">${formatDate(d.date)}</div>
+                    <div class="mpb-day-sub">${totalVisits} visit${totalVisits === 1 ? '' : 's'} needing mileage · ${kBtn} ${cBtn}</div>
+                </div>
+                <div>${kInput}${cInput}</div>
+            </div>
+        `;
+    }).join('');
+
+    banner.innerHTML = `
+        <div class="mpb-header">
+            <div class="mpb-title">Mileage to log · ${pendingDays.length} day${pendingDays.length === 1 ? '' : 's'} pending</div>
+            <button class="mpb-dismiss" onclick="_dismissMileagePrompt()">Hide for today</button>
+        </div>
+        ${dayHtml}
+        <div class="mpb-actions">
+            <button class="btn btn-primary btn-sm" onclick="_saveMileagePromptInputs()">Save miles</button>
+            <button class="btn btn-ghost btn-sm" onclick="openBackfillMilesModal()">Open full backfill</button>
+            ${hidden > 0 ? `<span class="mpb-more-link">+ ${hidden} more day${hidden === 1 ? '' : 's'} in full backfill</span>` : ''}
+        </div>
+    `;
+    banner.style.display = 'block';
+}
+
+function _dismissMileagePrompt() {
+    localStorage.setItem('myreliacare_mileage_prompt_dismissed', todayYmd());
+    const banner = document.getElementById('mileagePromptBanner');
+    if (banner) banner.style.display = 'none';
+}
+
+function _saveMileagePromptInputs() {
+    const inputs = document.querySelectorAll('#mileagePromptBanner input[data-mpb-date]');
+    if (inputs.length === 0) { showToast('Nothing to save', 'error'); return; }
+    const toSave = [];
+    inputs.forEach(inp => {
+        const raw = inp.value;
+        if (raw === '' || raw == null) return;
+        const miles = parseFloat(raw);
+        if (isNaN(miles) || miles <= 0) return;
+        toSave.push({ date: inp.dataset.mpbDate, driver: inp.dataset.mpbDriver, miles });
+    });
+    if (toSave.length === 0) { showToast('Enter miles for at least one entry', 'error'); return; }
+
+    const existing = (Store.getMileage && Store.getMileage()) || [];
+    // Replace any matching date|driver record; append new ones
+    const byKey = {};
+    existing.forEach(r => { byKey[`${r.date}|${r.driver}`] = r; });
+    toSave.forEach(s => {
+        byKey[`${s.date}|${s.driver}`] = {
+            id: byKey[`${s.date}|${s.driver}`]?.id || ('mile_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)),
+            date: s.date,
+            driver: s.driver,
+            miles: s.miles,
+        };
+    });
+    const merged = Object.values(byKey);
+    const ok = Store.saveMileage(merged);
+    if (ok !== false) {
+        showToast(`Saved ${toSave.length} mileage entr${toSave.length === 1 ? 'y' : 'ies'}`);
+        refreshAll();
+    } else {
+        showToast('Save failed', 'error');
+    }
+}
+
 function refreshAll() {
     renderCalendar();
     renderToday();
     renderWeeklySnapshot();
     _renderAllTodoUI();
+    _renderMileagePrompt();
 }
 
 /* ============================================================
@@ -5706,6 +5871,7 @@ function initApp() {
     document.body.classList.remove('modal-open', 'menu-open');
     renderLogo();
     refreshAll();
+    _initViewFilter();
     // Set both Inbox forms to default 'task' type so conditional fields hide correctly
     try { setItemFormType('dash', 'task'); } catch {}
     try { setItemFormType('modal', 'task'); } catch {}
@@ -5735,6 +5901,18 @@ function initApp() {
             // Clean URL so refresh doesn't reopen
             history.replaceState({}, '', location.pathname);
         }, 100);
+    }
+
+    // Handle ?openVisit=visitId — opens the visit detail modal (from global search)
+    const openVisitId = params.get('openVisit');
+    if (openVisitId) {
+        setTimeout(() => {
+            const v = Store.getVisits().find(x => x.id === openVisitId);
+            if (v && typeof openEventDetail === 'function') {
+                openEventDetail(openVisitId, 'visit');
+            }
+            history.replaceState({}, '', location.pathname);
+        }, 150);
     }
 }
 
@@ -6410,7 +6588,6 @@ function bfUndoVisit(visitId) {
    ------------------------------------------------------------------ */
 const BF_VISIT_DURATION = { 'meet-greet': 15, '30min': 30, '60min': 60 };
 let _bfMileageEdits = {};       // { 'date|driver': miles } — manual overrides
-let _bfMileageOpenBd = {};      // { 'date|driver': true } — breakdown panels open
 
 function _bfTimeToMin(t) {
     if (!t) return 0;
@@ -6426,155 +6603,6 @@ function _visitCountsForDriver(visit, driver) {
     const a = visit.assignedTo || 'both';
     if (driver === 'kasey') return a === 'kasey' || a === 'both';
     return a === 'charlie';
-}
-
-function _bfCalcDayDriverMiles(visits, clientsById) {
-    // visits: array for ONE day, ONE driver, already filtered
-    // Returns: { miles: number, breakdown: [{label, miles}], missing: [clientIds] }
-    if (!visits || visits.length === 0) return { miles: 0, breakdown: [], missing: [] };
-    const sorted = visits.slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-    const missing = new Set();
-
-    // Get coords for a client. Prefer client.coords (captured via geolocation or saved
-    // by user), fall back to coordsCache (from geocoder runs).
-    const coordsFor = (cid) => {
-        const c = clientsById[cid];
-        if (!c) return null;
-        return c.coords || c.coordsCache || null;
-    };
-
-    // Pull homeCoords from settings so we can compute Home→Client legs precisely.
-    let homeCoords = null;
-    try {
-        const settings = Store.getSettings ? Store.getSettings() : [];
-        const homeRec = (settings || []).find(s => s && s.id === 'global');
-        homeCoords = homeRec?.homeCoords || null;
-    } catch (e) {}
-
-    // Haversine straight-line miles between two {lat,lng} points × road factor.
-    const hav = (a, b) => {
-        if (!a || !b) return null;
-        const toRad = (d) => d * Math.PI / 180;
-        const R = 3958.7613;
-        const dLat = toRad(b.lat - a.lat);
-        const dLng = toRad(b.lng - a.lng);
-        const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
-        const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
-        return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 1.3 * 10) / 10;
-    };
-
-    // For a Home → Client leg:
-    // PRIORITY: user's manual override (milesFromHomeOverride) ALWAYS wins, because
-    // it's what the human said is true. Then coords-based haversine. Then legacy
-    // milesFromHome (which may itself be auto-computed from coords).
-    const homeToClient = (cid) => {
-        const c = clientsById[cid];
-        if (!c) { missing.add(cid); return null; }
-        if (c.milesFromHomeOverride != null && c.milesFromHomeOverride !== '') {
-            const o = parseFloat(c.milesFromHomeOverride);
-            if (!isNaN(o)) return o;
-        }
-        const cc = coordsFor(cid);
-        if (homeCoords && cc) return hav(homeCoords, cc);
-        if (c.milesFromHome != null && c.milesFromHome !== '') return parseFloat(c.milesFromHome) || 0;
-        missing.add(cid);
-        return null;
-    };
-
-    // For a Client → Client leg, prefer haversine between captured coords.
-    // BUT: if either client has a manual override, their coords are explicitly
-    // marked untrusted by the user. Skip haversine in that case and fall back
-    // to the override-aware heuristic.
-    // Fallback estimate: sqrt(am² + bm²). This is the expected straight-line
-    // distance between two points at distances am and bm from home averaged over
-    // all possible angles between them. Way more accurate than (am+bm)/2, which
-    // is geometrically wrong (averages instead of combines). The 1.3 road-factor
-    // already baked into milesFromHome cancels out — see derivation in notes.
-    const clientToClient = (a, b) => {
-        const ca = clientsById[a], cb = clientsById[b];
-        const aOverridden = ca && ca.milesFromHomeOverride != null && ca.milesFromHomeOverride !== '';
-        const bOverridden = cb && cb.milesFromHomeOverride != null && cb.milesFromHomeOverride !== '';
-        const ac = !aOverridden ? coordsFor(a) : null;
-        const bc = !bOverridden ? coordsFor(b) : null;
-        if (ac && bc) return hav(ac, bc);
-        const milesOf = (x) => {
-            if (!x) return null;
-            if (x.milesFromHomeOverride != null && x.milesFromHomeOverride !== '') {
-                const o = parseFloat(x.milesFromHomeOverride);
-                if (!isNaN(o)) return o;
-            }
-            return x.milesFromHome != null ? parseFloat(x.milesFromHome) : null;
-        };
-        const am = milesOf(ca);
-        const bm = milesOf(cb);
-        if (am != null && bm != null) {
-            // sqrt(am² + bm²) — the expected straight-line distance between two
-            // points at distances am, bm from home, averaged over all possible angles.
-            // The 1.3 road factor that's already in am and bm cancels through algebra,
-            // so the result is the road-distance estimate directly. Better than
-            // (am+bm)/2 in every case except clients on a perfect line through home.
-            return Math.round(Math.sqrt(am*am + bm*bm) * 10) / 10;
-        }
-        if (!ac && !aOverridden) missing.add(a);
-        if (!bc && !bOverridden) missing.add(b);
-        return null;
-    };
-
-    let total = 0;
-    const breakdown = [];
-    let prevClient = null;
-    let prevEndMin = null;
-    for (const v of sorted) {
-        const startMin = _bfTimeToMin(v.time);
-        const dur = BF_VISIT_DURATION[v.visitType] || 30;
-        const cName = (v.clientName || 'Client').slice(0, 18);
-
-        if (prevClient === null) {
-            // First visit of the day — Home → this client
-            const m = homeToClient(v.clientId);
-            if (m != null) { total += m; breakdown.push({ label: `Home → ${cName}`, miles: m }); }
-            else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
-        } else {
-            const gap = startMin - (prevEndMin || startMin);
-            if (gap >= 60) {
-                // Long gap: assume drove home and back out
-                const back = homeToClient(prevClient);
-                if (back != null) { total += back; breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: back }); }
-                else { breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: null }); }
-                const out = homeToClient(v.clientId);
-                if (out != null) { total += out; breakdown.push({ label: `Home → ${cName}`, miles: out }); }
-                else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
-            } else if (v.clientId === prevClient) {
-                // Same client, short gap — no drive
-                breakdown.push({ label: `at ${cName} (${gap}min · no drive)`, miles: 0 });
-            } else {
-                // Direct hop client → client
-                const m = clientToClient(prevClient, v.clientId);
-                // A leg is exact only when BOTH clients have trusted coords —
-                // an override marks coords as untrusted, so it counts as approx too.
-                const prevC = clientsById[prevClient], curC = clientsById[v.clientId];
-                const prevOverridden = prevC && prevC.milesFromHomeOverride != null && prevC.milesFromHomeOverride !== '';
-                const curOverridden = curC && curC.milesFromHomeOverride != null && curC.milesFromHomeOverride !== '';
-                const haveBothCoords = !prevOverridden && !curOverridden && coordsFor(prevClient) && coordsFor(v.clientId);
-                const tag = haveBothCoords ? '' : ' · approx';
-                if (m != null) {
-                    total += m;
-                    breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: m });
-                } else {
-                    breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: null });
-                }
-            }
-        }
-        prevClient = v.clientId;
-        prevEndMin = startMin + dur;
-    }
-    // End of day — back home
-    if (prevClient) {
-        const m = homeToClient(prevClient);
-        if (m != null) { total += m; breakdown.push({ label: `last → Home`, miles: m }); }
-        else { breakdown.push({ label: `last → Home`, miles: null }); }
-    }
-    return { miles: Math.round(total * 10) / 10, breakdown, missing: [...missing] };
 }
 
 /* Build a Google Maps Directions URL for a given day, with:
@@ -6767,29 +6795,10 @@ function bfMileageEdit(date, driver, value) {    const key = `${date}|${driver}`
     _bfUpdateSaveBtnLabel();
 }
 
-function bfMileageToggleBd(key) {
-    _bfMileageOpenBd[key] = !_bfMileageOpenBd[key];
-    _bfRenderMileage();
-}
-
 /* ============================================================
    HOME ADDRESS + GEOCODING — Backfill Workspace mileage panel
    (Mirrors logic in invoices.html for the Finances backfill modal)
    ============================================================ */
-
-// ============================================================
-//   GEOCODIO INTEGRATION (purpose-built US geocoder, 95%+ accuracy)
-//   Free tier: 2500 lookups/day. API key from https://www.geocod.io
-//   When key is set: PRIMARY geocoder, supports batch (one call per N clients).
-//   When key not set: falls back to free chain (Census → Photon → Nominatim).
-// ============================================================
-function _bfGetGeocodioKey() {
-    const s = _bfGetHomeSetting();
-    return (s && s.geocodioKey) || null;
-}
-function _bfSaveGeocodioKey(key) {
-    return _bfSaveHomeSetting({ geocodioKey: (key || '').trim() || null });
-}
 
 // Single-address Geocodio lookup. Returns {lat,lng} or null.
 async function _bfGeocodioSingle(addressStr, apiKey) {
@@ -6814,35 +6823,6 @@ async function _bfGeocodioSingle(addressStr, apiKey) {
     }
 }
 
-// Batch Geocodio — sends ALL addresses in one POST. Massive speedup vs sequential.
-// Returns an array of {lat,lng,matched,accuracy} | null in the same order as input.
-async function _bfGeocodioBatch(addresses, apiKey) {
-    const url = `https://api.geocod.io/v1.12/geocode?api_key=${encodeURIComponent(apiKey)}&limit=1`;
-    console.log(`[geocodio] BATCH ${addresses.length} addresses`);
-    try {
-        const r = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(addresses)
-        });
-        console.log(`[geocodio] batch HTTP ${r.status}`);
-        if (r.status === 403) { showToast('Geocodio API key rejected — check settings', 'error'); return addresses.map(() => null); }
-        if (r.status === 422) { showToast('Geocodio quota exceeded for today (2500/day free)', 'error'); return addresses.map(() => null); }
-        if (!r.ok) return addresses.map(() => null);
-        const data = await r.json();
-        return (data?.results || []).map(item => {
-            const top = item?.response?.results?.[0];
-            if (!top) return null;
-            const lat = parseFloat(top.location?.lat);
-            const lng = parseFloat(top.location?.lng);
-            if (isNaN(lat) || isNaN(lng)) return null;
-            return { lat, lng, matched: top.formatted_address || null, accuracy: typeof top.accuracy === 'number' ? top.accuracy : null };
-        });
-    } catch (e) {
-        console.warn('[geocodio] batch error:', e.message);
-        return addresses.map(() => null);
-    }
-}
 
 function _bfGetHomeSetting() {
     const arr = Store.getSettings() || [];
@@ -6854,17 +6834,6 @@ function _bfSaveHomeSetting(patch) {
     if (!g) { g = { id: 'global' }; arr.push(g); }
     Object.assign(g, patch);
     return Store.saveSettings(arr);
-}
-
-function _bfHaversineMiles(a, b) {
-    const R = 3959;
-    const toRad = d => d * Math.PI / 180;
-    const dLat = toRad(b.lat - a.lat);
-    const dLon = toRad(b.lng - a.lng);
-    const lat1 = toRad(a.lat);
-    const lat2 = toRad(b.lat);
-    const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-    return 2 * R * Math.asin(Math.sqrt(x));
 }
 
 // Parse a US address string like "12895 Frogtown Connector Rd, Walton KY 41094"
@@ -6941,84 +6910,6 @@ async function _bfPhotonGeocode(addressStr) {
     }
 }
 
-// Geocode strategy: Geocodio (if API key) → Census → Photon → Nominatim variations.
-async function _bfGeocodeAddress(addressStr) {
-    console.log(`[geocode] === starting lookup: "${addressStr}" ===`);
-
-    // PRIMARY: Geocodio if user has signed up and added a key
-    const apiKey = _bfGetGeocodioKey();
-    if (apiKey) {
-        const g = await _bfGeocodioSingle(addressStr, apiKey);
-        if (g) return g;
-        // Fall through to free options if Geocodio missed (rare for US addresses)
-    }
-
-    // FREE FALLBACKS:
-    // Strategy 0 (PRIMARY when no Geocodio key): US Census Bureau — best for US rural
-    const census = await _bfCensusGeocode(addressStr);
-    if (census) return census;
-
-    // Strategy 0.5: Photon — OSM with better fuzzy matching
-    const photon = await _bfPhotonGeocode(addressStr);
-    if (photon) return photon;
-
-    // Nominatim fallback chain (rate-limited to 1 req/sec)
-    const attempts = [];
-    attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`);
-
-    const parts = _bfParseUSAddress(addressStr);
-    if (parts.street && (parts.city || parts.zip)) {
-        const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'us' });
-        if (parts.street) params.set('street', parts.street);
-        if (parts.city)   params.set('city', parts.city);
-        if (parts.state)  params.set('state', parts.state);
-        if (parts.zip)    params.set('postalcode', parts.zip);
-        attempts.push('https://nominatim.openstreetmap.org/search?' + params.toString());
-    }
-
-    const simplified = addressStr.replace(/\b(rd|dr|st|ln|ct|ave|blvd|hwy|way|trl|pl)\b\.?/gi, '').replace(/\s+/g, ' ').trim();
-    if (simplified !== addressStr) {
-        attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(simplified)}&format=json&limit=1&countrycodes=us`);
-    }
-
-    const noNumber = addressStr.replace(/^\d+\s+/, '').trim();
-    if (noNumber !== addressStr) {
-        attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(noNumber)}&format=json&limit=1&countrycodes=us`);
-    }
-
-    for (let i = 0; i < attempts.length; i++) {
-        const url = attempts[i];
-        try {
-            if (i > 0) await _bfSleep(1100);
-            console.log(`[nominatim] attempt ${i+1}: ${url}`);
-            const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-            console.log(`[nominatim] HTTP ${r.status}`);
-            if (!r.ok) continue;
-            const data = await r.json();
-            if (Array.isArray(data) && data.length > 0) {
-                const lat = parseFloat(data[0].lat);
-                const lng = parseFloat(data[0].lon);
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    console.log(`[nominatim] HIT on attempt ${i+1}: ${data[0].display_name}`);
-                    return { lat, lng };
-                }
-            }
-            console.log(`[nominatim] no result on attempt ${i+1}`);
-        } catch (e) {
-            console.error(`[nominatim] error on attempt ${i+1}:`, e);
-        }
-    }
-    console.log(`[geocode] === all strategies exhausted for "${addressStr}" ===`);
-    return null;
-}
-
-function _bfClientAddressStr(c) {
-    const parts = [c.address, c.city, c.state, c.zip].map(x => (x || '').trim()).filter(Boolean);
-    if (parts.length < 2) return null;
-    return parts.join(', ');
-}
-
-function _bfSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function _bfRenderSetupPanel() {
     const el = document.getElementById('bfMileageWarning');
@@ -7051,83 +6942,9 @@ function _bfRenderSetupPanel() {
     `;
 }
 
-// Modal for entering / changing the Geocodio API key
-function _bfShowGeocodioKeyModal() {
-    console.log('[geocodio] modal opener invoked');
-    const existing = document.getElementById('bfGeocodioKeyModal');
-    if (existing) existing.remove();
-    const currentKey = _bfGetGeocodioKey() || '';
-    const el = document.createElement('div');
-    el.id = 'bfGeocodioKeyModal';
-    el.className = 'modal-overlay active';
-    el.style.zIndex = '10000';  // above the backfill workspace (9500), which would otherwise cover the modal
-    el.innerHTML = `
-        <div class="modal modal-sm">
-            <div class="modal-header">
-                <h2>Geocodio API Key</h2>
-                <button class="modal-close" onclick="document.getElementById('bfGeocodioKeyModal').remove()">×</button>
-            </div>
-            <div class="modal-body">
-                <div style="color: var(--text-dim); font-size: 0.92em; line-height: 1.5; margin-bottom: 12px;">
-                    Geocodio is purpose-built for US addresses. Free tier: 2,500 lookups/day. No credit card needed.
-                </div>
-                <ol style="color: var(--text-dim); font-size: 0.88em; padding-left: 20px; margin: 0 0 14px 0; line-height: 1.55;">
-                    <li>Go to <a href="https://www.geocod.io/" target="_blank" rel="noopener" style="color: var(--accent);">geocod.io</a> and sign up</li>
-                    <li>From the dashboard, copy your API key</li>
-                    <li>Paste it below</li>
-                </ol>
-                <input type="text" id="bfGeocodioKeyInput" value="${escapeHtml(currentKey)}" placeholder="Paste API key here"
-                    style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 0.95em; box-sizing: border-box;">
-                <div id="bfGeocodioKeyError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
-            </div>
-            <div class="modal-footer">
-                ${currentKey ? `<button class="btn btn-ghost" onclick="_bfRemoveGeocodioKey()" style="color: var(--danger);">Remove</button>` : ''}
-                <button class="btn btn-ghost" onclick="document.getElementById('bfGeocodioKeyModal').remove()">Cancel</button>
-                <button class="btn btn-primary" onclick="_bfSaveGeocodioKeyFromModal()">Save</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(el);
-    setTimeout(() => {
-        const inp = document.getElementById('bfGeocodioKeyInput');
-        if (inp) inp.focus();
-    }, 50);
-}
-
-function _bfSaveGeocodioKeyFromModal() {
-    const inp = document.getElementById('bfGeocodioKeyInput');
-    const err = document.getElementById('bfGeocodioKeyError');
-    if (!inp) return;
-    const key = (inp.value || '').trim();
-    if (!key) {
-        if (err) err.textContent = 'Paste your API key.';
-        return;
-    }
-    // Geocodio keys are typically 40+ chars alphanumeric — sanity check length
-    if (key.length < 20) {
-        if (err) err.textContent = "Doesn't look like a valid key — too short.";
-        return;
-    }
-    _bfSaveGeocodioKey(key);
-    document.getElementById('bfGeocodioKeyModal').remove();
-    showToast('Geocodio key saved');
-    _bfRenderMileage();
-}
-
-function _bfRemoveGeocodioKey() {
-    if (!confirm('Remove the Geocodio key? Mileage lookups will use the slower free chain.')) return;
-    _bfSaveGeocodioKey('');
-    document.getElementById('bfGeocodioKeyModal').remove();
-    showToast('Geocodio key removed');
-    _bfRenderMileage();
-}
 
 // Belt-and-suspenders: bind to window so onclick attributes from dynamically-injected
 // HTML always resolve, regardless of scope quirks.
-window._bfShowGeocodioKeyModal = _bfShowGeocodioKeyModal;
-window._bfSaveGeocodioKeyFromModal = _bfSaveGeocodioKeyFromModal;
-window._bfRemoveGeocodioKey = _bfRemoveGeocodioKey;
-
 /* ============================================================
    COORDS VERIFICATION MODAL
    Lists every client with stored coords, computes implied distance
@@ -7138,170 +6955,6 @@ window._bfRemoveGeocodioKey = _bfRemoveGeocodioKey;
      - View on map (Google Maps with stored lat,lng)
      - Delete coords (force fallback to override / milesFromHome)
    ============================================================ */
-function _bfShowVerifyCoordsModal() {
-    const existing = document.getElementById('bfVerifyCoordsModal');
-    if (existing) existing.remove();
-
-    const el = document.createElement('div');
-    el.id = 'bfVerifyCoordsModal';
-    el.className = 'modal-overlay active';
-    el.style.zIndex = '10000';
-    el.innerHTML = `
-        <div class="modal" style="max-width: 900px; width: 96vw; max-height: 90vh; display: flex; flex-direction: column;">
-            <div class="modal-header">
-                <h2>Verify Coordinates</h2>
-                <button class="modal-close" onclick="document.getElementById('bfVerifyCoordsModal').remove()">×</button>
-            </div>
-            <div class="modal-body" id="bfVerifyBody" style="overflow-y: auto; padding: 16px 20px;">
-                <div style="color: var(--text-dim); font-size: 0.9em; line-height: 1.5; margin-bottom: 12px;">
-                    Anything you type in "Override mi" wins over geocoded coordinates everywhere — backfill mileage, finances modal, all of it. Rows flagged red have likely-wrong coords (huge distance from home or low geocodio accuracy).
-                </div>
-                <div id="bfVerifyHomeBlock"></div>
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 14px 0 10px 0;">
-                    <input type="text" id="bfVerifySearch" placeholder="Search clients…" oninput="_bfRenderVerifyList()" style="flex: 1; min-width: 200px; padding: 7px 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 0.9em;">
-                    <label style="display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 0.88em; cursor: pointer;">
-                        <input type="checkbox" id="bfVerifyFlaggedOnly" onchange="_bfRenderVerifyList()"> Flagged only
-                    </label>
-                </div>
-                <div id="bfVerifyList"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="document.getElementById('bfVerifyCoordsModal').remove()">Close</button>
-                <button class="btn btn-primary" onclick="_bfSaveVerifyOverrides()" id="bfSaveOverridesBtn">Save overrides</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(el);
-    _bfRenderVerifyList();
-}
-
-// In-memory edits made in the modal before "Save overrides" is clicked
-let _bfVerifyEdits = {}; // { clientId: { override: number|'' } }
-
-function _bfRenderVerifyList() {
-    const homeBlockEl = document.getElementById('bfVerifyHomeBlock');
-    const listEl = document.getElementById('bfVerifyList');
-    if (!listEl) return;
-
-    const home = _bfGetHomeSetting();
-    const homeAddress = (home && home.homeAddress) || '(not set)';
-    const homeCoords = (home && home.homeCoords) || null;
-
-    if (homeBlockEl) {
-        const mapLink = homeCoords
-            ? `<a href="https://www.google.com/maps?q=${homeCoords.lat},${homeCoords.lng}" target="_blank" rel="noopener" style="color: var(--accent); font-size: 0.85em; text-decoration: underline; margin-left: 8px;">view on map</a>`
-            : '';
-        homeBlockEl.innerHTML = `
-            <div style="padding: 12px 14px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border);">
-                <div style="font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 0.92em;">Home</div>
-                <div style="color: var(--text-dim); font-size: 0.88em;">${escapeHtml(homeAddress)}${mapLink}</div>
-                ${homeCoords ? `<div style="color: var(--text-faint); font-size: 0.78em; margin-top: 4px; font-family: monospace;">${homeCoords.lat.toFixed(5)}, ${homeCoords.lng.toFixed(5)} ← if this isn't your house on the map, click "Edit" on the mileage card and re-save your address.</div>` : `<div style="color: var(--danger); font-size: 0.82em; margin-top: 4px;">No home coords saved. Click "Edit" on the mileage card and re-save your home address.</div>`}
-            </div>
-        `;
-    }
-
-    const search = (document.getElementById('bfVerifySearch')?.value || '').toLowerCase().trim();
-    const flaggedOnly = !!document.getElementById('bfVerifyFlaggedOnly')?.checked;
-
-    const clients = Store.getClients() || [];
-    const withCoords = clients.filter(c => c && (c.coords || c.coordsCache));
-
-    // Compute implied distance + flag status for each
-    const hav = (a, b) => {
-        if (!a || !b) return null;
-        const toRad = (d) => d * Math.PI / 180;
-        const R = 3958.7613;
-        const dLat = toRad(b.lat - a.lat);
-        const dLng = toRad(b.lng - a.lng);
-        const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
-        const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
-        return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 1.3 * 10) / 10;
-    };
-
-    const enriched = withCoords.map(c => {
-        const cc = c.coords || c.coordsCache;
-        const dist = (homeCoords && cc) ? hav(homeCoords, cc) : null;
-        const acc = (typeof c.coordsAccuracy === 'number') ? c.coordsAccuracy : null;
-        const matched = c.coordsMatched || null;
-        // Flag rules: very far OR low accuracy OR matched address looks unrelated
-        const farFlag = dist != null && dist > 30;
-        const accFlag = acc != null && acc < 0.8;
-        const savedAddr = _bfClientAddressStr(c) || '';
-        let mismatchFlag = false;
-        if (matched && savedAddr) {
-            // Check if the saved city/zip appears at all in the matched string
-            const tokens = savedAddr.toLowerCase().split(/[,\s]+/).filter(t => t.length >= 3);
-            const matchedLower = matched.toLowerCase();
-            const overlap = tokens.filter(t => matchedLower.includes(t)).length;
-            if (tokens.length > 0 && (overlap / tokens.length) < 0.4) mismatchFlag = true;
-        }
-        return { c, cc, dist, acc, matched, savedAddr, flag: farFlag || accFlag || mismatchFlag, farFlag, accFlag, mismatchFlag };
-    });
-
-    // Sort: flagged first, then by distance desc
-    enriched.sort((a, b) => {
-        if (a.flag !== b.flag) return a.flag ? -1 : 1;
-        const da = a.dist ?? -1, db = b.dist ?? -1;
-        return db - da;
-    });
-
-    const filtered = enriched.filter(r => {
-        if (flaggedOnly && !r.flag) return false;
-        if (search) {
-            const hay = `${r.c.name || ''} ${r.savedAddr} ${r.matched || ''}`.toLowerCase();
-            if (!hay.includes(search)) return false;
-        }
-        return true;
-    });
-
-    if (filtered.length === 0) {
-        listEl.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-faint); font-style: italic;">${withCoords.length === 0 ? 'No clients with stored coords yet. Run Auto-compute first.' : (flaggedOnly ? 'No flagged clients. Everything looks plausible.' : 'No matches for that search.')}</div>`;
-        return;
-    }
-
-    listEl.innerHTML = filtered.map(r => {
-        const c = r.c;
-        const cc = r.cc;
-        const effective = _bfEffectiveMilesFromHome(c, homeCoords);
-        const overrideVal = (_bfVerifyEdits[c.id] !== undefined)
-            ? _bfVerifyEdits[c.id]
-            : (c.milesFromHomeOverride != null ? c.milesFromHomeOverride : '');
-        const flagBadge = r.flag
-            ? `<span style="background: rgba(220, 80, 80, 0.15); color: var(--danger, #d44); border: 1px solid rgba(220, 80, 80, 0.4); padding: 1px 8px; border-radius: 12px; font-size: 0.7em; font-weight: 600; letter-spacing: 0.5px;">CHECK</span>`
-            : `<span style="background: rgba(108, 153, 102, 0.15); color: var(--success, #6c9); border: 1px solid rgba(108, 153, 102, 0.4); padding: 1px 8px; border-radius: 12px; font-size: 0.7em;">OK</span>`;
-        const accStr = r.acc != null ? `accuracy ${r.acc.toFixed(2)}` : 'accuracy: —';
-        const sourceStr = c.coordsSource ? `· ${c.coordsSource}` : '';
-        const flagReasons = [];
-        if (r.farFlag) flagReasons.push(`distance ${r.dist}mi (suspiciously far)`);
-        if (r.accFlag) flagReasons.push(`low geocodio accuracy`);
-        if (r.mismatchFlag) flagReasons.push(`matched address doesn't share city/zip with saved`);
-        const reasonLine = flagReasons.length ? `<div style="color: var(--danger, #d44); font-size: 0.78em; margin-top: 4px;">↳ ${flagReasons.join(' · ')}</div>` : '';
-        return `
-            <div style="border: 1px solid ${r.flag ? 'rgba(220, 80, 80, 0.3)' : 'var(--border)'}; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; background: var(--bg);">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;">
-                    <div style="font-weight: 600; color: var(--text); font-size: 0.98em;">${escapeHtml(c.name || 'Unnamed')}</div>
-                    ${flagBadge}
-                </div>
-                <div style="color: var(--text-dim); font-size: 0.85em; line-height: 1.5;">
-                    <div><span style="color: var(--text-faint);">Saved:</span> ${escapeHtml(r.savedAddr || '(no address)')}</div>
-                    <div><span style="color: var(--text-faint);">Matched:</span> ${r.matched ? escapeHtml(r.matched) : '<em style="color: var(--text-faint);">— (legacy or free-tier geocode)</em>'}</div>
-                    <div><span style="color: var(--text-faint);">Distance:</span> ${r.dist != null ? `<strong>${r.dist} mi</strong> straight-line ×1.3` : '<em>no home coords</em>'} · ${accStr} ${sourceStr}</div>
-                    <div><span style="color: var(--text-faint);">Currently using:</span> <strong>${effective != null ? `${effective} mi` : '—'}</strong> per leg ${c.milesFromHomeOverride != null && c.milesFromHomeOverride !== '' ? '<span style="color: var(--accent); font-size: 0.85em;">(manual override active)</span>' : ''}</div>
-                    ${reasonLine}
-                </div>
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <label style="color: var(--text-faint); font-size: 0.82em;">Override mi:</label>
-                        <input type="number" min="0" step="0.1" value="${overrideVal !== '' ? escapeHtml(String(overrideVal)) : ''}" placeholder="—" data-cid="${c.id}" oninput="_bfVerifyEditInput(this)" style="width: 80px; padding: 5px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.9em; text-align: right;">
-                    </div>
-                    ${cc ? `<a href="https://www.google.com/maps?q=${cc.lat},${cc.lng}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 10px; text-decoration: none; font-size: 0.82em;">Map</a>` : ''}
-                    <button class="btn btn-ghost btn-sm" onclick="_bfRegeocodeOne('${c.id}')" style="padding: 3px 10px; font-size: 0.82em;">Re-geocode</button>
-                    <button class="btn btn-ghost btn-sm" onclick="_bfDeleteCoords('${c.id}')" style="padding: 3px 10px; font-size: 0.82em; color: var(--danger);">Delete coords</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
 
 // Compute the value the mileage calc will ACTUALLY use for Home→Client for this client
 function _bfEffectiveMilesFromHome(c, homeCoords) {
@@ -7327,109 +6980,7 @@ function _bfEffectiveMilesFromHome(c, homeCoords) {
     return null;
 }
 
-function _bfVerifyEditInput(input) {
-    const cid = input.getAttribute('data-cid');
-    if (!cid) return;
-    const v = input.value.trim();
-    _bfVerifyEdits[cid] = v === '' ? '' : v;
-}
-
-function _bfSaveVerifyOverrides() {
-    const editedIds = Object.keys(_bfVerifyEdits);
-    if (editedIds.length === 0) {
-        showToast('No overrides to save');
-        document.getElementById('bfVerifyCoordsModal').remove();
-        return;
-    }
-    const clients = Store.getClients();
-    let touched = 0;
-    editedIds.forEach(cid => {
-        const c = clients.find(x => x.id === cid);
-        if (!c) return;
-        const v = _bfVerifyEdits[cid];
-        if (v === '' || v == null) {
-            // empty input → remove override
-            delete c.milesFromHomeOverride;
-            touched++;
-        } else {
-            const n = parseFloat(v);
-            if (!isNaN(n) && n >= 0) {
-                c.milesFromHomeOverride = n;
-                touched++;
-            }
-        }
-    });
-    const ok = Store.saveClients(clients);
-    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
-    _bfVerifyEdits = {};
-    showToast(`Saved ${touched} override${touched === 1 ? '' : 's'}`);
-    document.getElementById('bfVerifyCoordsModal').remove();
-    _bfRenderMileage();
-}
-
-async function _bfRegeocodeOne(cid) {
-    const clients = Store.getClients();
-    const c = clients.find(x => x.id === cid);
-    if (!c) { showToast('Client not found', 'error'); return; }
-    const addr = _bfClientAddressStr(c);
-    if (!addr) { showToast('No saved address — edit the client first', 'error'); return; }
-    showToast(`Re-geocoding ${c.name || 'client'}…`);
-    const apiKey = _bfGetGeocodioKey();
-    let coords;
-    if (apiKey) {
-        coords = await _bfGeocodioSingle(addr, apiKey);
-    } else {
-        coords = await _bfGeocodeAddress(addr);
-    }
-    if (!coords) { showToast('Geocode failed — check the address', 'error'); return; }
-    c.coords = { lat: coords.lat, lng: coords.lng };
-    c.coordsCache = c.coords;
-    c.coordsMatched = coords.matched || null;
-    c.coordsAccuracy = (typeof coords.accuracy === 'number') ? coords.accuracy : null;
-    c.coordsSource = apiKey ? 'geocodio' : 'free';
-    // Refresh milesFromHome too based on new coords + current home
-    const home = _bfGetHomeSetting();
-    if (home && home.homeCoords) {
-        const toRad = (d) => d * Math.PI / 180;
-        const R = 3958.7613;
-        const dLat = toRad(coords.lat - home.homeCoords.lat);
-        const dLng = toRad(coords.lng - home.homeCoords.lng);
-        const lat1 = toRad(home.homeCoords.lat), lat2 = toRad(coords.lat);
-        const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
-        c.milesFromHome = Math.round(2 * R * Math.asin(Math.sqrt(h)) * 1.3 * 10) / 10;
-    }
-    const ok = Store.saveClients(clients);
-    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
-    showToast(`Re-geocoded: ${coords.matched || 'OK'}`);
-    _bfRenderVerifyList();
-    _bfRenderMileage();
-}
-
-function _bfDeleteCoords(cid) {
-    if (!confirm('Delete stored coordinates for this client? The mileage calc will fall back to your override or legacy milesFromHome value.')) return;
-    const clients = Store.getClients();
-    const c = clients.find(x => x.id === cid);
-    if (!c) return;
-    delete c.coords;
-    delete c.coordsCache;
-    delete c.coordsMatched;
-    delete c.coordsAccuracy;
-    delete c.coordsSource;
-    const ok = Store.saveClients(clients);
-    if (ok === false) { showToast('Save failed', 'error'); return; }
-    showToast('Coords deleted');
-    _bfRenderVerifyList();
-    _bfRenderMileage();
-}
-
 // Bind to window for onclick handlers from injected HTML
-window._bfShowVerifyCoordsModal = _bfShowVerifyCoordsModal;
-window._bfRenderVerifyList = _bfRenderVerifyList;
-window._bfVerifyEditInput = _bfVerifyEditInput;
-window._bfSaveVerifyOverrides = _bfSaveVerifyOverrides;
-window._bfRegeocodeOne = _bfRegeocodeOne;
-window._bfDeleteCoords = _bfDeleteCoords;
-
 function _bfSaveHomeAddress() {
     const inp = document.getElementById('bfHomeAddressInput');
     if (!inp) return;
@@ -7456,255 +7007,8 @@ function _bfEditHomeAddress() {
     `;
 }
 
-// Prompts the user for home coordinates when all geocoders failed.
-// Leads with ONE-TAP "Use my current location" (browser geolocation API) — works
-// instantly if user is at home right now. Manual lat/lng entry is hidden behind
-// a link as a last resort.
-function _bfPromptManualHomeCoords() {
-    const existing = document.getElementById('bfManualCoordsModal');
-    if (existing) existing.remove();
 
-    const home = _bfGetHomeSetting() || {};
-    const homeAddress = home.homeAddress || '(unset)';
 
-    const el = document.createElement('div');
-    el.id = 'bfManualCoordsModal';
-    el.className = 'modal-overlay active';
-    el.style.zIndex = '10000';
-    el.innerHTML = `
-        <div class="modal modal-sm">
-            <div class="modal-header">
-                <h2>Pin your home</h2>
-                <button class="modal-close" onclick="document.getElementById('bfManualCoordsModal').remove()">×</button>
-            </div>
-            <div class="modal-body">
-                <div style="color: var(--text-dim); margin-bottom: 14px; font-size: 0.92em; line-height: 1.45;">
-                    Couldn't auto-locate <em>${escapeHtml(homeAddress)}</em>. The fastest fix:
-                </div>
-                <button class="btn btn-primary" id="bfUseMyLocationBtn" onclick="_bfUseMyCurrentLocation()" style="width: 100%; padding: 14px; font-size: 1em;">
-                    Use my current location
-                </button>
-                <div style="color: var(--text-faint); font-size: 0.82em; margin-top: 6px; line-height: 1.4;">
-                    One tap. Your browser will ask permission. Only works if you're at home right now.
-                </div>
-                <div id="bfLocStatus" style="color: var(--danger); font-size: 0.85em; margin-top: 8px; min-height: 1em;"></div>
-
-                <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
-                    <a href="#" id="bfShowManualLink" onclick="event.preventDefault(); document.getElementById('bfManualSection').style.display='block'; this.style.display='none';" style="color: var(--text-faint); font-size: 0.85em; text-decoration: underline; cursor: pointer;">Or enter coordinates manually</a>
-                    <div id="bfManualSection" style="display: none; margin-top: 10px;">
-                        <div style="color: var(--text-faint); font-size: 0.85em; margin-bottom: 6px;">
-                            Open Google Maps, right-click your home, click the lat/lng numbers to copy, paste here:
-                        </div>
-                        <input type="text" id="bfManualCoordsInput" placeholder="e.g. 38.8654, -84.6088"
-                            style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 1em; box-sizing: border-box;">
-                        <div id="bfManualCoordsError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
-                        <button class="btn btn-primary btn-sm" onclick="_bfSubmitManualHomeCoords()" style="margin-top: 8px;">Save &amp; compute</button>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="document.getElementById('bfManualCoordsModal').remove()">Cancel</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(el);
-}
-
-// One-tap home-coords using the browser geolocation API.
-// Only works if user is currently AT home — which is exactly when most people
-// would be sitting at the computer setting this up.
-function _bfUseMyCurrentLocation() {
-    const status = document.getElementById('bfLocStatus');
-    const btn = document.getElementById('bfUseMyLocationBtn');
-    if (!('geolocation' in navigator)) {
-        if (status) status.textContent = 'Your browser doesn\'t support geolocation. Use manual entry below.';
-        return;
-    }
-    if (btn) { btn.disabled = true; btn.textContent = 'Getting location…'; }
-    if (status) status.textContent = '';
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            _bfSaveHomeSetting({ homeCoords: { lat, lng } });
-            const modal = document.getElementById('bfManualCoordsModal');
-            if (modal) modal.remove();
-            showToast('Home location saved');
-            _bfAutoComputeMiles();
-        },
-        (err) => {
-            if (btn) { btn.disabled = false; btn.textContent = 'Use my current location'; }
-            let msg;
-            switch (err.code) {
-                case 1: msg = 'Permission denied. Allow location in your browser settings or use manual entry.'; break;
-                case 2: msg = 'Location unavailable. Try manual entry below.'; break;
-                case 3: msg = 'Request timed out. Try again or use manual entry.'; break;
-                default: msg = 'Couldn\'t get location. Use manual entry below.';
-            }
-            if (status) status.textContent = msg;
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-}
-
-// Parses the manual-coords input, saves homeCoords if valid, and resumes auto-compute.
-function _bfSubmitManualHomeCoords() {
-    const inp = document.getElementById('bfManualCoordsInput');
-    const err = document.getElementById('bfManualCoordsError');
-    if (!inp) return;
-    const raw = (inp.value || '').trim();
-    // Accept "lat,lng" or "lat lng" — split on comma OR whitespace, expect two numbers
-    const nums = raw.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
-    if (nums.length !== 2) {
-        if (err) err.textContent = 'Enter two numbers separated by a comma or space.';
-        return;
-    }
-    const [lat, lng] = nums;
-    // Basic sanity: latitude -90..90, longitude -180..180
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        if (err) err.textContent = 'Coordinates out of range. Latitude must be -90 to 90, longitude -180 to 180.';
-        return;
-    }
-    _bfSaveHomeSetting({ homeCoords: { lat, lng } });
-    document.getElementById('bfManualCoordsModal').remove();
-    showToast('Home coordinates saved');
-    // Resume the auto-compute flow now that we have homeCoords
-    _bfAutoComputeMiles();
-}
-
-async function _bfAutoComputeMiles() {
-    const home = _bfGetHomeSetting();
-    if (!home || !home.homeAddress) { showToast('Set home address first', 'error'); return; }
-
-    const btn = document.getElementById('bfAutoComputeBtn');
-    const progress = document.getElementById('bfComputeProgress');
-    if (btn) btn.disabled = true;
-
-    // Look up the home coordinates first — every per-client distance depends on this.
-    let homeCoords = home.homeCoords;
-    if (!homeCoords) {
-        if (progress) progress.textContent = 'Looking up home address (trying multiple variations)…';
-        homeCoords = await _bfGeocodeAddress(home.homeAddress);
-        if (!homeCoords) {
-            if (btn) btn.disabled = false;
-            if (progress) progress.textContent = '';
-            // Fallback: let the user paste lat/lng from Google Maps when Nominatim can't find the address.
-            _bfPromptManualHomeCoords();
-            return;
-        }
-        _bfSaveHomeSetting({ homeCoords });
-    }
-
-    const clients = Store.getClients();
-    const targets = clients.filter(c => {
-        if (c.milesFromHome != null && c.milesFromHome !== '') return false;
-        return !!_bfClientAddressStr(c);
-    });
-    if (targets.length === 0) {
-        if (btn) btn.disabled = false;
-        showToast('Nothing to compute', 'error');
-        return;
-    }
-
-    const apiKey = _bfGetGeocodioKey();
-    let done = 0, failed = 0;
-    const failedNames = [];
-
-    if (apiKey) {
-        // BATCH path: one POST for all addresses. ~1 second total, regardless of N.
-        if (progress) progress.textContent = `Geocoding ${targets.length} clients via Geocodio (batch)…`;
-        const addrs = targets.map(c => _bfClientAddressStr(c));
-        const results = await _bfGeocodioBatch(addrs, apiKey);
-        results.forEach((coords, i) => {
-            const c = targets[i];
-            if (coords) {
-                const straight = _bfHaversineMiles(homeCoords, coords);
-                const oneway = Math.round(straight * 1.3 * 10) / 10;
-                c.milesFromHome = oneway;
-                c.coords = { lat: coords.lat, lng: coords.lng };
-                c.coordsCache = c.coords;
-                c.coordsMatched = coords.matched || null;
-                c.coordsAccuracy = (typeof coords.accuracy === 'number') ? coords.accuracy : null;
-                c.coordsSource = 'geocodio';
-                done++;
-            } else {
-                failed++;
-                failedNames.push(c.name || 'Unnamed');
-            }
-        });
-    } else {
-        // SEQUENTIAL fallback: free geocoder chain, throttled
-        for (const c of targets) {
-            if (progress) progress.textContent = `Geocoding ${done + failed + 1} of ${targets.length}: ${c.name || 'client'}…`;
-            const addr = _bfClientAddressStr(c);
-            const coords = await _bfGeocodeAddress(addr);
-            if (coords) {
-                const straight = _bfHaversineMiles(homeCoords, coords);
-                const oneway = Math.round(straight * 1.3 * 10) / 10;
-                c.milesFromHome = oneway;
-                c.coords = { lat: coords.lat, lng: coords.lng };
-                c.coordsCache = c.coords;
-                c.coordsMatched = null;
-                c.coordsAccuracy = null;
-                c.coordsSource = 'free';
-                done++;
-            } else {
-                failed++;
-                failedNames.push(c.name || 'Unnamed');
-            }
-            // Small buffer so the Nominatim fallback doesn't get rate-limited
-            await _bfSleep(300);
-        }
-    }
-
-    const ok = Store.saveClients(clients);
-    if (ok === false) {
-        showToast('Save failed after compute — check connection', 'error');
-        if (btn) btn.disabled = false;
-        return;
-    }
-
-    if (failed > 0) {
-        showToast(`Computed ${done} · ${failed} couldn't be looked up (${failedNames.slice(0,3).join(', ')}${failedNames.length > 3 ? '…' : ''}) — enter those manually`);
-    } else {
-        showToast(`Computed miles for ${done} client${done === 1 ? '' : 's'}`);
-    }
-    _bfRenderMileage();
-}
-
-function _bfSaveMissingMiles() {
-    const inputs = document.querySelectorAll('#bfMileageWarning .bf-setup-input');
-    if (inputs.length === 0) return;
-    const updates = [];
-    inputs.forEach(inp => {
-        const cid = inp.dataset.cid;
-        const raw = (inp.value || '').trim();
-        if (raw === '') return;
-        const v = parseFloat(raw);
-        if (isNaN(v) || v < 0) return;
-        updates.push({ cid, miles: v });
-    });
-    if (updates.length === 0) {
-        showToast('Enter at least one value, or use Skip', 'error');
-        return;
-    }
-    const clients = Store.getClients();
-    let touched = 0;
-    updates.forEach(({ cid, miles }) => {
-        const c = clients.find(x => x.id === cid);
-        if (c) { c.milesFromHome = miles; touched++; }
-    });
-    if (touched === 0) { showToast('No matching clients found', 'error'); return; }
-    const ok = Store.saveClients(clients);
-    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
-    showToast(`Saved miles for ${touched} client${touched === 1 ? '' : 's'} — recalculating`);
-    _bfRenderMileage();
-}
-
-function _bfDismissSetup() {
-    const warningEl = document.getElementById('bfMileageWarning');
-    if (warningEl) warningEl.style.display = 'none';
-}
 
 function bfRecalcMileage() {
     // Clear manual edits and re-render fresh from calc

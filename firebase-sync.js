@@ -133,9 +133,304 @@ window.signOutCRM = async function() {
     }
 };
 
+// JSON backup: dump every Store collection into a downloadable file.
+// Triggered from the account dropdown. Works on whichever page (index/clients/invoices)
+// the user happens to be on — they all share the same Firestore data via the Store API.
+window.downloadBackupCRM = function() {
+    try {
+        const S = window.Store;
+        if (!S) { alert('Store not available on this page'); return; }
+        const safeCall = (fn) => { try { return (typeof fn === 'function') ? fn() : null; } catch (e) { return null; } };
+        const data = {
+            _meta: {
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                exportedFrom: location.pathname,
+                userAgent: navigator.userAgent,
+            },
+            clients:      safeCall(S.getClients),
+            visits:       safeCall(S.getVisits),
+            invoices:     safeCall(S.getInvoices),
+            mileage:      safeCall(S.getMileage),
+            settings:     safeCall(S.getSettings),
+            subscribers:  safeCall(S.getSubscribers),
+            quickNotes:   safeCall(S.getQuickNotes),
+            services:     safeCall(S.getServices),
+            giveaway:     safeCall(S.getGiveaway),
+            wizzysFinds:  safeCall(S.getWizzysFinds),
+        };
+        // Strip nulls so the file only contains collections the page exposes
+        Object.keys(data).forEach(k => { if (k !== '_meta' && data[k] == null) delete data[k]; });
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        // Filename: myreliacare-backup-YYYY-MM-DD-HHMM.json
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const stamp = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+        a.download = `myreliacare-backup-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+        console.error('[backup] download error:', e);
+        alert('Backup failed — check console for details');
+    }
+};
+
+// ============================================================
+//   GLOBAL SEARCH MODAL
+// ============================================================
+// Cross-page search across clients, visits, and invoices. Triggered by the
+// header search button or Cmd/Ctrl+K. Lazy-injects on first open. Click a
+// result to navigate to the right page with a query param.
+let _searchModalState = { lastQuery: '' };
+
+window.openGlobalSearch = function() {
+    let modal = document.getElementById('globalSearchModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'globalSearchModal';
+        modal.style.cssText = `
+            position: fixed; inset: 0; z-index: 10000;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+            display: flex; align-items: flex-start; justify-content: center;
+            padding-top: 10vh; font-family: inherit;
+        `;
+        modal.innerHTML = `
+            <div id="gsmInner" style="background: #2A2220; border: 1px solid #4A413E; border-radius: 10px; width: min(640px, calc(100vw - 24px)); max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 12px 32px rgba(0,0,0,0.5); overflow: hidden;">
+                <div style="padding: 14px 16px; border-bottom: 1px solid #4A413E; display: flex; gap: 10px; align-items: center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B7378" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="gsmInput" placeholder="Search clients, visits, invoices…" style="flex: 1; background: transparent; border: none; outline: none; color: #F5E8EB; font-family: inherit; font-size: 1.05em; padding: 4px 0;" autocomplete="off">
+                    <button id="gsmClose" style="background: transparent; border: none; color: #8B7378; cursor: pointer; font-size: 1.4em; padding: 0 4px; font-family: inherit;" aria-label="Close search">×</button>
+                </div>
+                <div id="gsmResults" style="overflow-y: auto; flex: 1; padding: 8px 0;"></div>
+                <div style="padding: 8px 14px; border-top: 1px solid #4A413E; color: #8B7378; font-size: 0.78em; display: flex; justify-content: space-between; gap: 10px;">
+                    <span>Type to search · Click result to open</span>
+                    <span>Esc to close</span>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        const input = modal.querySelector('#gsmInput');
+        const closeBtn = modal.querySelector('#gsmClose');
+
+        const close = () => { modal.style.display = 'none'; };
+        closeBtn.addEventListener('click', close);
+        modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display !== 'none') close();
+        });
+        input.addEventListener('input', () => {
+            _searchModalState.lastQuery = input.value;
+            _renderGlobalSearchResults(input.value);
+        });
+    }
+    modal.style.display = 'flex';
+    const input = modal.querySelector('#gsmInput');
+    input.value = _searchModalState.lastQuery || '';
+    _renderGlobalSearchResults(input.value);
+    setTimeout(() => input.focus(), 30);
+};
+
+function _renderGlobalSearchResults(query) {
+    const resultsEl = document.getElementById('gsmResults');
+    if (!resultsEl) return;
+    const S = window.Store;
+    if (!S) {
+        resultsEl.innerHTML = `<div style="padding: 30px; text-align: center; color: #8B7378;">Store not available on this page</div>`;
+        return;
+    }
+    const q = (query || '').trim().toLowerCase();
+    if (q.length === 0) {
+        resultsEl.innerHTML = `<div style="padding: 30px; text-align: center; color: #8B7378;">Start typing to search across clients, visits, and invoices</div>`;
+        return;
+    }
+
+    // Build index from current data
+    const clients = (S.getClients && S.getClients()) || [];
+    const visits = (S.getVisits && S.getVisits()) || [];
+    const invoices = (S.getInvoices && S.getInvoices()) || [];
+
+    const clientsById = {};
+    clients.forEach(c => { clientsById[c.id] = c; });
+
+    // Score helper: exact match > startsWith > contains
+    const score = (text, q) => {
+        const t = (text || '').toLowerCase();
+        if (!t) return 0;
+        if (t === q) return 100;
+        if (t.startsWith(q)) return 50;
+        if (t.includes(q)) return 25;
+        return 0;
+    };
+
+    // CLIENTS: match name, pet names, phone, email, address
+    const clientMatches = clients.map(c => {
+        let s = score(c.name, q);
+        if (Array.isArray(c.pets)) {
+            c.pets.forEach(p => { s = Math.max(s, score(p.name, q) * 0.9); });
+        }
+        s = Math.max(s, score(c.phone, q) * 0.7, score(c.email, q) * 0.7);
+        s = Math.max(s, score([c.address, c.city].filter(Boolean).join(' '), q) * 0.5);
+        return { score: s, client: c };
+    }).filter(r => r.score > 0).sort((a, b) => b.score - a.score).slice(0, 8);
+
+    // VISITS: match client name, date (YYYY-MM-DD), visit type, notes
+    const visitMatches = visits.map(v => {
+        const c = clientsById[v.clientId];
+        const clientName = c?.name || v.clientName || '';
+        let s = score(clientName, q) * 0.8;
+        s = Math.max(s, score(v.date, q) * 0.6);
+        s = Math.max(s, score(v.notes, q) * 0.4);
+        s = Math.max(s, score(v.visitType, q) * 0.3);
+        return { score: s, visit: v, clientName };
+    }).filter(r => r.score > 0).sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return (b.visit.date || '').localeCompare(a.visit.date || '');
+    }).slice(0, 8);
+
+    // INVOICES: match invoice number, client name, total
+    const invoiceMatches = invoices.map(inv => {
+        const c = clientsById[inv.clientId];
+        const clientName = c?.name || inv.clientName || '';
+        let s = score(inv.invoiceNumber, q);
+        s = Math.max(s, score(clientName, q) * 0.7);
+        s = Math.max(s, score(String(inv.total), q) * 0.4);
+        s = Math.max(s, score(inv.date, q) * 0.5);
+        return { score: s, invoice: inv, clientName };
+    }).filter(r => r.score > 0).sort((a, b) => b.score - a.score).slice(0, 6);
+
+    const total = clientMatches.length + visitMatches.length + invoiceMatches.length;
+    if (total === 0) {
+        resultsEl.innerHTML = `<div style="padding: 30px; text-align: center; color: #8B7378;">No matches for "${_gsmEsc(query)}"</div>`;
+        return;
+    }
+
+    const rowStyle = `padding: 10px 16px; cursor: pointer; border-bottom: 1px solid rgba(74,65,62,0.4); display: flex; gap: 10px; align-items: center; transition: background 0.1s;`;
+    const tagStyle = `font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px; padding: 2px 7px; border-radius: 3px; font-weight: 600; flex-shrink: 0;`;
+    const sectionStyle = `padding: 8px 16px 4px; color: #8B7378; font-size: 0.72em; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;`;
+
+    let html = '';
+
+    if (clientMatches.length > 0) {
+        html += `<div style="${sectionStyle}">Clients · ${clientMatches.length}</div>`;
+        html += clientMatches.map(r => {
+            const c = r.client;
+            const petsStr = Array.isArray(c.pets) && c.pets.length > 0
+                ? c.pets.map(p => p.name).filter(Boolean).join(', ')
+                : '';
+            return `
+                <div class="gsm-row" data-go="client" data-id="${c.id}" style="${rowStyle}">
+                    <span style="${tagStyle} background: rgba(181,145,151,0.18); color: #B59197;">Client</span>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="color: #F5E8EB; font-weight: 500;">${_gsmEsc(c.name || 'Unnamed')}</div>
+                        ${petsStr ? `<div style="color: #8B7378; font-size: 0.82em; margin-top: 2px;">${_gsmEsc(petsStr)}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    if (visitMatches.length > 0) {
+        html += `<div style="${sectionStyle}">Visits · ${visitMatches.length}</div>`;
+        html += visitMatches.map(r => {
+            const v = r.visit;
+            const typeLabel = v.visitType === 'meet-greet' ? 'Meet & Greet'
+                : v.visitType === '60min' ? '60 min'
+                : v.visitType === '30min' ? '30 min'
+                : (v.visitType || 'Visit');
+            return `
+                <div class="gsm-row" data-go="visit" data-id="${v.id}" data-date="${v.date}" style="${rowStyle}">
+                    <span style="${tagStyle} background: rgba(201,166,107,0.16); color: #C9A66B;">Visit</span>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="color: #F5E8EB; font-weight: 500;">${_gsmEsc(r.clientName || 'Client')} · ${_gsmEsc(typeLabel)}</div>
+                        <div style="color: #8B7378; font-size: 0.82em; margin-top: 2px;">${_gsmEsc(v.date)}${v.time ? ' at ' + _gsmEsc(v.time) : ''}${v.status === 'completed' ? ' · completed' : ''}${v.paid ? ' · paid' : ''}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    if (invoiceMatches.length > 0) {
+        html += `<div style="${sectionStyle}">Invoices · ${invoiceMatches.length}</div>`;
+        html += invoiceMatches.map(r => {
+            const inv = r.invoice;
+            const statusColor = inv.status === 'paid' ? '#C9A66B' : inv.status === 'overdue' ? '#A85A66' : '#C4825C';
+            return `
+                <div class="gsm-row" data-go="invoice" data-id="${inv.id}" style="${rowStyle}">
+                    <span style="${tagStyle} background: rgba(196,130,92,0.16); color: #C4825C;">Invoice</span>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="color: #F5E8EB; font-weight: 500;">${_gsmEsc(inv.invoiceNumber || inv.id)} · ${_gsmEsc(r.clientName || 'Client')}</div>
+                        <div style="color: #8B7378; font-size: 0.82em; margin-top: 2px;">$${(parseFloat(inv.total) || 0).toFixed(2)} · <span style="color: ${statusColor};">${_gsmEsc(inv.status || 'open')}</span>${inv.date ? ' · ' + _gsmEsc(inv.date) : ''}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    resultsEl.innerHTML = html;
+
+    // Wire result clicks → navigate
+    resultsEl.querySelectorAll('.gsm-row').forEach(row => {
+        row.addEventListener('mouseenter', () => { row.style.background = 'rgba(74,65,62,0.4)'; });
+        row.addEventListener('mouseleave', () => { row.style.background = 'transparent'; });
+        row.addEventListener('click', () => {
+            const go = row.dataset.go;
+            const id = row.dataset.id;
+            const date = row.dataset.date;
+            const modal = document.getElementById('globalSearchModal');
+            if (modal) modal.style.display = 'none';
+            if (go === 'client') {
+                window.location.href = 'clients.html?id=' + encodeURIComponent(id);
+            } else if (go === 'visit') {
+                window.location.href = 'index.html?openVisit=' + encodeURIComponent(id) + (date ? '&date=' + encodeURIComponent(date) : '');
+            } else if (go === 'invoice') {
+                window.location.href = 'invoices.html?openInvoice=' + encodeURIComponent(id);
+            }
+        });
+    });
+}
+
+function _gsmEsc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // Inject visible "signed in" status pill + sign-out into every page
 function _injectSignedInIndicator() {
     if (document.getElementById('signedInIndicator')) return;
+
+    // Global search button — sits just to the LEFT of the signed-in pill.
+    // Opens a modal that searches clients, visits, invoices, tips across the app.
+    const searchBtn = document.createElement('button');
+    searchBtn.id = 'globalSearchBtn';
+    searchBtn.title = 'Search (Ctrl+K)';
+    searchBtn.setAttribute('aria-label', 'Open global search');
+    searchBtn.style.cssText = `
+        position: fixed; top: 12px; right: 130px; z-index: 9500;
+        background: rgba(42, 34, 32, 0.92); border: 1px solid #4A413E;
+        color: #C0B0B4; width: 32px; height: 32px; border-radius: 50%;
+        cursor: pointer; display: none; align-items: center; justify-content: center;
+        backdrop-filter: blur(4px); font-family: inherit;
+    `;
+    searchBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>`;
+    searchBtn.addEventListener('click', () => window.openGlobalSearch());
+    document.body.appendChild(searchBtn);
+
+    // Cmd/Ctrl+K shortcut to open search anywhere
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            window.openGlobalSearch();
+        }
+    });
+
     const el = document.createElement('div');
     el.id = 'signedInIndicator';
     el.style.cssText = `
@@ -167,6 +462,8 @@ function _injectSignedInIndicator() {
         <button data-action="changePin" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #F0E6E8; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Change PIN</button>
         <button data-action="changePassword" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #F0E6E8; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Change password</button>
         <div style="height: 1px; background: #4A413E; margin: 4px 0;"></div>
+        <button data-action="downloadBackup" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #F0E6E8; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Download backup (JSON)</button>
+        <div style="height: 1px; background: #4A413E; margin: 4px 0;"></div>
         <button data-action="signOut" style="display: block; width: 100%; text-align: left; padding: 10px 14px; background: transparent; color: #A85A66; border: none; cursor: pointer; font-family: inherit; font-size: 1em;">Sign out</button>
     `;
     document.body.appendChild(menu);
@@ -183,6 +480,7 @@ function _injectSignedInIndicator() {
             const action = b.dataset.action;
             if (action === 'changePin') window.changePin();
             else if (action === 'changePassword') window.changePassword();
+            else if (action === 'downloadBackup') window.downloadBackupCRM();
             else if (action === 'signOut') window.signOutCRM();
         });
         // hover effect
@@ -1212,6 +1510,8 @@ auth.onAuthStateChanged(async user => {
         _injectSignedInIndicator();
         const indicator = document.getElementById('signedInIndicator');
         if (indicator) indicator.style.display = 'flex';
+        const searchBtn = document.getElementById('globalSearchBtn');
+        if (searchBtn) searchBtn.style.display = 'flex';
 
         // CRITICAL ORDER:
         // 1) Run migration (uses _preMigrationCache; safe even before listeners)

@@ -416,14 +416,7 @@
         .backfill-miles-warning { background: rgba(196, 130, 92, 0.08); border: 1px solid rgba(196, 130, 92, 0.3); color: var(--text); padding: 14px 16px; border-radius: 8px; margin-bottom: 14px; font-size: 0.92em; line-height: 1.5; }
         .bfm-setup-header { font-weight: 600; color: var(--text); font-size: 1em; margin-bottom: 4px; }
         .bfm-setup-sub { color: var(--text-dim); font-size: 0.88em; margin-bottom: 12px; line-height: 1.5; }
-        .bfm-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-bottom: 14px; }
-        .bfm-setup-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; }
-        .bfm-setup-client { color: var(--text); font-size: 0.95em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .bfm-setup-input { width: 72px; flex-shrink: 0; padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.92em; }
-        .bfm-setup-input:focus { outline: none; border-color: var(--accent); }
-        .bfm-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(196, 130, 92, 0.2); }
         @media (max-width: 600px) {
-            .bfm-setup-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 700px) {
             .mileage-entry-row { grid-template-columns: 1.4fr 1fr 1fr auto; }
@@ -2826,7 +2819,6 @@ function deleteLoggedMiles() {
    - Kept in sync with the calc in index.html's Backfill Workspace
    ============================================================ */
 const _BFM_VISIT_DURATION = { 'meet-greet': 15, '30min': 30, '60min': 60 };
-let _bfmBdOpen = {};    // { 'date|driver': true } — breakdown open state
 
 // Decides whether a visit counts toward a given driver's mileage.
 // Visits assigned to 'kasey' or 'both' (the default) count for Kasey — they took her car.
@@ -2842,124 +2834,7 @@ function _bfmTimeToMin(t) {    if (!t) return 0;
     return (h || 0) * 60 + (m || 0);
 }
 
-function _bfmCalcDayDriverMiles(visits, clientsById) {
-    if (!visits || visits.length === 0) return { miles: 0, breakdown: [], missing: [] };
-    const sorted = visits.slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-    const missing = new Set();
-
-    const coordsFor = (cid) => {
-        const c = clientsById[cid];
-        if (!c) return null;
-        return c.coords || c.coordsCache || null;
-    };
-
-    let homeCoords = null;
-    try {
-        const settings = Store.getSettings ? Store.getSettings() : [];
-        const homeRec = (settings || []).find(s => s && s.id === 'global');
-        homeCoords = homeRec?.homeCoords || null;
-    } catch (e) {}
-
-    const hav = (a, b) => {
-        if (!a || !b) return null;
-        const toRad = (d) => d * Math.PI / 180;
-        const R = 3958.7613;
-        const dLat = toRad(b.lat - a.lat);
-        const dLng = toRad(b.lng - a.lng);
-        const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
-        const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
-        return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 1.3 * 10) / 10;
-    };
-
-    const homeToClient = (cid) => {
-        const c = clientsById[cid];
-        if (!c) { missing.add(cid); return null; }
-        // PRIORITY: user's manual override wins. Then coords. Then legacy milesFromHome.
-        if (c.milesFromHomeOverride != null && c.milesFromHomeOverride !== '') {
-            const o = parseFloat(c.milesFromHomeOverride);
-            if (!isNaN(o)) return o;
-        }
-        const cc = coordsFor(cid);
-        if (homeCoords && cc) return hav(homeCoords, cc);
-        if (c.milesFromHome != null && c.milesFromHome !== '') return parseFloat(c.milesFromHome) || 0;
-        missing.add(cid);
-        return null;
-    };
-
-    const clientToClient = (a, b) => {
-        const ca = clientsById[a], cb = clientsById[b];
-        // Override marks the client's coords as untrusted — don't use them for haversine
-        const aOverridden = ca && ca.milesFromHomeOverride != null && ca.milesFromHomeOverride !== '';
-        const bOverridden = cb && cb.milesFromHomeOverride != null && cb.milesFromHomeOverride !== '';
-        const ac = !aOverridden ? coordsFor(a) : null;
-        const bc = !bOverridden ? coordsFor(b) : null;
-        if (ac && bc) return hav(ac, bc);
-        const milesOf = (x) => {
-            if (!x) return null;
-            if (x.milesFromHomeOverride != null && x.milesFromHomeOverride !== '') {
-                const o = parseFloat(x.milesFromHomeOverride);
-                if (!isNaN(o)) return o;
-            }
-            return x.milesFromHome != null ? parseFloat(x.milesFromHome) : null;
-        };
-        const am = milesOf(ca);
-        const bm = milesOf(cb);
-        // sqrt(am² + bm²) — expected client→client distance averaged over all angles.
-        // Way more accurate than (am+bm)/2.
-        if (am != null && bm != null) return Math.round(Math.sqrt(am*am + bm*bm) * 10) / 10;
-        if (!ac && !aOverridden) missing.add(a);
-        if (!bc && !bOverridden) missing.add(b);
-        return null;
-    };
-
-    let total = 0;
-    const breakdown = [];
-    let prevClient = null;
-    let prevEndMin = null;
-    for (const v of sorted) {
-        const startMin = _bfmTimeToMin(v.time);
-        const dur = _BFM_VISIT_DURATION[v.visitType] || 30;
-        const cName = (v.clientName || 'Client').slice(0, 18);
-
-        if (prevClient === null) {
-            const m = homeToClient(v.clientId);
-            if (m != null) { total += m; breakdown.push({ label: `Home → ${cName}`, miles: m }); }
-            else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
-        } else {
-            const gap = startMin - (prevEndMin || startMin);
-            if (gap >= 60) {
-                const back = homeToClient(prevClient);
-                if (back != null) { total += back; breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: back }); }
-                else { breakdown.push({ label: `prev → Home (${gap}min gap)`, miles: null }); }
-                const out = homeToClient(v.clientId);
-                if (out != null) { total += out; breakdown.push({ label: `Home → ${cName}`, miles: out }); }
-                else { breakdown.push({ label: `Home → ${cName}`, miles: null }); }
-            } else if (v.clientId === prevClient) {
-                breakdown.push({ label: `at ${cName} (${gap}min · no drive)`, miles: 0 });
-            } else {
-                const m = clientToClient(prevClient, v.clientId);
-                const prevC = clientsById[prevClient], curC = clientsById[v.clientId];
-                const prevOverridden = prevC && prevC.milesFromHomeOverride != null && prevC.milesFromHomeOverride !== '';
-                const curOverridden = curC && curC.milesFromHomeOverride != null && curC.milesFromHomeOverride !== '';
-                const haveBothCoords = !prevOverridden && !curOverridden && coordsFor(prevClient) && coordsFor(v.clientId);
-                const tag = haveBothCoords ? '' : ' · approx';
-                if (m != null) { total += m; breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: m }); }
-                else { breakdown.push({ label: `prev → ${cName} (${gap}min${tag})`, miles: null }); }
-            }
-        }
-        prevClient = v.clientId;
-        prevEndMin = startMin + dur;
-    }
-    if (prevClient) {
-        const m = homeToClient(prevClient);
-        if (m != null) { total += m; breakdown.push({ label: `last → Home`, miles: m }); }
-        else { breakdown.push({ label: `last → Home`, miles: null }); }
-    }
-    return { miles: Math.round(total * 10) / 10, breakdown, missing: [...missing] };
-}
-
 function openBackfillMilesModal() {
-    _bfmBdOpen = {};
     const today = todayYmd();
     const visits = Store.getVisits().filter(v => v.date && v.date <= today && (v.status === 'completed' || (v.date < today)));
     const loggedDates = new Set(Store.getMileage().map(r => r.date));
@@ -2976,15 +2851,12 @@ function openBackfillMilesModal() {
     const clientsById = {};
     clients.forEach(c => { clientsById[c.id] = c; });
 
-    // Collect any clients in pending days that are missing milesFromHome
+    // Render setup panel (just shows home address, or prompts to set one).
+    // The setup panel no longer surfaces per-client mileage entry — milesFromHome
+    // is vestigial since the daily mileage flow uses Google Maps + manual entry directly.
     const warningEl = document.getElementById('backfillMilesWarning');
-    const pendingClientIds = new Set();
-    days.forEach(d => d.visits.forEach(v => pendingClientIds.add(v.clientId)));
-    const missing = [...pendingClientIds]
-        .map(id => clientsById[id])
-        .filter(c => c && (c.milesFromHome == null || c.milesFromHome === ''));
     if (warningEl) {
-        _bfmRenderSetupPanel(missing);
+        _bfmRenderSetupPanel();
     }
 
     const list = document.getElementById('backfillMilesList');
@@ -3111,26 +2983,8 @@ function _bfmRenderDayRow(d, clientsById) {
 
 /* Clear all auto-estimates across every visible row. Forces a fresh entry workflow:
  * tap Google Maps on each day, type the real number into the now-empty input. */
-function bfmClearAllMiles() {
-    const inputs = document.querySelectorAll('#backfillMilesList .bfm-miles-input');
-    if (inputs.length === 0) return;
-    if (!confirm('Clear all auto-computed estimates? You\'ll re-enter miles for each day from Google Maps.')) return;
-    inputs.forEach(inp => {
-        inp.value = '';
-        inp.classList.remove('user-edited');
-    });
-    showToast('Cleared. Enter miles per day from Google Maps.');
-}
 
 /* Clear just this row's miles (both drivers if present). */
-function bfmClearRow(btn) {
-    const row = btn.closest('.backfill-day-row');
-    if (!row) return;
-    row.querySelectorAll('.bfm-miles-input').forEach(inp => {
-        inp.value = '';
-        inp.classList.remove('user-edited');
-    });
-}
 
 /* ============================================================
    HOME ADDRESS + GEOCODING (used by mileage auto-calc)
@@ -3286,199 +3140,23 @@ async function _photonGeocode(addressStr) {
     }
 }
 
-// Multi-strategy geocoder. Geocodio (if API key) → Census → Photon → Nominatim chain.
-async function _geocodeAddress(addressStr) {
-    console.log(`[geocode] === starting lookup: "${addressStr}" ===`);
 
-    // PRIMARY: Geocodio if user has signed up and added a key
-    const apiKey = _getGeocodioKey();
-    if (apiKey) {
-        const g = await _geocodioSingle(addressStr, apiKey);
-        if (g) return g;
-        // Fall through to free options if Geocodio missed
-    }
 
-    const census = await _censusGeocode(addressStr);
-    if (census) return census;
 
-    const photon = await _photonGeocode(addressStr);
-    if (photon) return photon;
-
-    const attempts = [];
-    // Strategy 1: freeform
-    attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1&countrycodes=us`);
-    // Strategy 2: structured query
-    const parts = _parseUSAddress(addressStr);
-    if (parts.street && (parts.city || parts.zip)) {
-        const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'us' });
-        if (parts.street) params.set('street', parts.street);
-        if (parts.city)   params.set('city', parts.city);
-        if (parts.state)  params.set('state', parts.state);
-        if (parts.zip)    params.set('postalcode', parts.zip);
-        attempts.push('https://nominatim.openstreetmap.org/search?' + params.toString());
-    }
-    // Strategy 3: drop the street suffix
-    const simplified = addressStr.replace(/\b(rd|dr|st|ln|ct|ave|blvd|hwy|way|trl|pl)\b\.?/gi, '').replace(/\s+/g, ' ').trim();
-    if (simplified !== addressStr) {
-        attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(simplified)}&format=json&limit=1&countrycodes=us`);
-    }
-    // Strategy 4: drop the street number (road-level fallback)
-    const noNumber = addressStr.replace(/^\d+\s+/, '').trim();
-    if (noNumber !== addressStr) {
-        attempts.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(noNumber)}&format=json&limit=1&countrycodes=us`);
-    }
-
-    for (let i = 0; i < attempts.length; i++) {
-        try {
-            if (i > 0) await _sleep(1100);  // Nominatim policy: max 1 req/sec
-            const r = await fetch(attempts[i], { headers: { 'Accept': 'application/json' } });
-            if (!r.ok) { console.warn(`[geocode] HTTP ${r.status} on attempt ${i+1}`); continue; }
-            const data = await r.json();
-            if (Array.isArray(data) && data.length > 0) {
-                const lat = parseFloat(data[0].lat);
-                const lng = parseFloat(data[0].lon);
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    console.log(`[geocode] hit on attempt ${i+1}: ${data[0].display_name}`);
-                    return { lat, lng };
-                }
-            }
-            console.log(`[geocode] no result on attempt ${i+1}`);
-        } catch (e) {
-            console.error(`[geocode] error on attempt ${i+1}:`, e);
-        }
-    }
-    return null;
-}
-
-function _clientAddressStr(c) {
-    const parts = [c.address, c.city, c.state, c.zip].map(x => (x || '').trim()).filter(Boolean);
-    if (parts.length < 2) return null;
-    return parts.join(', ');
-}
-
-function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// Prompts the user to paste lat/lng coordinates for their home address when Nominatim
-// can't find it. Accepts "37.123, -84.567" or "37.123 -84.567". On valid input,
-// saves homeCoords and resumes the auto-compute flow.
-function _bfmPromptManualHomeCoords() {
-    const existing = document.getElementById('bfmManualCoordsModal');
-    if (existing) existing.remove();
-
-    const home = _getHomeSetting() || {};
-    const homeAddress = home.homeAddress || '(unset)';
-
-    const el = document.createElement('div');
-    el.id = 'bfmManualCoordsModal';
-    el.className = 'modal-overlay active';
-    el.style.zIndex = '10000';
-    el.innerHTML = `
-        <div class="modal modal-sm">
-            <div class="modal-header">
-                <h2>Pin your home</h2>
-                <button class="modal-close" onclick="document.getElementById('bfmManualCoordsModal').remove()">×</button>
-            </div>
-            <div class="modal-body">
-                <div style="color: var(--text-dim); margin-bottom: 14px; font-size: 0.92em; line-height: 1.45;">
-                    Couldn't auto-locate <em>${escapeHtml(homeAddress)}</em>. The fastest fix:
-                </div>
-                <button class="btn btn-primary" id="bfmUseMyLocationBtn" onclick="_bfmUseMyCurrentLocation()" style="width: 100%; padding: 14px; font-size: 1em;">
-                    Use my current location
-                </button>
-                <div style="color: var(--text-faint); font-size: 0.82em; margin-top: 6px; line-height: 1.4;">
-                    One tap. Your browser will ask permission. Only works if you're at home right now.
-                </div>
-                <div id="bfmLocStatus" style="color: var(--danger); font-size: 0.85em; margin-top: 8px; min-height: 1em;"></div>
-
-                <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
-                    <a href="#" onclick="event.preventDefault(); document.getElementById('bfmManualSection').style.display='block'; this.style.display='none';" style="color: var(--text-faint); font-size: 0.85em; text-decoration: underline; cursor: pointer;">Or enter coordinates manually</a>
-                    <div id="bfmManualSection" style="display: none; margin-top: 10px;">
-                        <div style="color: var(--text-faint); font-size: 0.85em; margin-bottom: 6px;">
-                            Open Google Maps, right-click your home, click the lat/lng numbers to copy, paste here:
-                        </div>
-                        <input type="text" id="bfmManualCoordsInput" placeholder="e.g. 38.8654, -84.6088"
-                            style="width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 1em; box-sizing: border-box;">
-                        <div id="bfmManualCoordsError" style="color: var(--danger); font-size: 0.85em; margin-top: 6px; min-height: 1em;"></div>
-                        <button class="btn btn-primary btn-sm" onclick="_bfmSubmitManualHomeCoords()" style="margin-top: 8px;">Save &amp; compute</button>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="document.getElementById('bfmManualCoordsModal').remove()">Cancel</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(el);
-}
-
-// One-tap geolocation API — only works if she's at home right now.
-function _bfmUseMyCurrentLocation() {
-    const status = document.getElementById('bfmLocStatus');
-    const btn = document.getElementById('bfmUseMyLocationBtn');
-    if (!('geolocation' in navigator)) {
-        if (status) status.textContent = 'Your browser doesn\'t support geolocation. Use manual entry below.';
-        return;
-    }
-    if (btn) { btn.disabled = true; btn.textContent = 'Getting location…'; }
-    if (status) status.textContent = '';
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            _saveHomeSetting({ homeCoords: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
-            const modal = document.getElementById('bfmManualCoordsModal');
-            if (modal) modal.remove();
-            showToast('Home location saved');
-            _bfmAutoComputeMiles();
-        },
-        (err) => {
-            if (btn) { btn.disabled = false; btn.textContent = 'Use my current location'; }
-            let msg;
-            switch (err.code) {
-                case 1: msg = 'Permission denied. Allow location in your browser settings or use manual entry.'; break;
-                case 2: msg = 'Location unavailable. Try manual entry below.'; break;
-                case 3: msg = 'Request timed out. Try again or use manual entry.'; break;
-                default: msg = 'Couldn\'t get location. Use manual entry below.';
-            }
-            if (status) status.textContent = msg;
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-}
-
-function _bfmSubmitManualHomeCoords() {
-    const inp = document.getElementById('bfmManualCoordsInput');
-    const err = document.getElementById('bfmManualCoordsError');
-    if (!inp) return;
-    const raw = (inp.value || '').trim();
-    const nums = raw.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
-    if (nums.length !== 2) {
-        if (err) err.textContent = 'Enter two numbers separated by a comma or space.';
-        return;
-    }
-    const [lat, lng] = nums;
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        if (err) err.textContent = 'Coordinates out of range. Latitude must be -90 to 90, longitude -180 to 180.';
-        return;
-    }
-    _saveHomeSetting({ homeCoords: { lat, lng } });
-    document.getElementById('bfmManualCoordsModal').remove();
-    showToast('Home coordinates saved');
-    _bfmAutoComputeMiles();
-}
-
-function _bfmRenderSetupPanel(missingClients) {
-    // Renders into #backfillMilesWarning based on current state.
-    // missingClients: array of client objects lacking milesFromHome
+function _bfmRenderSetupPanel() {
+    // Renders into #backfillMilesWarning. Only handles home address now —
+    // auto-compute of milesFromHome was gutted as a broken-haversine system,
+    // and milesFromHome is no longer read anywhere in the active code path.
     const el = document.getElementById('backfillMilesWarning');
     if (!el) return;
     const home = _getHomeSetting();
     const homeAddress = (home && home.homeAddress) || '';
 
     if (!homeAddress) {
-        // No home set yet — collect it first
         el.style.display = 'block';
         el.innerHTML = `
             <div class="bfm-setup-header">Set your home address</div>
-            <div class="bfm-setup-sub">Mileage auto-calc starts from your home. Stored once, used everywhere.</div>
+            <div class="bfm-setup-sub">Required so the Google Maps buttons below can build your route from home.</div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                 <input type="text" id="bfmHomeAddressInput" placeholder="123 Main St, Walton KY, 41094" style="flex: 1; min-width: 220px; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 0.95em;">
                 <button class="btn btn-primary btn-sm" onclick="_bfmSaveHomeAddress()">Save home address</button>
@@ -3487,52 +3165,13 @@ function _bfmRenderSetupPanel(missingClients) {
         return;
     }
 
-    if (missingClients.length === 0) {
-        // Home is set, no missing clients — show compact "edit home" row
-        el.style.display = 'block';
-        el.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <div style="color: var(--text-dim); font-size: 0.9em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
-                <button class="btn btn-ghost btn-sm" onclick="_bfmEditHomeAddress()">Edit</button>
-            </div>
-        `;
-        return;
-    }
-
-    // Home set + missing clients → show auto-compute option + manual fallback grid
-    const withAddr = missingClients.filter(c => _clientAddressStr(c));
-    const withoutAddr = missingClients.filter(c => !_clientAddressStr(c));
-    const rows = missingClients.map(c => {
-        const hasAddr = !!_clientAddressStr(c);
-        return `
-            <div class="bfm-setup-row">
-                <span class="bfm-setup-client" title="${escapeHtml(_clientAddressStr(c) || 'no address')}">${escapeHtml(c.name || 'Unnamed')}${hasAddr ? '' : ' <span style="color: var(--text-faint); font-size: 0.85em;">· no address</span>'}</span>
-                <input type="number" min="0" step="0.1" data-cid="${c.id}" placeholder="mi" class="bfm-setup-input">
-            </div>
-        `;
-    }).join('');
-
+    // Home is set — compact display with Edit. No auto-compute, no per-client miles entry.
     el.style.display = 'block';
     el.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
-            <div style="color: var(--text-dim); font-size: 0.88em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
-            <button class="btn btn-ghost btn-sm" onclick="_bfmEditHomeAddress()" style="padding: 3px 8px;">Edit</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div style="color: var(--text-dim); font-size: 0.9em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
+            <button class="btn btn-ghost btn-sm" onclick="_bfmEditHomeAddress()">Edit</button>
         </div>
-        ${withAddr.length > 0 ? `
-            <div class="bfm-setup-header">Auto-compute miles for ${withAddr.length} client${withAddr.length === 1 ? '' : 's'}</div>
-            <div class="bfm-setup-sub">We'll look up each address and compute distance from your home. Takes about ${Math.ceil(withAddr.length * 1.2)} seconds.</div>
-            <button class="btn btn-primary btn-sm" onclick="_bfmAutoComputeMiles()" id="bfmAutoComputeBtn" style="margin-bottom: 14px;">Auto-compute from addresses</button>
-            <div id="bfmComputeProgress" style="color: var(--text-faint); font-size: 0.88em; margin-bottom: 12px;"></div>
-        ` : ''}
-        ${withoutAddr.length > 0 || withAddr.length > 0 ? `
-            <div class="bfm-setup-header" style="margin-top: 8px;">Or enter manually</div>
-            <div class="bfm-setup-sub">Required for clients without an address; optional override for the rest.</div>
-            <div class="bfm-setup-grid">${rows}</div>
-            <div class="bfm-setup-actions">
-                <button class="btn btn-primary btn-sm" onclick="_bfmSaveMissingMiles()">Save manual values</button>
-                <button class="btn btn-ghost btn-sm" onclick="_bfmDismissSetup()">Skip for now</button>
-            </div>
-        ` : ''}
     `;
 }
 
@@ -3560,178 +3199,6 @@ function _bfmEditHomeAddress() {
             <button class="btn btn-ghost btn-sm" onclick="openBackfillMilesModal()">Cancel</button>
         </div>
     `;
-}
-
-async function _bfmAutoComputeMiles() {
-    const home = _getHomeSetting();
-    if (!home || !home.homeAddress) { showToast('Set home address first', 'error'); return; }
-
-    const btn = document.getElementById('bfmAutoComputeBtn');
-    const progress = document.getElementById('bfmComputeProgress');
-    if (btn) btn.disabled = true;
-
-    // Step 1: ensure home is geocoded
-    let homeCoords = home.homeCoords;
-    if (!homeCoords) {
-        if (progress) progress.textContent = 'Looking up home address (trying multiple variations)…';
-        homeCoords = await _geocodeAddress(home.homeAddress);
-        if (!homeCoords) {
-            if (btn) btn.disabled = false;
-            if (progress) progress.textContent = '';
-            // Same fallback as the in-page flow — let the user paste lat/lng from Google Maps
-            _bfmPromptManualHomeCoords();
-            return;
-        }
-        _saveHomeSetting({ homeCoords });
-    }
-
-    // Step 2: iterate missing clients with addresses
-    const clients = Store.getClients();
-    const targets = clients.filter(c => {
-        if (c.milesFromHome != null && c.milesFromHome !== '') return false;
-        return !!_clientAddressStr(c);
-    });
-    if (targets.length === 0) {
-        if (btn) btn.disabled = false;
-        showToast('Nothing to compute', 'error');
-        return;
-    }
-
-    let done = 0, failed = 0;
-    const failedNames = [];
-    const apiKey = _getGeocodioKey();
-
-    if (apiKey) {
-        // BATCH path: one POST for all addresses. ~1 second total regardless of count.
-        if (progress) progress.textContent = `Geocoding ${targets.length} clients via Geocodio (batch)…`;
-        const addrs = targets.map(c => _clientAddressStr(c));
-        const results = await _geocodioBatch(addrs, apiKey);
-        results.forEach((coords, i) => {
-            const c = targets[i];
-            if (coords) {
-                const straight = _haversineMiles(homeCoords, coords);
-                const oneway = Math.round(straight * 1.3 * 10) / 10;
-                c.milesFromHome = oneway;
-                c.coords = { lat: coords.lat, lng: coords.lng };
-                c.coordsCache = c.coords;
-                c.coordsMatched = coords.matched || null;
-                c.coordsAccuracy = (typeof coords.accuracy === 'number') ? coords.accuracy : null;
-                c.coordsSource = 'geocodio';
-                done++;
-            } else {
-                failed++;
-                failedNames.push(c.name || 'Unnamed');
-            }
-        });
-    } else {
-        // SEQUENTIAL: free chain throttled
-        for (const c of targets) {
-            if (progress) progress.textContent = `Geocoding ${done + failed + 1} of ${targets.length}: ${c.name || 'client'}…`;
-            const addr = _clientAddressStr(c);
-            const coords = await _geocodeAddress(addr);
-            if (coords) {
-                const straight = _haversineMiles(homeCoords, coords);
-                const oneway = Math.round(straight * 1.3 * 10) / 10;
-                c.milesFromHome = oneway;
-                c.coords = { lat: coords.lat, lng: coords.lng };
-                c.coordsCache = c.coords;
-                c.coordsMatched = null;
-                c.coordsAccuracy = null;
-                c.coordsSource = 'free';
-                done++;
-            } else {
-                failed++;
-                failedNames.push(c.name || 'Unnamed');
-            }
-            await _sleep(300);
-        }
-    }
-
-    const ok = Store.saveClients(clients);
-    if (ok === false) {
-        showToast('Save failed after compute — check connection', 'error');
-        if (btn) btn.disabled = false;
-        return;
-    }
-
-    if (failed > 0) {
-        showToast(`Computed ${done} · ${failed} addresses couldn't be looked up (${failedNames.slice(0,3).join(', ')}${failedNames.length > 3 ? '…' : ''}) — enter those manually`);
-    } else {
-        showToast(`Computed miles for ${done} client${done === 1 ? '' : 's'}`);
-    }
-    openBackfillMilesModal();   // re-render with fresh data
-}
-
-function _bfmSaveMissingMiles() {
-    const inputs = document.querySelectorAll('#backfillMilesWarning .bfm-setup-input');
-    if (inputs.length === 0) return;
-    const updates = [];
-    inputs.forEach(inp => {
-        const cid = inp.dataset.cid;
-        const raw = (inp.value || '').trim();
-        if (raw === '') return;
-        const v = parseFloat(raw);
-        if (isNaN(v) || v < 0) return;
-        updates.push({ cid, miles: v });
-    });
-    if (updates.length === 0) {
-        showToast('Enter at least one value, or use Skip', 'error');
-        return;
-    }
-    const clients = Store.getClients();
-    let touched = 0;
-    updates.forEach(({ cid, miles }) => {
-        const c = clients.find(x => x.id === cid);
-        if (c) { c.milesFromHome = miles; touched++; }
-    });
-    if (touched === 0) {
-        showToast('No matching clients found', 'error');
-        return;
-    }
-    const ok = Store.saveClients(clients);
-    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
-    showToast(`Saved miles for ${touched} client${touched === 1 ? '' : 's'} — recalculating`);
-    openBackfillMilesModal();
-}
-
-function _bfmDismissSetup() {
-    const warningEl = document.getElementById('backfillMilesWarning');
-    if (warningEl) warningEl.style.display = 'none';
-}
-
-function bfmToggleBd(key) {
-    _bfmBdOpen[key] = !_bfmBdOpen[key];
-    // Collect any values the user manually edited (visible override input flags itself as user-edited).
-    // Those edits live on the hidden input value because the oninput handler syncs them over.
-    const list = document.getElementById('backfillMilesList');
-    const edits = {};
-    list.querySelectorAll('.backfill-day-row').forEach(row => {
-        const date = row.dataset.date;
-        ['kasey', 'charlie'].forEach(driver => {
-            const visEdit = row.querySelector(`.backfill-${driver}-edit.user-edited`);
-            if (visEdit) edits[`${date}|${driver}`] = visEdit.value;
-        });
-    });
-    // Re-render fresh
-    const clients = Store.getClients();
-    const clientsById = {};
-    clients.forEach(c => { clientsById[c.id] = c; });
-    const dates = Array.from(list.querySelectorAll('.backfill-day-row')).map(r => r.dataset.date);
-    const days = dates.map(date => ({
-        date,
-        visits: Store.getVisits().filter(v => v.date === date)
-    }));
-    list.innerHTML = _bfmBuildContent(days, clientsById);
-    // Reapply user-edits on the new DOM (both visible override input + hidden input that save reads from)
-    Object.entries(edits).forEach(([k, val]) => {
-        const [date, driver] = k.split('|');
-        const row = list.querySelector(`.backfill-day-row[data-date="${date}"]`);
-        if (!row) return;
-        const hidden = row.querySelector(`.backfill-${driver}`);
-        const visible = row.querySelector(`.backfill-${driver}-edit`);
-        if (hidden) hidden.value = val;
-        if (visible) { visible.value = val; visible.classList.add('user-edited'); }
-    });
 }
 
 let _bfmPendingSave = null;  // pending save context: { kind: 'backfill'|'log', toSave, allVisits, extras? }
@@ -4237,6 +3704,21 @@ function refreshAll() {
 function init() {
     renderLogo();
     refreshAll();
+
+    // Handle ?openInvoice=invoiceId — opens that invoice's detail view (from global search)
+    try {
+        const params = new URLSearchParams(location.search);
+        const openInvoiceId = params.get('openInvoice');
+        if (openInvoiceId) {
+            setTimeout(() => {
+                const inv = Store.getInvoices().find(x => x.id === openInvoiceId);
+                if (inv && typeof viewInvoice === 'function') {
+                    viewInvoice(openInvoiceId);
+                }
+                history.replaceState({}, '', location.pathname);
+            }, 150);
+        }
+    } catch (e) { console.warn('[init] openInvoice handler error:', e); }
 }
 window.initApp = init;
 

@@ -77,6 +77,40 @@
         .card-title { color: var(--accent); font-size: 1.4em; margin-bottom: 16px; }
 
         .toolbar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+
+        /* Client value report — sortable insights table */
+        .cvr-summary { display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg-input); border-radius: 8px; }
+        .cvr-summary-stat { display: flex; flex-direction: column; gap: 2px; }
+        .cvr-summary-num { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.35em; font-weight: 700; }
+        .cvr-summary-label { color: var(--text-faint); font-size: 0.72em; text-transform: uppercase; letter-spacing: 1.2px; }
+        .cvr-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.92em; }
+        .cvr-table thead th {
+            text-align: left; padding: 8px 10px; color: var(--text-faint);
+            font-size: 0.72em; text-transform: uppercase; letter-spacing: 1.2px;
+            font-weight: 600; border-bottom: 1px solid var(--border); cursor: pointer;
+            user-select: none; white-space: nowrap;
+        }
+        .cvr-table thead th:hover { color: var(--text); }
+        .cvr-table thead th.sorted-asc::after { content: ' ▲'; color: var(--accent); font-size: 0.85em; }
+        .cvr-table thead th.sorted-desc::after { content: ' ▼'; color: var(--accent); font-size: 0.85em; }
+        .cvr-table tbody td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+        .cvr-table tbody tr:nth-child(odd) td { background: rgba(58, 53, 48, 0.35); }
+        .cvr-table tbody tr:last-child td { border-bottom: none; }
+        .cvr-table tbody tr.dormant td:first-child { border-left: 3px solid var(--warn); }
+        .cvr-table tbody tr.dormant td { color: var(--text-dim); }
+        .cvr-name-link { color: var(--accent); text-decoration: none; }
+        .cvr-name-link:hover { text-decoration: underline; }
+        .cvr-cell-num { text-align: right; color: var(--text); }
+        .cvr-cell-revenue { text-align: right; color: var(--success); font-weight: 500; }
+        .cvr-cell-tip { text-align: right; color: var(--accent-light); }
+        .cvr-cell-dormant-badge { color: var(--warn); font-size: 0.78em; font-style: italic; margin-left: 6px; }
+        .cvr-empty { padding: 40px; text-align: center; color: var(--text-faint); }
+        @media (max-width: 700px) {
+            .cvr-table { font-size: 0.85em; }
+            .cvr-table thead th, .cvr-table tbody td { padding: 7px 6px; }
+            /* Hide less-critical columns on mobile */
+            .cvr-table .cvr-col-avg, .cvr-table .cvr-col-tip { display: none; }
+        }
         .search-bar { flex: 1; min-width: 240px; padding: 10px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; }
         .search-bar:focus { outline: none; border-color: var(--accent); }
 
@@ -675,9 +709,30 @@
         <div class="card">
             <div class="toolbar">
                 <input type="text" id="searchBar" class="search-bar" placeholder="Search by name, phone, email, or pet…" oninput="renderClients()">
+                <button class="btn btn-ghost" onclick="openClientValueReport()" title="See client value report">Insights</button>
                 <button class="btn btn-primary" onclick="openClientModal()">+ Add Client</button>
             </div>
             <div id="clientsList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Client Value Report — sortable insights table -->
+<div class="modal-overlay" id="clientValueReportModal">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h2>Client Insights</h2>
+            <button class="modal-close" onclick="closeModal('clientValueReportModal')" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="cvr-summary" id="cvrSummary" style="margin-bottom: 14px;"></div>
+            <div class="cvr-filter-row" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
+                <input type="text" id="cvrSearch" class="search-bar" placeholder="Filter by name…" style="flex: 1; min-width: 180px;" oninput="renderClientValueReport()">
+                <label style="color: var(--text-dim); font-size: 0.88em; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="cvrDormantOnly" onchange="renderClientValueReport()"> Dormant only (21+ days)
+                </label>
+            </div>
+            <div id="cvrTableWrap" style="overflow-x: auto;"></div>
         </div>
     </div>
 </div>
@@ -1467,6 +1522,7 @@ function renderClientCard(c) {
                 </div>
                 <div class="client-card-actions">
                     <button class="btn btn-primary btn-sm" onclick="scheduleVisitFor('${c.id}')">Schedule</button>
+                    <button class="btn btn-ghost btn-sm" onclick="bookAgainFor('${c.id}')" title="Book the same recurring slot">Book again</button>
                     <button class="btn btn-ghost btn-sm" onclick="openClientTipModal('${c.id}')">+ Tip</button>
                     <button class="btn btn-ghost btn-sm" onclick="viewClient('${c.id}')">Details</button>
                     <button class="btn btn-ghost btn-sm" onclick="editClient('${c.id}')">Edit</button>
@@ -1496,6 +1552,287 @@ function toggleClientExpand(id, ev) {
 
 function scheduleVisitFor(clientId) {
     location.href = `index.html?schedule=${encodeURIComponent(clientId)}`;
+}
+
+/* ============================================================
+   BOOK AGAIN — one-tap recurring booking
+   ============================================================
+   Detects the client's most common (day-of-week, time, visit type) pattern
+   from past visits, projects the next occurrence, and creates the visit on
+   confirm. If no pattern found, falls back to the full schedule modal. */
+/* ============================================================
+   CLIENT VALUE REPORT
+   ============================================================
+   Sortable table of per-client stats: visits, revenue, tips, last visit.
+   Highlights dormant clients (no visit in 21+ days). */
+let _cvrSortKey = 'revenue';
+let _cvrSortDir = 'desc';
+
+function openClientValueReport() {
+    openModal('clientValueReportModal');
+    setTimeout(() => renderClientValueReport(), 50);
+}
+
+function renderClientValueReport() {
+    const wrap = document.getElementById('cvrTableWrap');
+    const summaryEl = document.getElementById('cvrSummary');
+    if (!wrap || !summaryEl) return;
+
+    const searchInp = document.getElementById('cvrSearch');
+    const dormantOnly = document.getElementById('cvrDormantOnly');
+    const query = (searchInp?.value || '').trim().toLowerCase();
+    const filterDormant = !!(dormantOnly && dormantOnly.checked);
+
+    const clients = Store.getClients() || [];
+    const visits = Store.getVisits() || [];
+    const todayStr = todayYmd();
+    const todayDate = new Date(todayStr + 'T00:00:00');
+
+    // Pre-index visits by clientId
+    const visitsByClient = {};
+    visits.forEach(v => {
+        if (!visitsByClient[v.clientId]) visitsByClient[v.clientId] = [];
+        visitsByClient[v.clientId].push(v);
+    });
+
+    // Build per-client stats
+    const rows = clients.map(c => {
+        const cv = visitsByClient[c.id] || [];
+        // "Earned" visits: completed (paid or unpaid)
+        const earned = cv.filter(v => v.status === 'completed');
+        const revenue = earned.reduce((s, v) => s + (parseFloat(v.price) || 0), 0);
+        const tips = Array.isArray(c.tips)
+            ? c.tips.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0)
+            : 0;
+        const sortedByDate = cv.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        const lastVisitDate = sortedByDate.length > 0 ? sortedByDate[0].date : null;
+        let daysSince = null;
+        if (lastVisitDate) {
+            const lv = new Date(lastVisitDate + 'T00:00:00');
+            daysSince = Math.round((todayDate - lv) / (1000 * 60 * 60 * 24));
+        }
+        const avgRevenue = earned.length > 0 ? revenue / earned.length : 0;
+        return {
+            id: c.id,
+            name: c.name || 'Unnamed',
+            visits: earned.length,
+            scheduled: cv.length - earned.length,
+            revenue,
+            avgRevenue,
+            tips,
+            lastVisit: lastVisitDate,
+            daysSince,
+            isDormant: daysSince != null && daysSince >= 21,
+            isInactive: lastVisitDate == null && cv.length === 0,
+        };
+    });
+
+    // Filter
+    let filtered = rows;
+    if (query) {
+        filtered = filtered.filter(r => r.name.toLowerCase().includes(query));
+    }
+    if (filterDormant) {
+        filtered = filtered.filter(r => r.isDormant);
+    }
+
+    // Sort
+    const dir = _cvrSortDir === 'desc' ? -1 : 1;
+    filtered.sort((a, b) => {
+        const k = _cvrSortKey;
+        const av = a[k]; const bv = b[k];
+        // Null/undefined sorts last
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        if (typeof av === 'string') return dir * av.localeCompare(bv);
+        return dir * (av - bv);
+    });
+
+    // Summary
+    const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
+    const totalTips = rows.reduce((s, r) => s + r.tips, 0);
+    const activeClients = rows.filter(r => r.visits > 0).length;
+    const dormantClients = rows.filter(r => r.isDormant).length;
+    summaryEl.innerHTML = `
+        <div class="cvr-summary-stat"><span class="cvr-summary-num">${rows.length}</span><span class="cvr-summary-label">Total clients</span></div>
+        <div class="cvr-summary-stat"><span class="cvr-summary-num">${activeClients}</span><span class="cvr-summary-label">With visits</span></div>
+        <div class="cvr-summary-stat"><span class="cvr-summary-num" style="color: var(--warn);">${dormantClients}</span><span class="cvr-summary-label">Dormant (21+ days)</span></div>
+        <div class="cvr-summary-stat"><span class="cvr-summary-num" style="color: var(--success);">$${totalRevenue.toFixed(0)}</span><span class="cvr-summary-label">Lifetime revenue</span></div>
+        <div class="cvr-summary-stat"><span class="cvr-summary-num" style="color: var(--accent-light);">$${totalTips.toFixed(0)}</span><span class="cvr-summary-label">Lifetime tips</span></div>
+    `;
+
+    if (filtered.length === 0) {
+        wrap.innerHTML = '<div class="cvr-empty">No clients match those filters.</div>';
+        return;
+    }
+
+    const sortHeader = (key, label) => {
+        const cls = (_cvrSortKey === key)
+            ? (_cvrSortDir === 'desc' ? 'sorted-desc' : 'sorted-asc')
+            : '';
+        return `<th class="${cls}" onclick="_cvrSort('${key}')">${label}</th>`;
+    };
+
+    const tbody = filtered.map(r => {
+        const dormantClass = r.isDormant ? 'dormant' : '';
+        const lastVisitDisplay = r.lastVisit
+            ? `${r.lastVisit}${r.daysSince != null ? ` <span style="color: var(--text-faint); font-size: 0.85em;">(${r.daysSince}d ago)</span>` : ''}`
+            : '<span style="color: var(--text-faint); font-style: italic;">never</span>';
+        const dormantBadge = r.isDormant
+            ? '<span class="cvr-cell-dormant-badge">dormant</span>'
+            : '';
+        return `
+            <tr class="${dormantClass}">
+                <td><a class="cvr-name-link" href="clients.html?id=${encodeURIComponent(r.id)}" onclick="closeModal('clientValueReportModal')">${escapeHtml(r.name)}</a>${dormantBadge}</td>
+                <td class="cvr-cell-num">${r.visits}</td>
+                <td class="cvr-cell-revenue">$${r.revenue.toFixed(2)}</td>
+                <td class="cvr-cell-num cvr-col-avg">$${r.avgRevenue.toFixed(2)}</td>
+                <td class="cvr-cell-tip cvr-col-tip">$${r.tips.toFixed(2)}</td>
+                <td>${lastVisitDisplay}</td>
+            </tr>
+        `;
+    }).join('');
+
+    wrap.innerHTML = `
+        <table class="cvr-table">
+            <thead>
+                <tr>
+                    ${sortHeader('name', 'Client')}
+                    ${sortHeader('visits', 'Visits')}
+                    ${sortHeader('revenue', 'Revenue')}
+                    ${sortHeader('avgRevenue', 'Avg/visit')}
+                    ${sortHeader('tips', 'Tips')}
+                    ${sortHeader('daysSince', 'Last visit')}
+                </tr>
+            </thead>
+            <tbody>${tbody}</tbody>
+        </table>
+    `;
+}
+
+function _cvrSort(key) {
+    if (_cvrSortKey === key) {
+        // Toggle direction
+        _cvrSortDir = _cvrSortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+        _cvrSortKey = key;
+        // Default direction: strings asc, numbers desc
+        _cvrSortDir = (key === 'name') ? 'asc' : 'desc';
+    }
+    renderClientValueReport();
+}
+
+function bookAgainFor(clientId) {
+    const client = Store.getClients().find(c => c.id === clientId);
+    if (!client) { showToast('Client not found', 'error'); return; }
+
+    const allVisits = Store.getVisits().filter(v => v.clientId === clientId);
+    // Look at recent visits (last 6 months) for pattern; older ones may be stale
+    const todayStr = todayYmd();
+    const sixMonthsAgo = _addDaysYmd(todayStr, -180);
+    const recent = allVisits.filter(v => v.date && v.date >= sixMonthsAgo);
+
+    if (recent.length === 0) {
+        showToast('No recent visits to base a recurring booking on — opening the full scheduler', 'info');
+        setTimeout(() => scheduleVisitFor(clientId), 300);
+        return;
+    }
+
+    // Tally (dayOfWeek, time, visitType) tuples
+    const tally = {};
+    recent.forEach(v => {
+        if (!v.date || !v.time || !v.visitType) return;
+        const dow = new Date(v.date + 'T00:00:00').getDay();
+        const key = `${dow}|${v.time}|${v.visitType}`;
+        if (!tally[key]) tally[key] = { count: 0, dow, time: v.time, visitType: v.visitType, samples: [] };
+        tally[key].count++;
+        tally[key].samples.push(v);
+    });
+
+    const ranked = Object.values(tally).sort((a, b) => b.count - a.count);
+    const top = ranked[0];
+
+    if (!top || top.count < 2) {
+        showToast('No clear recurring pattern yet — opening the full scheduler', 'info');
+        setTimeout(() => scheduleVisitFor(clientId), 400);
+        return;
+    }
+
+    // Find the next occurrence of that day-of-week from today (strictly future)
+    const today = new Date(todayStr + 'T00:00:00');
+    const todayDow = today.getDay();
+    let daysUntil = (top.dow - todayDow + 7) % 7;
+    if (daysUntil === 0) daysUntil = 7;  // skip today, go to next week
+    const next = new Date(today);
+    next.setDate(today.getDate() + daysUntil);
+    const nextYmd = ymdFromDate(next);
+    const nextDayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][top.dow];
+
+    // Pull price from most recent matching visit (or client default)
+    const sampleVisit = top.samples.sort((a, b) => b.date.localeCompare(a.date))[0];
+    let price = parseFloat(sampleVisit.price);
+    if (isNaN(price) || price <= 0) {
+        if (top.visitType === '30min') price = parseFloat(client.price30) || 0;
+        else if (top.visitType === '60min') price = parseFloat(client.price60) || 0;
+        else price = 0;
+    }
+    const visitTypeLabel = top.visitType === 'meet-greet' ? 'Meet & Greet'
+        : top.visitType === '60min' ? '60 min Visit'
+        : top.visitType === '30min' ? '30 min Visit'
+        : top.visitType;
+
+    const confirmMsg = `Book another ${visitTypeLabel} for ${client.name} on ${nextDayName} ${nextYmd} at ${top.time}?\n\n` +
+        `Based on ${top.count} recent visits matching this pattern.\n` +
+        `Price: $${price.toFixed(2)}\n\n` +
+        `OK to book · Cancel to use the full scheduler`;
+    if (!confirm(confirmMsg)) {
+        // User cancelled — offer full scheduler instead
+        if (confirm('Open the full scheduler instead?')) scheduleVisitFor(clientId);
+        return;
+    }
+
+    // Build visit record
+    const newVisit = {
+        id: 'visit_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        clientId: client.id,
+        clientName: client.name,
+        date: nextYmd,
+        time: top.time,
+        visitType: top.visitType,
+        price: price,
+        status: 'scheduled',
+        assignedTo: sampleVisit.assignedTo || 'kasey',
+        address: sampleVisit.address || '',
+        notes: '',
+        paid: false,
+        invoiced: false,
+        createdAt: new Date().toISOString(),
+    };
+
+    const visits = Store.getVisits();
+    visits.push(newVisit);
+    const ok = Store.saveVisits(visits);
+    if (ok !== false) {
+        showToast(`Booked ${visitTypeLabel} for ${client.name} on ${nextYmd}`);
+    } else {
+        showToast('Save failed', 'error');
+    }
+}
+
+// Helpers that bookAgainFor depends on — defensive in case they aren't already global on clients.html
+function todayYmd() {
+    const d = new Date();
+    return ymdFromDate(d);
+}
+function ymdFromDate(d) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function _addDaysYmd(ymdStr, n) {
+    const d = new Date(ymdStr + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return ymdFromDate(d);
 }
 
 function openClientModal() {
