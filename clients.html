@@ -86,6 +86,84 @@
         .cvr-summary-stat { display: flex; flex-direction: column; gap: 2px; }
         .cvr-summary-num { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.35em; font-weight: 700; }
         .cvr-summary-label { color: var(--text-faint); font-size: 0.72em; text-transform: uppercase; letter-spacing: 1.2px; }
+
+        /* NEW: Portfolio snapshot — 4 mini stat cards at top */
+        .cvr-snapshot { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
+        .cvr-snap-stat { background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .cvr-snap-num { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.3em; font-weight: 700; line-height: 1.1; }
+        .cvr-snap-label { color: var(--text-faint); font-size: 0.66em; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* NEW: Sections */
+        .cvr-section { margin-bottom: 22px; }
+        .cvr-section-title { font-family: 'Cormorant Unicase', serif; color: var(--text); font-size: 1.05em; margin: 0 0 4px 0; font-weight: 600; display: flex; align-items: baseline; gap: 8px; }
+        .cvr-section-count { color: var(--text-faint); font-size: 0.78em; font-weight: 400; font-family: 'Cormorant', serif; text-transform: none; letter-spacing: 0.5px; }
+        .cvr-section-hint { color: var(--text-faint); font-size: 0.82em; margin-bottom: 10px; font-style: italic; }
+        .cvr-cards { display: flex; flex-direction: column; gap: 6px; }
+
+        /* NEW: At-risk attention cards */
+        .cvr-card.attention {
+            background: var(--bg-input);
+            border-left: 3px solid var(--warn);
+            padding: 10px 12px 12px 12px;
+        }
+        .cvr-card-pill { font-size: 0.72em; font-weight: 600; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cvr-card-pill.warn { background: rgba(196, 130, 92, 0.18); color: var(--warn); }
+        .cvr-card-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .cvr-card-actions .btn { padding: 4px 11px; font-size: 0.82em; }
+
+        /* NEW: Compact rank list for Top Clients + New Clients */
+        .cvr-ranklist { display: flex; flex-direction: column; gap: 1px; background: var(--bg-input); border-radius: 8px; overflow: hidden; }
+        .cvr-rank-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer; transition: background 0.1s; -webkit-tap-highlight-color: transparent; }
+        .cvr-rank-row:hover, .cvr-rank-row:active { background: var(--bg-card); }
+        .cvr-rank-row:not(:last-child) { border-bottom: 1px solid rgba(74, 65, 62, 0.5); }
+        .cvr-rank-num { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-weight: 700; font-size: 1.05em; min-width: 18px; }
+        .cvr-rank-name { color: var(--text); font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cvr-rank-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0; }
+        .cvr-rank-rev { color: var(--success); font-weight: 500; font-variant-numeric: tabular-nums; }
+        .cvr-rank-sub { color: var(--text-faint); font-size: 0.78em; }
+
+        /* NEW: Filter row inside All Clients section */
+        .cvr-filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+        .cvr-filter-row .search-bar { flex: 1; min-width: 180px; }
+        .cvr-filter-check { color: var(--text-dim); font-size: 0.85em; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+        /* Base card style (used in All Clients section + extended by .attention variant) */
+        .cvr-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: background 0.12s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .cvr-card:hover, .cvr-card:active { background: var(--bg-card); }
+        .cvr-card.dormant { border-left: 3px solid var(--warn); padding-left: 9px; }
+        .cvr-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .cvr-card-name {
+            color: var(--accent);
+            font-weight: 500;
+            font-size: 1em;
+            font-family: 'Cormorant', serif;
+        }
+        .cvr-card-revenue {
+            color: var(--success);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+            flex-shrink: 0;
+        }
+        .cvr-card-meta {
+            color: var(--text-faint);
+            font-size: 0.85em;
+            margin-top: 3px;
+        }
+        .cvr-card-dormant { color: var(--warn); }
         .cvr-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.92em; }
         .cvr-table thead th {
             text-align: left; padding: 8px 10px; color: var(--text-faint);
@@ -114,54 +192,27 @@
             /* Hide less-critical columns on mobile */
             .cvr-table .cvr-col-avg, .cvr-table .cvr-col-tip { display: none; }
 
-            /* Summary stats: clean 2-col grid; Lifetime tips spans both columns */
-            .cvr-summary {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px 14px;
-                padding: 12px;
-            }
-            .cvr-summary-stat:last-child { grid-column: 1 / -1; }
-            .cvr-summary-num { font-size: 1.2em; }
-            .cvr-summary-label { font-size: 0.68em; }
+            /* Portfolio snapshot: 2x2 grid on mobile */
+            .cvr-snapshot { grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 16px; }
+            .cvr-snap-stat { padding: 9px 10px; }
+            .cvr-snap-num { font-size: 1.15em; }
+            .cvr-snap-label { font-size: 0.62em; }
 
-            /* Mobile-only card list (replaces the table view) */
-            .cvr-card {
-                background: var(--bg-input);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 10px 12px;
-                margin-bottom: 6px;
-                cursor: pointer;
-                transition: background 0.12s;
-                -webkit-tap-highlight-color: transparent;
-            }
-            .cvr-card:active { background: var(--bg-card); }
-            .cvr-card.dormant { border-left: 3px solid var(--warn); padding-left: 9px; }
-            .cvr-card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: baseline;
-                gap: 10px;
-            }
-            .cvr-card-name {
-                color: var(--accent);
-                font-weight: 500;
-                font-size: 1em;
-                font-family: 'Cormorant', serif;
-            }
-            .cvr-card-revenue {
-                color: var(--success);
-                font-weight: 500;
-                font-variant-numeric: tabular-nums;
-                flex-shrink: 0;
-            }
-            .cvr-card-meta {
-                color: var(--text-faint);
-                font-size: 0.82em;
-                margin-top: 3px;
-            }
-            .cvr-card-dormant { color: var(--warn); }
+            /* Sections tighten */
+            .cvr-section { margin-bottom: 18px; }
+            .cvr-section-title { font-size: 0.98em; }
+            .cvr-section-hint { font-size: 0.76em; margin-bottom: 8px; }
+
+            /* Attention card actions stay readable */
+            .cvr-card-actions .btn { padding: 5px 10px; font-size: 0.8em; }
+
+            /* Rank list */
+            .cvr-rank-row { padding: 8px 10px; gap: 8px; }
+            .cvr-rank-num { font-size: 0.95em; min-width: 16px; }
+            .cvr-rank-rev { font-size: 0.92em; }
+            .cvr-rank-sub { font-size: 0.74em; }
+
+            .cvr-card-meta { font-size: 0.82em; }
         }
         .search-bar { flex: 1; min-width: 240px; padding: 10px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; }
         .search-bar:focus { outline: none; border-color: var(--accent); }
@@ -762,14 +813,8 @@
             <button class="modal-close" onclick="closeModal('clientValueReportModal')" aria-label="Close">×</button>
         </div>
         <div class="modal-body">
-            <div class="cvr-summary" id="cvrSummary" style="margin-bottom: 14px;"></div>
-            <div class="cvr-filter-row" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
-                <input type="text" id="cvrSearch" class="search-bar" placeholder="Filter by name…" style="flex: 1; min-width: 180px;" oninput="renderClientValueReport()">
-                <label style="color: var(--text-dim); font-size: 0.88em; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
-                    <input type="checkbox" id="cvrDormantOnly" onchange="renderClientValueReport()"> Dormant only (21+ days)
-                </label>
-            </div>
-            <div id="cvrTableWrap" style="overflow-x: auto;"></div>
+            <div class="cvr-snapshot" id="cvrSummary"></div>
+            <div id="cvrTableWrap"></div>
         </div>
     </div>
 </div>
@@ -1660,17 +1705,12 @@ function renderClientValueReport() {
     const summaryEl = document.getElementById('cvrSummary');
     if (!wrap || !summaryEl) return;
 
-    const searchInp = document.getElementById('cvrSearch');
-    const dormantOnly = document.getElementById('cvrDormantOnly');
-    const query = (searchInp?.value || '').trim().toLowerCase();
-    const filterDormant = !!(dormantOnly && dormantOnly.checked);
-
     const clients = Store.getClients() || [];
     const visits = Store.getVisits() || [];
     const todayStr = todayYmd();
     const todayDate = new Date(todayStr + 'T00:00:00');
 
-    // Pre-index visits by clientId
+    // Index visits by client
     const visitsByClient = {};
     visits.forEach(v => {
         if (!visitsByClient[v.clientId]) visitsByClient[v.clientId] = [];
@@ -1678,89 +1718,74 @@ function renderClientValueReport() {
     });
 
     // Build per-client stats
-    const rows = clients.map(c => {
+    const perClient = clients.map(c => {
         const cv = visitsByClient[c.id] || [];
-        // "Earned" visits: completed (paid or unpaid)
         const earned = cv.filter(v => v.status === 'completed');
         const revenue = earned.reduce((s, v) => s + (parseFloat(v.price) || 0), 0);
         const tips = Array.isArray(c.tips)
             ? c.tips.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0)
             : 0;
-        // Last COMPLETED visit on or before today — never future-scheduled visits.
-        // Without this filter, a client with a scheduled visit next month would show
-        // a negative "days ago" and would never qualify as dormant.
+
+        // Last completed visit on or before today (never future)
         const completedPast = earned.filter(v => v.date && v.date <= todayStr);
-        const sortedByDate = completedPast.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-        const lastVisitDate = sortedByDate.length > 0 ? sortedByDate[0].date : null;
+        completedPast.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        const lastVisitDate = completedPast.length > 0 ? completedPast[0].date : null;
         let daysSince = null;
         if (lastVisitDate) {
             const lv = new Date(lastVisitDate + 'T00:00:00');
             daysSince = Math.max(0, Math.round((todayDate - lv) / (1000 * 60 * 60 * 24)));
         }
-        const avgRevenue = earned.length > 0 ? revenue / earned.length : 0;
+
+        // First visit ever (any status) — proxy for "when did this client become a client"
+        const allDated = cv.filter(v => v.date).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        const firstVisit = allDated.length > 0 ? allDated[0].date : null;
+        let daysSinceFirst = null;
+        if (firstVisit) {
+            const fv = new Date(firstVisit + 'T00:00:00');
+            daysSinceFirst = Math.max(0, Math.round((todayDate - fv) / (1000 * 60 * 60 * 24)));
+        }
+
+        // Has any upcoming scheduled visit
+        const hasUpcoming = cv.some(v => v.status === 'scheduled' && v.date && v.date > todayStr);
+
+        // Average days between completed visits (recent 6 months) — for frequency context
+        const recentEarned = completedPast.filter(v => v.date >= _addDaysYmd(todayStr, -180));
+        let avgGap = null;
+        if (recentEarned.length >= 2) {
+            const sortedAsc = recentEarned.slice().sort((a, b) => a.date.localeCompare(b.date));
+            const gaps = [];
+            for (let i = 1; i < sortedAsc.length; i++) {
+                const d1 = new Date(sortedAsc[i-1].date + 'T00:00:00');
+                const d2 = new Date(sortedAsc[i].date + 'T00:00:00');
+                gaps.push((d2 - d1) / (1000 * 60 * 60 * 24));
+            }
+            avgGap = gaps.reduce((a,b) => a+b, 0) / gaps.length;
+        }
+
+        const visitsCount = earned.length;
+        const avgRevenue = visitsCount > 0 ? revenue / visitsCount : 0;
+        const isDormant = daysSince != null && daysSince >= 21;
+        // "At risk" — has a history (3+ visits) + dormant + no upcoming. Real follow-up candidate.
+        const isAtRisk = visitsCount >= 3 && isDormant && !hasUpcoming;
+        // "Active" — completed visit in last 30d OR has upcoming
+        const isActive = hasUpcoming || (daysSince != null && daysSince <= 30);
+        // "New" — first visit in last 60d
+        const isNew = daysSinceFirst != null && daysSinceFirst <= 60;
+
         return {
             id: c.id,
             name: c.name || 'Unnamed',
-            visits: earned.length,
-            scheduled: cv.length - earned.length,
-            revenue,
-            avgRevenue,
-            tips,
-            lastVisit: lastVisitDate,
-            daysSince,
-            isDormant: daysSince != null && daysSince >= 21,
-            isInactive: lastVisitDate == null && cv.length === 0,
+            phone: c.phone || '',
+            visits: visitsCount,
+            revenue, avgRevenue, tips,
+            lastVisit: lastVisitDate, daysSince,
+            firstVisit, daysSinceFirst,
+            hasUpcoming, avgGap,
+            isDormant, isAtRisk, isActive, isNew,
         };
     });
 
-    // Filter
-    let filtered = rows;
-    if (query) {
-        filtered = filtered.filter(r => r.name.toLowerCase().includes(query));
-    }
-    if (filterDormant) {
-        filtered = filtered.filter(r => r.isDormant);
-    }
-
-    // Sort
-    const dir = _cvrSortDir === 'desc' ? -1 : 1;
-    filtered.sort((a, b) => {
-        const k = _cvrSortKey;
-        const av = a[k]; const bv = b[k];
-        // Null/undefined sorts last
-        if (av == null && bv == null) return 0;
-        if (av == null) return 1;
-        if (bv == null) return -1;
-        if (typeof av === 'string') return dir * av.localeCompare(bv);
-        return dir * (av - bv);
-    });
-
-    // Summary
-    const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
-    const totalTips = rows.reduce((s, r) => s + r.tips, 0);
-    const activeClients = rows.filter(r => r.visits > 0).length;
-    const dormantClients = rows.filter(r => r.isDormant).length;
-    summaryEl.innerHTML = `
-        <div class="cvr-summary-stat"><span class="cvr-summary-num">${rows.length}</span><span class="cvr-summary-label">Total clients</span></div>
-        <div class="cvr-summary-stat"><span class="cvr-summary-num">${activeClients}</span><span class="cvr-summary-label">With visits</span></div>
-        <div class="cvr-summary-stat"><span class="cvr-summary-num" style="color: var(--warn);">${dormantClients}</span><span class="cvr-summary-label">Dormant (21+ days)</span></div>
-        <div class="cvr-summary-stat"><span class="cvr-summary-num" style="color: var(--success);">$${totalRevenue.toFixed(0)}</span><span class="cvr-summary-label">Lifetime revenue</span></div>
-        <div class="cvr-summary-stat"><span class="cvr-summary-num" style="color: var(--accent-light);">$${totalTips.toFixed(0)}</span><span class="cvr-summary-label">Lifetime tips</span></div>
-    `;
-
-    if (filtered.length === 0) {
-        wrap.innerHTML = '<div class="cvr-empty">No clients match those filters.</div>';
-        return;
-    }
-
-    const sortHeader = (key, label) => {
-        const cls = (_cvrSortKey === key)
-            ? (_cvrSortDir === 'desc' ? 'sorted-desc' : 'sorted-asc')
-            : '';
-        return `<th class="${cls}" onclick="_cvrSort('${key}')">${label}</th>`;
-    };
-
-    // Compact date formatter for mobile cards: "May 24, 2026" → "May 24"
+    // Compact date formatter ("May 24" or "May 24, 2025" if not current year)
     const fmtShortDate = (ymd) => {
         if (!ymd) return '';
         const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1770,16 +1795,144 @@ function renderClientValueReport() {
         return y === thisYear ? `${months[m-1]} ${d}` : `${months[m-1]} ${d}, ${y}`;
     };
 
-    const isMobile = window.matchMedia('(max-width: 700px)').matches;
+    // ──────────── PORTFOLIO SNAPSHOT (top) ────────────
+    const totalRevenue = perClient.reduce((s, r) => s + r.revenue, 0);
+    const totalTips = perClient.reduce((s, r) => s + r.tips, 0);
+    const activeCount = perClient.filter(r => r.isActive).length;
+    const totalVisits = perClient.reduce((s, r) => s + r.visits, 0);
+    const avgClientValue = perClient.length > 0 ? totalRevenue / perClient.length : 0;
+    summaryEl.innerHTML = `
+        <div class="cvr-snap-stat"><span class="cvr-snap-num">${perClient.length}</span><span class="cvr-snap-label">Clients</span></div>
+        <div class="cvr-snap-stat"><span class="cvr-snap-num" style="color: var(--success);">${activeCount}</span><span class="cvr-snap-label">Active (30d)</span></div>
+        <div class="cvr-snap-stat"><span class="cvr-snap-num" style="color: var(--accent-light);">$${totalRevenue.toFixed(0)}</span><span class="cvr-snap-label">Lifetime rev</span></div>
+        <div class="cvr-snap-stat"><span class="cvr-snap-num">$${avgClientValue.toFixed(0)}</span><span class="cvr-snap-label">Avg/client</span></div>
+    `;
 
-    if (isMobile) {
-        // MOBILE: tappable card list — much easier to scan on a phone than a 6-column table
-        wrap.innerHTML = filtered.map(r => {
+    // ──────────── SECTIONS ────────────
+    let html = '';
+
+    // 1. NEEDS ATTENTION — at-risk clients
+    const atRisk = perClient.filter(r => r.isAtRisk)
+        .sort((a, b) => (b.daysSince || 0) - (a.daysSince || 0))
+        .slice(0, 8);
+    if (atRisk.length > 0) {
+        html += `<div class="cvr-section">
+            <h3 class="cvr-section-title">Needs attention <span class="cvr-section-count">${atRisk.length}</span></h3>
+            <div class="cvr-section-hint">Regular clients (3+ visits) with no completed visit in 21+ days and nothing scheduled.</div>
+            <div class="cvr-cards">`;
+        html += atRisk.map(r => {
+            const freqHint = r.avgGap != null
+                ? `Avg ${Math.round(r.avgGap)}d between visits · `
+                : '';
+            return `
+                <div class="cvr-card attention" data-cid="${r.id}">
+                    <div class="cvr-card-header">
+                        <span class="cvr-card-name">${escapeHtml(r.name)}</span>
+                        <span class="cvr-card-pill warn">${r.daysSince}d gap</span>
+                    </div>
+                    <div class="cvr-card-meta">${freqHint}${r.visits} visits · $${r.revenue.toFixed(0)} lifetime</div>
+                    <div class="cvr-card-actions">
+                        <button class="btn btn-primary btn-sm" data-action="book-again" data-cid="${r.id}">Book again</button>
+                        <button class="btn btn-ghost btn-sm" data-action="open-client" data-cid="${r.id}">Open</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        html += `</div></div>`;
+    }
+
+    // 2. TOP CLIENTS — top 5 by revenue
+    const topClients = perClient
+        .filter(r => r.revenue > 0)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+    if (topClients.length > 0) {
+        html += `<div class="cvr-section">
+            <h3 class="cvr-section-title">Top clients <span class="cvr-section-count">by revenue</span></h3>
+            <div class="cvr-ranklist">`;
+        html += topClients.map((r, i) => `
+            <div class="cvr-rank-row" data-cid="${r.id}">
+                <span class="cvr-rank-num">${i + 1}</span>
+                <span class="cvr-rank-name">${escapeHtml(r.name)}</span>
+                <span class="cvr-rank-stats">
+                    <span class="cvr-rank-rev">$${r.revenue.toFixed(0)}</span>
+                    <span class="cvr-rank-sub">${r.visits} visits</span>
+                </span>
+            </div>
+        `).join('');
+        html += `</div></div>`;
+    }
+
+    // 3. NEW CLIENTS — first visit in last 60 days
+    const newClients = perClient.filter(r => r.isNew)
+        .sort((a, b) => (b.firstVisit || '').localeCompare(a.firstVisit || ''))
+        .slice(0, 6);
+    if (newClients.length > 0) {
+        html += `<div class="cvr-section">
+            <h3 class="cvr-section-title">New clients <span class="cvr-section-count">last 60 days</span></h3>
+            <div class="cvr-ranklist">`;
+        html += newClients.map(r => `
+            <div class="cvr-rank-row" data-cid="${r.id}">
+                <span class="cvr-rank-name" style="flex: 1;">${escapeHtml(r.name)}</span>
+                <span class="cvr-rank-stats">
+                    <span class="cvr-rank-sub">first ${fmtShortDate(r.firstVisit)} · ${r.visits} visit${r.visits === 1 ? '' : 's'}</span>
+                </span>
+            </div>
+        `).join('');
+        html += `</div></div>`;
+    }
+
+    // 4. ALL CLIENTS — filterable list (existing card view)
+    html += `<div class="cvr-section">
+        <h3 class="cvr-section-title">All clients</h3>
+        <div class="cvr-filter-row">
+            <input type="text" id="cvrSearch" class="search-bar" placeholder="Filter by name…" oninput="renderClientValueReport()">
+            <label class="cvr-filter-check">
+                <input type="checkbox" id="cvrDormantOnly" onchange="renderClientValueReport()"> Dormant only (21+ days)
+            </label>
+        </div>
+        <div id="cvrAllList"></div>
+    </div>`;
+
+    wrap.innerHTML = html;
+
+    // Restore filter values (they exist before renderClientValueReport last set innerHTML)
+    // Actually they're freshly created — we need to restore from a closure or just leave empty.
+    // Use a module-level state for this:
+    if (typeof _cvrFilterState !== 'undefined') {
+        const si = document.getElementById('cvrSearch');
+        const di = document.getElementById('cvrDormantOnly');
+        if (si && _cvrFilterState.query) si.value = _cvrFilterState.query;
+        if (di) di.checked = !!_cvrFilterState.dormantOnly;
+    }
+
+    // Listen for filter changes and persist to state, then re-render All Clients section only
+    const searchInp = document.getElementById('cvrSearch');
+    const dormantInp = document.getElementById('cvrDormantOnly');
+    const renderAllList = () => {
+        const query = (searchInp?.value || '').trim().toLowerCase();
+        const filterDormant = !!(dormantInp && dormantInp.checked);
+        _cvrFilterState.query = query;
+        _cvrFilterState.dormantOnly = filterDormant;
+
+        let filtered = perClient.slice();
+        if (query) filtered = filtered.filter(r => r.name.toLowerCase().includes(query));
+        if (filterDormant) filtered = filtered.filter(r => r.isDormant);
+        // Sort: revenue desc by default for All Clients
+        filtered.sort((a, b) => b.revenue - a.revenue);
+
+        const listEl = document.getElementById('cvrAllList');
+        if (!listEl) return;
+        if (filtered.length === 0) {
+            listEl.innerHTML = '<div class="cvr-empty">No clients match those filters.</div>';
+            return;
+        }
+        listEl.innerHTML = filtered.map(r => {
             const lastText = r.lastVisit
                 ? `${fmtShortDate(r.lastVisit)} · ${r.daysSince === 0 ? 'today' : r.daysSince + 'd ago'}`
                 : '<span style="font-style: italic;">no past visits</span>';
             return `
-                <div class="cvr-card${r.isDormant ? ' dormant' : ''}" data-cid="${r.id}">
+                <div class="cvr-card${r.isDormant ? ' dormant' : ''}" data-cid="${r.id}" data-action="open-client">
                     <div class="cvr-card-header">
                         <span class="cvr-card-name">${escapeHtml(r.name)}</span>
                         <span class="cvr-card-revenue">$${r.revenue.toFixed(0)}</span>
@@ -1790,54 +1943,43 @@ function renderClientValueReport() {
                 </div>
             `;
         }).join('');
-        // Wire taps — entire card opens the client page
-        wrap.querySelectorAll('.cvr-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const id = card.dataset.cid;
+    };
+    // Override the oninput attribute behavior to use our local renderer instead of re-rendering everything
+    if (searchInp) searchInp.oninput = renderAllList;
+    if (dormantInp) dormantInp.onchange = renderAllList;
+    renderAllList();
+
+    // Wire up click delegation (only once — listener persists across re-renders since wrap doesn't get recreated)
+    if (!wrap._cvrClickWired) {
+        wrap._cvrClickWired = true;
+        wrap.addEventListener('click', (e) => {
+            const actionEl = e.target.closest('[data-action]');
+            if (actionEl) {
+                e.stopPropagation();
+                const action = actionEl.dataset.action;
+                const cid = actionEl.dataset.cid;
+                if (action === 'book-again') {
+                    closeModal('clientValueReportModal');
+                    setTimeout(() => bookAgainFor(cid), 100);
+                    return;
+                } else if (action === 'open-client') {
+                    closeModal('clientValueReportModal');
+                    window.location.href = 'clients.html?id=' + encodeURIComponent(cid);
+                    return;
+                }
+            }
+            // Plain card / rank row click (no [data-action]) → open client
+            const cardEl = e.target.closest('[data-cid]');
+            if (cardEl && cardEl.dataset.cid && !e.target.closest('button')) {
                 closeModal('clientValueReportModal');
-                window.location.href = 'clients.html?id=' + encodeURIComponent(id);
-            });
+                window.location.href = 'clients.html?id=' + encodeURIComponent(cardEl.dataset.cid);
+            }
         });
-        return;
     }
-
-    // DESKTOP: full sortable table
-    const tbody = filtered.map(r => {
-        const dormantClass = r.isDormant ? 'dormant' : '';
-        const lastVisitDisplay = r.lastVisit
-            ? `${r.lastVisit}${r.daysSince != null ? ` <span style="color: var(--text-faint); font-size: 0.85em;">(${r.daysSince}d ago)</span>` : ''}`
-            : '<span style="color: var(--text-faint); font-style: italic;">never</span>';
-        const dormantBadge = r.isDormant
-            ? '<span class="cvr-cell-dormant-badge">dormant</span>'
-            : '';
-        return `
-            <tr class="${dormantClass}">
-                <td><a class="cvr-name-link" href="clients.html?id=${encodeURIComponent(r.id)}" onclick="closeModal('clientValueReportModal')">${escapeHtml(r.name)}</a>${dormantBadge}</td>
-                <td class="cvr-cell-num">${r.visits}</td>
-                <td class="cvr-cell-revenue">$${r.revenue.toFixed(2)}</td>
-                <td class="cvr-cell-num cvr-col-avg">$${r.avgRevenue.toFixed(2)}</td>
-                <td class="cvr-cell-tip cvr-col-tip">$${r.tips.toFixed(2)}</td>
-                <td>${lastVisitDisplay}</td>
-            </tr>
-        `;
-    }).join('');
-
-    wrap.innerHTML = `
-        <table class="cvr-table">
-            <thead>
-                <tr>
-                    ${sortHeader('name', 'Client')}
-                    ${sortHeader('visits', 'Visits')}
-                    ${sortHeader('revenue', 'Revenue')}
-                    ${sortHeader('avgRevenue', 'Avg/visit')}
-                    ${sortHeader('tips', 'Tips')}
-                    ${sortHeader('daysSince', 'Last visit')}
-                </tr>
-            </thead>
-            <tbody>${tbody}</tbody>
-        </table>
-    `;
 }
+
+// Persisted filter state for the All Clients section
+let _cvrFilterState = { query: '', dormantOnly: false };
 
 function _cvrSort(key) {
     if (_cvrSortKey === key) {

@@ -1707,10 +1707,16 @@
            ============================================================ */
         .backfill-workspace { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; padding: 24px 20px; -webkit-overflow-scrolling: touch; }
         .backfill-inner { max-width: 1400px; margin: 0 auto; }
-        .backfill-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-        .backfill-title { font-family: 'Cormorant Unicase', serif; font-size: 1.6em; color: var(--accent); margin: 0; }
-        .backfill-subtitle { color: var(--text-faint); font-size: 0.85em; margin-top: 4px; font-style: italic; }
-        .backfill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .backfill-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+        .backfill-title { font-family: 'Cormorant Unicase', serif; font-size: 1.5em; color: var(--accent); margin: 0; }
+        /* Mode tabs */
+        .bf-mode-tabs { display: flex; gap: 4px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 3px; margin-bottom: 14px; }
+        .bf-mode-tab { flex: 1; background: transparent; border: none; color: var(--text-faint); font-family: 'Cormorant', serif; font-size: 0.92em; font-weight: 500; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background 0.12s, color 0.12s; }
+        .bf-mode-tab.active { background: var(--accent); color: white; font-weight: 600; }
+        .bf-mode-tab:not(.active):hover { color: var(--text); }
+        .backfill-grid { display: block; margin-bottom: 16px; }
+        .bf-mode-panel { display: none; }
+        .bf-mode-panel.active { display: block; }
         .backfill-card { margin-bottom: 0; }
         .bf-hint { color: var(--text-faint); font-size: 0.65em; font-weight: 400; font-family: 'Cormorant', serif; text-transform: none; letter-spacing: 0; margin-left: 6px; font-style: italic; }
         .bf-hint-inline { color: var(--text-faint); font-size: 0.85em; font-style: italic; font-weight: 400; }
@@ -1787,8 +1793,15 @@
         }
         @media (max-width: 700px) {
             .backfill-workspace { padding: max(16px, env(safe-area-inset-top, 16px)) 8px 80px 8px; }
-            .backfill-title { font-size: 1.3em; }
+            .backfill-title { font-size: 1.2em; }
+            .backfill-header { margin-bottom: 12px; padding-bottom: 10px; }
             .bf-field-row { grid-template-columns: 1fr; }
+            .bf-field { margin-bottom: 8px; }
+            .bf-field label { font-size: 0.72em; }
+            .bf-field input, .bf-field select { padding: 8px 10px; }
+            .bf-mode-tabs { margin-bottom: 12px; }
+            .bf-mode-tab { font-size: 0.88em; padding: 7px 10px; }
+            .backfill-card { padding: 12px !important; margin-bottom: 12px !important; }
         }
     
         /* === Overflow safety net for mobile === */
@@ -2604,17 +2617,19 @@
 <div id="backfillWorkspace" class="backfill-workspace" style="display: none;">
     <div class="backfill-inner">
         <div class="backfill-header">
-            <div>
-                <h2 class="backfill-title">Backfill Workspace</h2>
-                <div class="backfill-subtitle">Rapid entry mode for historical visits. Stays open across adds.</div>
-            </div>
-            <button class="btn btn-ghost" onclick="closeBackfill()">✕ Exit Backfill Mode</button>
+            <h2 class="backfill-title">Backfill</h2>
+            <button class="btn btn-ghost btn-sm" onclick="closeBackfill()">✕ Exit</button>
+        </div>
+
+        <!-- Mode tabs: Single Visit (default) | Recurring Pattern -->
+        <div class="bf-mode-tabs" role="tablist">
+            <button class="bf-mode-tab active" data-mode="quick" onclick="bfSetMode('quick')" role="tab">Single Visit</button>
+            <button class="bf-mode-tab" data-mode="pattern" onclick="bfSetMode('pattern')" role="tab">Recurring Pattern</button>
         </div>
 
         <div class="backfill-grid">
             <!-- ─── PATTERN FILL CARD ─── -->
-            <div class="card backfill-card">
-                <h3 class="card-title">Pattern Fill <span class="bf-hint">Generate a batch of recurring visits</span></h3>
+            <div class="card backfill-card bf-mode-panel" data-mode="pattern" style="display: none;">
                 <div class="bf-field">
                     <label>Client</label>
                     <select id="bfPatternClient" onchange="bfPatternAutofillPrice(true); bfPatternAutofillPayment(true); bfPatternRefresh()"></select>
@@ -2684,8 +2699,7 @@
             </div>
 
             <!-- ─── QUICK ADD CARD ─── -->
-            <div class="card backfill-card">
-                <h3 class="card-title">Quick Add <span class="bf-hint">Single visit · Enter to submit · auto-increments date</span></h3>
+            <div class="card backfill-card bf-mode-panel active" data-mode="quick">
                 <div class="bf-field-row">
                     <div class="bf-field">
                         <label>Date</label>
@@ -2754,7 +2768,7 @@
                     <label>Notes <span class="bf-hint-inline">(cleared after each add)</span></label>
                     <input type="text" id="bfQuickNotes" placeholder="optional">
                 </div>
-                <button class="btn btn-primary" onclick="bfQuickAdd()" id="bfQuickAddBtn" style="width: 100%;">Add & Next Day →</button>
+                <button class="btn btn-primary" onclick="bfQuickAdd()" id="bfQuickAddBtn" style="width: 100%;">Add &amp; Next Day →</button>
             </div>
         </div>
 
@@ -2773,14 +2787,10 @@
 
         <!-- ─── DAILY MILEAGE ─── -->
         <div class="card backfill-card" id="bfMileageCard">
-            <h3 class="card-title">
-                Daily Mileage
-                <span class="bf-hint">Auto-calc · 60+ min gap = home trip in between</span>
-            </h3>
+            <h3 class="card-title">Daily Mileage</h3>
             <div id="bfMileageWarning" class="bf-mileage-warning" style="display: none;"></div>
             <div id="bfMileageList" class="bf-mileage-list"></div>
             <div class="bf-mileage-actions" id="bfMileageActions" style="display: none;">
-                <button class="btn btn-ghost btn-sm" onclick="bfRecalcMileage()">Recalculate</button>
                 <button class="btn btn-primary" onclick="bfSaveMileage()" id="bfSaveMileageBtn">Save Mileage</button>
             </div>
         </div>
@@ -6103,6 +6113,9 @@ function openBackfill() {
     _bfRenderSession();
     _bfRenderMileage();
     bfPatternRefresh();
+    // Restore last-used mode (default = 'quick')
+    const savedMode = localStorage.getItem('myreliacare_bf_mode') || 'quick';
+    bfSetMode(savedMode);
 }
 function closeBackfill() {
     document.getElementById('backfillWorkspace').style.display = 'none';
@@ -6111,6 +6124,21 @@ function closeBackfill() {
     if (typeof refreshAll === 'function') refreshAll();
     else if (typeof renderAll === 'function') renderAll();
     else { if (typeof renderCalendar === 'function') renderCalendar(); if (typeof renderToday === 'function') renderToday(); }
+}
+
+/* Switch between Single Visit and Recurring Pattern modes inside the workspace.
+   Persists the choice so reopening the workspace lands on the same view. */
+function bfSetMode(mode) {
+    if (mode !== 'quick' && mode !== 'pattern') return;
+    document.querySelectorAll('.bf-mode-tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    document.querySelectorAll('.bf-mode-panel').forEach(p => {
+        const isActive = p.dataset.mode === mode;
+        p.classList.toggle('active', isActive);
+        p.style.display = isActive ? '' : 'none';
+    });
+    try { localStorage.setItem('myreliacare_bf_mode', mode); } catch (e) {}
 }
 
 function _bfRefreshClients() {
@@ -6785,39 +6813,76 @@ function _bfBuildDayMapsUrl(date, visitsOverride) {
 
 function _bfRenderMileage() {
     const list = document.getElementById('bfMileageList');
-    const warningEl = document.getElementById('bfMileageWarning');
     const actionsEl = document.getElementById('bfMileageActions');
     if (!list) return;
 
     const allVisits = Store.getVisits();
-    const sessionVisits = _bfSessionVisitIds.map(id => allVisits.find(v => v.id === id)).filter(Boolean);
-    const dates = [...new Set(sessionVisits.map(v => v.date))].sort((a, b) => b.localeCompare(a));
-
-    if (dates.length === 0) {
-        list.innerHTML = `<div class="bf-mileage-empty">Add visits above to see them here for mileage logging.</div>`;
-        actionsEl.style.display = 'none';
-        _bfRenderSetupPanel();
-        return;
-    }
-
-    // Always render setup panel (home address is needed for the Maps URL origin)
-    _bfRenderSetupPanel();
-
-    // Existing mileage records (so we don't double-log + can show "already logged")
     const existingMileage = (Store.getMileage && Store.getMileage()) || [];
     const existingByKey = {};
     existingMileage.forEach(r => { existingByKey[`${r.date}|${r.driver}`] = r; });
 
-    // Render one row per date, with two driver columns
-    const rows = dates.map(date => {
+    // Build the set of relevant dates: session-added dates + last 21 days of visits
+    const todayStr = (function(){
+        const d = new Date(); const pad = n => String(n).padStart(2,'0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    })();
+    const cutoff = (function(){
+        const d = new Date(todayStr + 'T00:00:00'); d.setDate(d.getDate() - 21);
+        const pad = n => String(n).padStart(2,'0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    })();
+
+    const sessionDates = new Set(
+        _bfSessionVisitIds.map(id => allVisits.find(v => v.id === id))
+            .filter(Boolean).map(v => v.date)
+    );
+
+    // Days needing attention: recent days with visits where at least one driver had visits but no mileage logged
+    const datesWithRecentVisits = new Set();
+    allVisits.forEach(v => {
+        if (!v.date || v.date > todayStr) return;  // future-scheduled visits don't need mileage
+        if (v.date < cutoff && !sessionDates.has(v.date)) return;
+        datesWithRecentVisits.add(v.date);
+    });
+
+    // For each date, check if both drivers' mileage is logged OR neither drove that day
+    const candidateDates = [...datesWithRecentVisits].filter(date => {
         const dayVisits = allVisits.filter(v => v.date === date);
         const drivers = ['kasey', 'charlie'];
+        // A date "needs" mileage if any driver drove visits that day AND mileage isn't logged for them
+        return drivers.some(driver => {
+            const drove = dayVisits.some(v => _visitCountsForDriver(v, driver));
+            const logged = !!existingByKey[`${date}|${driver}`];
+            return drove && !logged;
+        }) || sessionDates.has(date);  // session dates always shown so user can verify
+    });
+
+    // Sort: session dates first, then most recent first
+    candidateDates.sort((a, b) => {
+        const aSess = sessionDates.has(a) ? 1 : 0;
+        const bSess = sessionDates.has(b) ? 1 : 0;
+        if (aSess !== bSess) return bSess - aSess;
+        return b.localeCompare(a);
+    });
+
+    _bfRenderSetupPanel();
+
+    if (candidateDates.length === 0) {
+        list.innerHTML = `<div class="bf-mileage-empty">No days need mileage in the last 21 days — all caught up.</div>`;
+        actionsEl.style.display = 'none';
+        return;
+    }
+
+    const rows = candidateDates.map(date => {
+        const dayVisits = allVisits.filter(v => v.date === date);
+        const isSession = sessionDates.has(date);
+        const drivers = ['kasey', 'charlie'];
+
         const driverBlocks = drivers.map(driver => {
             const dv = dayVisits.filter(v => _visitCountsForDriver(v, driver));
             const key = `${date}|${driver}`;
             const existing = existingByKey[key];
 
-            // Display: user edit > existing record > empty. NO auto-estimate fallback.
             let displayMiles = '';
             let userEdited = false;
             if (_bfMileageEdits[key] !== undefined) {
@@ -6830,16 +6895,16 @@ function _bfRenderMileage() {
             const visitCount = dv.length;
             const driverLabel = driver === 'kasey' ? 'Kasey' : 'Charlie';
             const noVisits = visitCount === 0;
+            const alreadyLogged = !!existing && !userEdited;
 
-            // Per-driver Google Maps button (only if that driver had visits)
             const mapsUrl = visitCount > 0 ? _bfBuildDayMapsUrl(date, dv) : null;
             const mapsBtn = mapsUrl
-                ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 9px; text-decoration: none; font-size: 0.78em; margin-top: 6px; display: inline-block;">${driverLabel} route on Google Maps →</a>`
+                ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 9px; text-decoration: none; font-size: 0.75em; margin-top: 5px; display: inline-block;">Google Maps route →</a>`
                 : '';
 
             return `
                 <div class="bf-mileage-driver">
-                    <label>${driverLabel} ${noVisits ? '<span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0; font-size:0.9em;">· no visits</span>' : `· ${visitCount} visit${visitCount === 1 ? '' : 's'}`}</label>
+                    <label>${driverLabel}${noVisits ? ' <span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0; font-size:0.9em;">· no visits</span>' : ` · ${visitCount} visit${visitCount === 1 ? '' : 's'}`}${alreadyLogged ? ' <span style="color:var(--success); font-weight:400; text-transform:none; letter-spacing:0; font-size:0.85em;">· logged</span>' : ''}</label>
                     <div class="bf-mileage-driver-row">
                         <input type="number" min="0" step="0.1"
                                class="${userEdited ? 'user-edited' : ''}"
@@ -6855,13 +6920,21 @@ function _bfRenderMileage() {
             `;
         }).join('');
 
-        // Status: are both drivers already logged for this date?
+        // Status tag for the row header
         const kLogged = !!existingByKey[`${date}|kasey`];
         const cLogged = !!existingByKey[`${date}|charlie`];
-        const statusText = (kLogged || cLogged) ? `<span class="bf-mileage-status logged">already logged · will replace</span>` : `<span class="bf-mileage-status">new</span>`;
+        const fullyLogged = kLogged && cLogged;
+        let statusText;
+        if (isSession) {
+            statusText = `<span class="bf-mileage-status" style="color: var(--accent);">session</span>`;
+        } else if (fullyLogged) {
+            statusText = `<span class="bf-mileage-status logged">logged · edit to replace</span>`;
+        } else {
+            statusText = `<span class="bf-mileage-status" style="color: var(--warn);">needs mileage</span>`;
+        }
 
         return `
-            <div class="bf-mileage-row">
+            <div class="bf-mileage-row${fullyLogged && !isSession ? ' already-logged' : ''}">
                 <div class="bf-mileage-row-head">
                     <div class="bf-mileage-date">${date}</div>
                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -7140,8 +7213,10 @@ function bfRecalcMileage() {
 let _bfPendingMileageSave = null;  // { toSave, allVisits } — set when modal is shown
 
 function bfSaveMileage() {
-    const inputs = document.querySelectorAll('#bfMileageList input[data-date][data-driver]');
-    if (inputs.length === 0) { showToast('Nothing to save', 'error'); return; }
+    // Only save rows the user actually edited this session. Already-logged rows
+    // are prefilled for visibility but shouldn't be rewritten unless touched.
+    const inputs = document.querySelectorAll('#bfMileageList input.user-edited[data-date][data-driver]');
+    if (inputs.length === 0) { showToast('Enter miles for at least one day', 'error'); return; }
 
     const allVisits = Store.getVisits();
     const toSave = [];

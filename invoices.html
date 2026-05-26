@@ -64,25 +64,18 @@
         .logout-btn:hover { color: var(--danger); border-color: var(--danger); }
 
         /* Stats */
-        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
         .stat-card.clickable { cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
         .stat-card.clickable:hover { transform: translateY(-2px); border-color: var(--accent); }
-        .stat-card { background: var(--bg-card); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent); }
         .stat-card.warn { border-left-color: var(--warn); }
-        .stat-card.success { border-left-color: var(--success); }
         .stat-card.danger { border-left-color: var(--danger); }
-        .stat-label { color: var(--text-faint); font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-value { color: var(--accent); font-size: 2em; font-weight: 600; margin-top: 4px; font-family: 'Cormorant Unicase', serif; }
-        .stat-card.warn .stat-value { color: var(--warn); }
-        .stat-card.success .stat-value { color: var(--success); }
-        .stat-card.danger .stat-value { color: var(--danger); }
-        .stat-sub { font-size: 0.85em; color: var(--text-faint); margin-top: 2px; }
+
+        .stat-card.warn
+        .stat-card.success
+        .stat-card.danger
+
         @media (max-width: 600px) {
-            .stats-row { gap: 8px; }
-            .stat-card { padding: 12px 10px; }
-            .stat-label { font-size: 0.7em; letter-spacing: 0.5px; }
-            .stat-value { font-size: 1.4em; }
-            .stat-sub { font-size: 0.75em; }
+
+
         }
 
         /* Cards */
@@ -292,8 +285,27 @@
         .income-method-row .imr-net { color: var(--success); }
         .income-empty { color: var(--text-faint); font-size: 0.95em; padding: 14px 0; text-align: center; }
         @media (max-width: 700px) {
-            /* Summary cells stack vertically on mobile (one per row instead of grid) */
-            .income-breakdown-body { grid-template-columns: 1fr; }
+            /* 2-col grid: Net Deposited pinned to the top spanning both columns
+             * (it's the headline number); everything else shares the row pairs below */
+            .income-breakdown-body {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin-top: 10px;
+            }
+            .income-summary-cell {
+                padding: 10px 12px;
+                border-radius: 8px;
+            }
+            .income-summary-cell .label { font-size: 0.7em; margin-bottom: 2px; }
+            .income-summary-cell .value { font-size: 1.2em; }
+            .income-summary-cell .sub { font-size: 0.72em; }
+            .income-summary-cell.net {
+                order: -1;
+                grid-column: 1 / -1;
+                background: var(--bg-card);
+                border-left: 3px solid var(--success);
+            }
+            .income-summary-cell.net .value { font-size: 1.5em; }
         }
 
         /* Mileage section */
@@ -335,11 +347,8 @@
         .tax-table-row .ttr-label,
         .tax-table-row .ttr-value {
             padding: 9px 14px;
-            border-bottom: 1px solid var(--border);
             font-size: 0.95em;
         }
-        .tax-table-row:last-child .ttr-label,
-        .tax-table-row:last-child .ttr-value { border-bottom: none; }
         .tax-table-row .ttr-label { color: var(--text-dim); }
         .tax-table-row .ttr-label small { color: var(--text-faint); font-size: 0.82em; }
         .tax-table-row .ttr-value { text-align: right; color: var(--text); font-weight: 500; min-width: 100px; }
@@ -910,24 +919,6 @@
 
         <div class="action-bar">
             <button class="btn btn-primary" onclick="openNewInvoiceModal()">+ New Invoice</button>
-        </div>
-
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-label">Outstanding</div>
-                <div class="stat-value" id="statOutstanding">$0</div>
-                <div class="stat-sub" id="statOutstandingCount">0 invoices</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Drafts</div>
-                <div class="stat-value" id="statDrafts">0</div>
-                <div class="stat-sub" id="statDraftsSub">in progress</div>
-            </div>
-            <div class="stat-card success">
-                <div class="stat-label">Paid This Month</div>
-                <div class="stat-value" id="statPaid">$0</div>
-                <div class="stat-sub" id="statPaidCount">0 invoices</div>
-            </div>
         </div>
 
         <div class="card income-breakdown-card">
@@ -2353,36 +2344,10 @@ function showCopyFallback(text) {
    STATS + LIST RENDER
    ============================================================ */
 function renderStats() {
-    const invoices = Store.getInvoices();
-    const today = todayYmd();
-    const thisMonthYM = today.slice(0, 7);
-
-    const outstanding = invoices.filter(i => i.status === 'sent');
-    const drafts = invoices.filter(i => i.status === 'draft');
-    const paidInvoicesThisMonth = invoices.filter(i => i.status === 'paid' && i.paidDate && i.paidDate.startsWith(thisMonthYM));
-
-    // Direct-paid visits (Complete & Paid, never went on an invoice) — count those too
-    const visits = Store.getVisits();
-    const paidDirectVisitsThisMonth = visits.filter(v =>
-        v.paid && !v.invoiced && v.paidDate && v.paidDate.startsWith(thisMonthYM)
-    );
-
-    const sumInvoices = arr => arr.reduce((s, i) => s + (i.total || 0), 0);
-    const sumVisits = arr => arr.reduce((s, v) => s + (v.price || 0) + (v.tip || 0), 0);
-
-    const paidTotal = sumInvoices(paidInvoicesThisMonth) + sumVisits(paidDirectVisitsThisMonth);
-    const paidCount = paidInvoicesThisMonth.length + paidDirectVisitsThisMonth.length;
-
-    // Total visits this month (any status) — used as denominator for average pricing
-    const visitsThisMonth = visits.filter(v => (v.date || '').startsWith(thisMonthYM));
-    const visitCount = visitsThisMonth.length;
-
-    document.getElementById('statOutstanding').textContent = '$' + sumInvoices(outstanding).toFixed(2);
-    document.getElementById('statOutstandingCount').textContent = `${outstanding.length} invoice${outstanding.length === 1 ? '' : 's'}`;
-    document.getElementById('statDrafts').textContent = drafts.length;
-    document.getElementById('statDraftsSub').textContent = 'in progress';
-    document.getElementById('statPaid').textContent = '$' + paidTotal.toFixed(2);
-    document.getElementById('statPaidCount').textContent = `${visitCount} visit${visitCount === 1 ? '' : 's'} this month`;
+    // Top stat cards (Outstanding / Drafts / Paid This Month) were removed —
+    // Paid This Month is duplicated by the Income Breakdown's "This Month" tab
+    // which sits right below where the stat cards used to be. Keep this function
+    // defined so existing callers don't break.
 }
 
 function renderFilterTabs() {
@@ -3551,7 +3516,10 @@ function renderTaxProjection() {
     // Tax projection is locked to the current year (annual settings need annual scope)
     const thisY = todayYmd().slice(0, 4);
     const inRange = (dateStr) => dateStr && dateStr.startsWith(thisY);
-    document.getElementById('taxYearNote').textContent = `· ${thisY} estimate, rough — not tax advice`;
+    // taxYearNote is left empty — the "rough estimate, not tax advice" note
+    // was visual noise. The Tax Settings panel handles config.
+    const taxYearNoteEl = document.getElementById('taxYearNote');
+    if (taxYearNoteEl) taxYearNoteEl.textContent = '';
 
     // ─── Gross collected ──────────────────────────────────────
     const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(i.paidDate));
