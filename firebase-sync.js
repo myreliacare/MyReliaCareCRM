@@ -850,7 +850,7 @@ function _showPinSetup() {
             <div id="pinSetupError" style="color: #A85A66; font-size: 0.88em; margin-bottom: 10px; display: none;"></div>
             <button id="pinSetupBtn" style="width: 100%; padding: 12px; background: #B59197; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1em; font-weight: 500;">Set PIN</button>
             <p style="margin: 14px 0 0; color: #A85A66; font-size: 0.82em; line-height: 1.5;">
-                ⚠️ Write this down somewhere safe. If you forget the PIN, you'll need a one-time reset through the developer console.
+                Important: Write this down somewhere safe. If you forget the PIN, you'll need a one-time reset through the developer console.
             </p>
         </div>
     `;

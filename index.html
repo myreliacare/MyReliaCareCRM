@@ -2091,11 +2091,6 @@
                         <option value="quarterly">quarterly</option>
                         <option value="yearly">yearly</option>
                     </select>
-                    <!-- Note only: pin to home toggle -->
-                    <label class="item-conditional item-pin-toggle" data-for-type="note">
-                        <input type="checkbox" id="todoDashPinToggle" onchange="setItemFormPin('dash', this.checked)">
-                        <span>Pin to home</span>
-                    </label>
                     <!-- Client tag (always available; optional for any type) -->
                     <select id="todoDashClient" class="item-client-picker" onchange="setItemFormClient('dash', this.value)" title="Tag a client (optional)">
                         <option value="">No client</option>
@@ -2443,10 +2438,6 @@
                         <option value="quarterly">quarterly</option>
                         <option value="yearly">yearly</option>
                     </select>
-                    <label class="item-conditional item-pin-toggle" data-for-type="note">
-                        <input type="checkbox" id="todoModalPinToggle" onchange="setItemFormPin('modal', this.checked)">
-                        <span>Pin to home</span>
-                    </label>
                     <select id="todoModalClient" class="item-client-picker" onchange="setItemFormClient('modal', this.value)" title="Tag a client (optional)">
                         <option value="">No client</option>
                     </select>
@@ -4936,21 +4927,37 @@ function _addDaysYmd(ymd, days) {
 }
 
 /* --- Type-specific home-dashboard filters --- */
+/* Reminders surface on the dashboard when they have no date (always-on) OR
+ * the date has arrived/passed. Snoozed-to-future reminders stay hidden until then. */
 function _itemRemindersToday(today) {
     return getTodos()
-        .filter(t => t.type === 'reminder' && !t.done && t.surfaceDate && t.surfaceDate <= today)
-        .sort((a, b) => (a.surfaceDate || '').localeCompare(b.surfaceDate || ''));
+        .filter(t => t.type === 'reminder' && !t.done && (!t.surfaceDate || t.surfaceDate <= today))
+        .sort((a, b) => {
+            // Undated first (always relevant), then by surface date ascending
+            if (!a.surfaceDate && b.surfaceDate) return -1;
+            if (a.surfaceDate && !b.surfaceDate) return 1;
+            return (a.surfaceDate || '').localeCompare(b.surfaceDate || '');
+        });
 }
+/* Tasks: no due date = always show on dashboard; with due date = show on/after that day. */
 function _itemTasksToday(today) {
     return getTodos()
-        .filter(t => t.type === 'task' && _todoInTodayView(t, today))
+        .filter(t => t.type === 'task' && !t.done && (!t.dueDate || t.dueDate <= today))
         .sort(_todoSortOpen);
 }
-function _itemPinnedNotes() {
+/* Notes: all non-done notes show on the dashboard. The legacy `pinned` field is
+ * still on the record but doesn't gate visibility anymore. */
+function _itemNotesForDashboard() {
     return getTodos()
-        .filter(t => t.type === 'note' && !t.done && t.pinned)
-        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        .filter(t => t.type === 'note' && !t.done)
+        .sort((a, b) => {
+            // Pinned notes still float to the top within the section (back-compat with old data)
+            if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+            return (b.createdAt || '').localeCompare(a.createdAt || '');
+        });
 }
+/* Back-compat alias — older code may still reference this name. */
+function _itemPinnedNotes() { return _itemNotesForDashboard(); }
 
 function _todoIsOverdue(t, today) {
     return !t.done && t.dueDate && t.dueDate < today;
@@ -5090,12 +5097,6 @@ function addOrUpdateTodo(source) {
     const clientPicker = document.getElementById(ids.client);
     const clientId = (clientPicker && clientPicker.value) || _itemFormClient[source] || null;
 
-    // Validate type-specific requirements
-    if (type === 'reminder' && !dateInput) {
-        showToast('Reminders need a date — when should this surface?', 'error');
-        return;
-    }
-
     const todos = getTodos();
 
     // Build the canonical record for this type — explicitly nulling fields that
@@ -5119,7 +5120,11 @@ function addOrUpdateTodo(source) {
         const recur = _itemFormRecur[source] || '';
         if (recur) {
             baseFields.recurrence = recur;
-            baseFields.recurrenceAnchor = dateInput;
+            // Recurrence requires an anchor to advance from. Default to today
+            // if the user didn't pick a date — otherwise "got it" can't roll the
+            // schedule forward (anchor=null → next=null → reminder never moves).
+            baseFields.recurrenceAnchor = dateInput || todayYmd();
+            if (!baseFields.surfaceDate) baseFields.surfaceDate = todayYmd();
         }
     } else if (type === 'note') {
         baseFields.pinned = !!_itemFormPin[source];
@@ -5505,24 +5510,19 @@ function _renderNoteItem(t, today, source) {
     const safeText = escapeHtml(t.text || '');
     const editingClass = (_todoEdit.dash === t.id || _todoEdit.modal === t.id) ? 'editing' : '';
     const doneClass = t.done ? 'done' : '';
-    const pinnedClass = t.pinned ? 'pinned' : '';
     const clientsById = _itemClientsById();
     const clientChip = _itemClientChip(t, clientsById);
-    const pinSvg = t.pinned
-        ? `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M9.5 1.5l5 5-2 .5L11 9l1.5 4-1 1-4-1.5-2 1.5L4 13l1.5-2L4 9.5l1-1L9.5 1.5z"/></svg>`
-        : `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M9.5 1.5l5 5-2 .5L11 9l1.5 4-1 1-4-1.5-2 1.5L4 13l1.5-2L4 9.5l1-1L9.5 1.5z"/></svg>`;
     const pencilSvg = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5L13.5 5L5 13.5H2.5V11L11 2.5Z"/><path d="M9 4.5L11.5 7"/></svg>`;
     const actions = t.done ? `
             <button class="todo-edit-btn" onclick="unarchiveItem('${t.id}')" title="Restore">↶</button>
             <button class="todo-del-btn" onclick="deleteTodo('${t.id}')" title="Delete">×</button>
     ` : `
-            <button class="item-pin-btn ${pinnedClass}" onclick="togglePinNote('${t.id}')" title="${t.pinned ? 'Unpin from home' : 'Pin to home'}">${pinSvg}</button>
-            <button class="item-reminder-action gotit" onclick="archiveItem('${t.id}')" title="Archive">archive</button>
+            <button class="item-reminder-action gotit" onclick="archiveItem('${t.id}')" title="Archive — hides from dashboard">archive</button>
             <button class="todo-edit-btn" onclick="startEditTodo('${t.id}', '${source}')" title="Edit" aria-label="Edit">${pencilSvg}</button>
             <button class="todo-del-btn" onclick="deleteTodo('${t.id}')" title="Delete">×</button>
     `;
     return `
-        <div class="todo-item item-note ${pinnedClass} ${doneClass} ${editingClass}">
+        <div class="todo-item item-note ${doneClass} ${editingClass}">
             <span class="item-type-tag note">NOTE</span>
             <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
             ${clientChip}
@@ -5545,20 +5545,19 @@ function renderTodoDashboardCard() {
     const today = todayYmd();
     const reminders = _itemRemindersToday(today);
     const tasks = _itemTasksToday(today);
-    const pinned = _itemPinnedNotes();
+    const notes = _itemNotesForDashboard();
 
-    if (reminders.length === 0 && tasks.length === 0 && pinned.length === 0) {
+    if (reminders.length === 0 && tasks.length === 0 && notes.length === 0) {
         container.innerHTML = `<div class="todo-empty">All clear for today.</div>`;
         return;
     }
 
-    // Cap each section on the dashboard; overflow rolls into "view all"
     const cap = 5;
     let html = '';
     let overflowCount = 0;
 
     if (reminders.length > 0) {
-        html += `<div class="item-section-label">Reminders today</div>`;
+        html += `<div class="item-section-label">Reminders</div>`;
         html += reminders.slice(0, cap).map(t => _renderReminderItem(t, today, 'dash')).join('');
         if (reminders.length > cap) overflowCount += (reminders.length - cap);
     }
@@ -5567,10 +5566,10 @@ function renderTodoDashboardCard() {
         html += tasks.slice(0, cap).map(t => _renderTaskItem(t, today, 'dash')).join('');
         if (tasks.length > cap) overflowCount += (tasks.length - cap);
     }
-    if (pinned.length > 0) {
-        html += `<div class="item-section-label">Pinned</div>`;
-        html += pinned.slice(0, cap).map(t => _renderNoteItem(t, today, 'dash')).join('');
-        if (pinned.length > cap) overflowCount += (pinned.length - cap);
+    if (notes.length > 0) {
+        html += `<div class="item-section-label">Notes</div>`;
+        html += notes.slice(0, cap).map(t => _renderNoteItem(t, today, 'dash')).join('');
+        if (notes.length > cap) overflowCount += (notes.length - cap);
     }
 
     if (overflowCount > 0) {
@@ -5585,12 +5584,12 @@ function _renderTodoModalList() {
     const today = todayYmd();
     const all = getTodos();
 
-    // Tab counts
-    const todayReminders = all.filter(t => t.type === 'reminder' && !t.done && t.surfaceDate && t.surfaceDate <= today);
-    const todayTasks = all.filter(t => t.type === 'task' && _todoInTodayView(t, today));
-    const pinnedNotes = all.filter(t => t.type === 'note' && !t.done && t.pinned);
-    const todayCount = todayReminders.length + todayTasks.length + pinnedNotes.length;
-    const notesCount = all.filter(t => t.type === 'note' && !t.done).length;
+    // Tab counts (Today section is the unified dashboard view: anything currently surfacing)
+    const todayReminders = all.filter(t => t.type === 'reminder' && !t.done && (!t.surfaceDate || t.surfaceDate <= today));
+    const todayTasks = all.filter(t => t.type === 'task' && !t.done && (!t.dueDate || t.dueDate <= today));
+    const allNotes = all.filter(t => t.type === 'note' && !t.done);
+    const todayCount = todayReminders.length + todayTasks.length + allNotes.length;
+    const notesCount = allNotes.length;
     const doneCount = all.filter(t => t.done).length;
     if (document.getElementById('todoCountToday')) document.getElementById('todoCountToday').textContent = todayCount || '';
     if (document.getElementById('todoCountNotes')) document.getElementById('todoCountNotes').textContent = notesCount || '';
@@ -5603,25 +5602,26 @@ function _renderTodoModalList() {
         } else {
             if (todayReminders.length > 0) {
                 html += `<div class="item-section-label">Reminders</div>`;
-                html += todayReminders.sort((a,b)=>(a.surfaceDate||'').localeCompare(b.surfaceDate||''))
+                html += todayReminders.sort((a,b) => {
+                        if (!a.surfaceDate && b.surfaceDate) return -1;
+                        if (a.surfaceDate && !b.surfaceDate) return 1;
+                        return (a.surfaceDate||'').localeCompare(b.surfaceDate||'');
+                    })
                     .map(t => _renderReminderItem(t, today, 'modal')).join('');
             }
             if (todayTasks.length > 0) {
                 html += `<div class="item-section-label">Tasks</div>`;
                 html += todayTasks.sort(_todoSortOpen).map(t => _renderTaskItem(t, today, 'modal')).join('');
             }
-            if (pinnedNotes.length > 0) {
-                html += `<div class="item-section-label">Pinned</div>`;
-                html += pinnedNotes.map(t => _renderNoteItem(t, today, 'modal')).join('');
+            if (allNotes.length > 0) {
+                html += `<div class="item-section-label">Notes</div>`;
+                html += allNotes.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+                    .map(t => _renderNoteItem(t, today, 'modal')).join('');
             }
         }
     } else if (_todoTab === 'notes') {
-        // All non-done notes — pinned first, then by recency
-        const notes = all.filter(t => t.type === 'note' && !t.done)
-            .sort((a, b) => {
-                if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
-                return (b.createdAt || '').localeCompare(a.createdAt || '');
-            });
+        // All non-done notes — most recent first
+        const notes = allNotes.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
         if (notes.length === 0) {
             html = `<div class="todo-empty">No notes yet. Use the form above and pick "Note" to capture a thought without a deadline.</div>`;
         } else {
@@ -5649,11 +5649,11 @@ function _renderAllTodoUI() {
         try {
             const today = todayYmd();
             const all = getTodos();
-            const todayReminders = all.filter(t => t.type === 'reminder' && !t.done && t.surfaceDate && t.surfaceDate <= today);
-            const todayTasks = all.filter(t => t.type === 'task' && _todoInTodayView(t, today));
-            const pinnedNotes = all.filter(t => t.type === 'note' && !t.done && t.pinned);
-            const todayCount = todayReminders.length + todayTasks.length + pinnedNotes.length;
-            const notesCount = all.filter(t => t.type === 'note' && !t.done).length;
+            const todayReminders = all.filter(t => t.type === 'reminder' && !t.done && (!t.surfaceDate || t.surfaceDate <= today));
+            const todayTasks = all.filter(t => t.type === 'task' && !t.done && (!t.dueDate || t.dueDate <= today));
+            const allNotes = all.filter(t => t.type === 'note' && !t.done);
+            const todayCount = todayReminders.length + todayTasks.length + allNotes.length;
+            const notesCount = allNotes.length;
             const doneCount = all.filter(t => t.done).length;
             const el = (id) => document.getElementById(id);
             if (el('todoCountToday')) el('todoCountToday').textContent = todayCount || '';
@@ -6826,7 +6826,7 @@ async function _bfGeocodioSingle(addressStr, apiKey) {
         const lat = parseFloat(top.location?.lat);
         const lng = parseFloat(top.location?.lng);
         if (isNaN(lat) || isNaN(lng)) return null;
-        console.log(`[geocodio] ✓ HIT: ${top.formatted_address} (accuracy=${top.accuracy})`);
+        console.log(`[geocodio] HIT: ${top.formatted_address} (accuracy=${top.accuracy})`);
         return { lat, lng, matched: top.formatted_address || null, accuracy: typeof top.accuracy === 'number' ? top.accuracy : null };
     } catch (e) {
         console.warn('[geocodio] error:', e.message);
@@ -6930,7 +6930,7 @@ async function _bfCensusGeocode(addressStr) {
         const lat = parseFloat(matches[0].coordinates?.y);
         const lng = parseFloat(matches[0].coordinates?.x);
         if (isNaN(lat) || isNaN(lng)) return null;
-        console.log(`[census] ✓ HIT: ${matches[0].matchedAddress} → ${lat}, ${lng}`);
+        console.log(`[census] HIT: ${matches[0].matchedAddress} → ${lat}, ${lng}`);
         return { lat, lng };
     } catch (e) {
         console.warn('[census] error:', e.message);
@@ -6953,7 +6953,7 @@ async function _bfPhotonGeocode(addressStr) {
         if (!feat) { console.log('[photon] no features'); return null; }
         const [lng, lat] = feat.geometry?.coordinates || [];
         if (isNaN(lat) || isNaN(lng)) return null;
-        console.log(`[photon] ✓ HIT: ${feat.properties?.name || ''} → ${lat}, ${lng}`);
+        console.log(`[photon] HIT: ${feat.properties?.name || ''} → ${lat}, ${lng}`);
         return { lat, lng };
     } catch (e) {
         console.warn('[photon] error:', e.message);
@@ -7019,7 +7019,7 @@ async function _bfGeocodeAddress(addressStr) {
                 const lat = parseFloat(data[0].lat);
                 const lng = parseFloat(data[0].lon);
                 if (!isNaN(lat) && !isNaN(lng)) {
-                    console.log(`[nominatim] ✓ HIT on attempt ${i+1}: ${data[0].display_name}`);
+                    console.log(`[nominatim] HIT on attempt ${i+1}: ${data[0].display_name}`);
                     return { lat, lng };
                 }
             }
@@ -7062,7 +7062,7 @@ function _bfRenderSetupPanel(missingClients) {
     if (missingClients.length === 0) {
         const gk = _bfGetGeocodioKey();
         const gStatus = gk
-            ? `<span style="color: var(--success); font-size: 0.82em;">✓ Geocodio active</span>`
+            ? `<span style="color: var(--success); font-size: 0.82em;">Geocodio active</span>`
             : `<span style="color: var(--text-faint); font-size: 0.82em;">Geocodio not configured · using free fallback</span>`;
         const homeCoords = (home && home.homeCoords) || null;
         const homeMapBtn = homeCoords
@@ -7104,7 +7104,7 @@ function _bfRenderSetupPanel(missingClients) {
 
     const geocodioKey = _bfGetGeocodioKey();
     const geocodioStatus = geocodioKey
-        ? `<span style="color: var(--success); font-size: 0.82em;">✓ Geocodio active (batch, ~1 sec)</span>`
+        ? `<span style="color: var(--success); font-size: 0.82em;">Geocodio active (batch, ~1 sec)</span>`
         : `<span style="color: var(--text-faint); font-size: 0.82em;">Using free fallback (slower, some addresses may miss)</span>`;
 
     el.style.display = 'block';
@@ -7569,7 +7569,7 @@ function _bfPromptManualHomeCoords() {
                     Couldn't auto-locate <em>${escapeHtml(homeAddress)}</em>. The fastest fix:
                 </div>
                 <button class="btn btn-primary" id="bfUseMyLocationBtn" onclick="_bfUseMyCurrentLocation()" style="width: 100%; padding: 14px; font-size: 1em;">
-                    📍 Use my current location
+                    Use my current location
                 </button>
                 <div style="color: var(--text-faint); font-size: 0.82em; margin-top: 6px; line-height: 1.4;">
                     One tap. Your browser will ask permission. Only works if you're at home right now.
@@ -7607,7 +7607,7 @@ function _bfUseMyCurrentLocation() {
         if (status) status.textContent = 'Your browser doesn\'t support geolocation. Use manual entry below.';
         return;
     }
-    if (btn) { btn.disabled = true; btn.textContent = '📍 Getting location…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Getting location…'; }
     if (status) status.textContent = '';
     navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -7620,7 +7620,7 @@ function _bfUseMyCurrentLocation() {
             _bfAutoComputeMiles();
         },
         (err) => {
-            if (btn) { btn.disabled = false; btn.textContent = '📍 Use my current location'; }
+            if (btn) { btn.disabled = false; btn.textContent = 'Use my current location'; }
             let msg;
             switch (err.code) {
                 case 1: msg = 'Permission denied. Allow location in your browser settings or use manual entry.'; break;

@@ -230,10 +230,10 @@
         .tax-projection-card { margin-bottom: 18px; }
         .tax-section { margin-top: 14px; }
         .tax-section-label { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-        .tax-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 10px; align-items: baseline; padding: 6px 0; font-size: 0.98em; }
+        .tax-row { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: baseline; padding: 6px 0; font-size: 0.98em; max-width: 560px; }
         .tax-row .tax-label { color: var(--text-dim); }
         .tax-row .tax-label small { color: var(--text-faint); font-size: 0.82em; }
-        .tax-row .tax-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 500; }
+        .tax-row .tax-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 500; min-width: 90px; }
         .tax-row.deduction .tax-value { color: var(--warn); }
         .tax-row.income .tax-value { color: var(--accent-light); font-weight: 600; }
         .tax-row.subtotal { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 10px; }
@@ -245,7 +245,9 @@
         .tax-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.9em; }
         .tax-controls label { color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
         .tax-controls select { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-family: inherit; font-size: 0.95em; }
-        .tax-caveat { color: var(--text-faint); font-size: 0.82em; font-style: italic; margin-top: 10px; padding: 10px 12px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--text-faint); }
+        .tax-caveat { color: var(--text-faint); font-size: 0.82em; font-style: italic; margin-top: 10px; padding: 12px 14px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--text-faint); line-height: 1.6; }
+        .tax-caveat code { font-family: 'SFMono-Regular', Consolas, monospace; font-style: normal; font-size: 0.95em; background: var(--bg-input); padding: 1px 5px; border-radius: 3px; color: var(--text-dim); }
+        .tax-caveat strong { color: var(--text); font-style: normal; }
         .tax-caveat-toggle { margin-top: 10px; text-align: right; }
         .tax-caveat-btn { background: transparent; border: none; color: var(--text-faint); font-size: 0.78em; font-family: inherit; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-style: italic; }
         .tax-caveat-btn:hover { color: var(--text-dim); background: var(--bg); }
@@ -3094,7 +3096,7 @@ async function _geocodioSingle(addressStr, apiKey) {
         const lat = parseFloat(top.location?.lat);
         const lng = parseFloat(top.location?.lng);
         if (isNaN(lat) || isNaN(lng)) return null;
-        console.log(`[geocodio] ✓ HIT: ${top.formatted_address} (accuracy=${top.accuracy})`);
+        console.log(`[geocodio] HIT: ${top.formatted_address} (accuracy=${top.accuracy})`);
         return { lat, lng, matched: top.formatted_address || null, accuracy: typeof top.accuracy === 'number' ? top.accuracy : null };
     } catch (e) {
         console.warn('[geocodio] error:', e.message);
@@ -3176,7 +3178,7 @@ async function _censusGeocode(addressStr) {
         const lat = parseFloat(matches[0].coordinates?.y);
         const lng = parseFloat(matches[0].coordinates?.x);
         if (isNaN(lat) || isNaN(lng)) return null;
-        console.log(`[census] ✓ HIT: ${matches[0].matchedAddress} → ${lat}, ${lng}`);
+        console.log(`[census] HIT: ${matches[0].matchedAddress} → ${lat}, ${lng}`);
         return { lat, lng };
     } catch (e) {
         console.warn('[census] error:', e.message);
@@ -3197,7 +3199,7 @@ async function _photonGeocode(addressStr) {
         if (!feat) { console.log('[photon] no features'); return null; }
         const [lng, lat] = feat.geometry?.coordinates || [];
         if (isNaN(lat) || isNaN(lng)) return null;
-        console.log(`[photon] ✓ HIT: ${feat.properties?.name || ''} → ${lat}, ${lng}`);
+        console.log(`[photon] HIT: ${feat.properties?.name || ''} → ${lat}, ${lng}`);
         return { lat, lng };
     } catch (e) {
         console.warn('[photon] error:', e.message);
@@ -3302,7 +3304,7 @@ function _bfmPromptManualHomeCoords() {
                     Couldn't auto-locate <em>${escapeHtml(homeAddress)}</em>. The fastest fix:
                 </div>
                 <button class="btn btn-primary" id="bfmUseMyLocationBtn" onclick="_bfmUseMyCurrentLocation()" style="width: 100%; padding: 14px; font-size: 1em;">
-                    📍 Use my current location
+                    Use my current location
                 </button>
                 <div style="color: var(--text-faint); font-size: 0.82em; margin-top: 6px; line-height: 1.4;">
                     One tap. Your browser will ask permission. Only works if you're at home right now.
@@ -3338,7 +3340,7 @@ function _bfmUseMyCurrentLocation() {
         if (status) status.textContent = 'Your browser doesn\'t support geolocation. Use manual entry below.';
         return;
     }
-    if (btn) { btn.disabled = true; btn.textContent = '📍 Getting location…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Getting location…'; }
     if (status) status.textContent = '';
     navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -3349,7 +3351,7 @@ function _bfmUseMyCurrentLocation() {
             _bfmAutoComputeMiles();
         },
         (err) => {
-            if (btn) { btn.disabled = false; btn.textContent = '📍 Use my current location'; }
+            if (btn) { btn.disabled = false; btn.textContent = 'Use my current location'; }
             let msg;
             switch (err.code) {
                 case 1: msg = 'Permission denied. Allow location in your browser settings or use manual entry.'; break;
@@ -4032,7 +4034,7 @@ function renderTaxProjection() {
                 <div class="tax-value">${fmt(gross)}</div>
             </div>
             <div class="tax-row deduction">
-                <div class="tax-label">− KY sales tax extracted <small>(6% of gross, incl. in prices)</small></div>
+                <div class="tax-label">− KY sales tax extracted</div>
                 <div class="tax-value">−${fmt(salesTaxOwed)}</div>
             </div>
             <div class="tax-row">
@@ -4040,7 +4042,7 @@ function renderTaxProjection() {
                 <div class="tax-value">${fmt(netServiceRevenue)}</div>
             </div>
             ${tips > 0 ? `<div class="tax-row income">
-                <div class="tax-label">+ Tips <small>(not subject to sales tax)</small></div>
+                <div class="tax-label">+ Tips</div>
                 <div class="tax-value">+${fmt(tips)}</div>
             </div>` : ''}
             <div class="tax-row deduction">
@@ -4048,7 +4050,7 @@ function renderTaxProjection() {
                 <div class="tax-value">−${fmt(totalFees)}</div>
             </div>
             <div class="tax-row deduction">
-                <div class="tax-label">− Mileage deduction <small>(${totalMiles.toFixed(1)} mi)</small></div>
+                <div class="tax-label">− Mileage deduction <small>${totalMiles.toFixed(1)} mi</small></div>
                 <div class="tax-value">−${fmt(mileageDeduction)}</div>
             </div>
             <div class="tax-row subtotal">
@@ -4068,11 +4070,11 @@ function renderTaxProjection() {
                 <div class="tax-value">+${fmt(otherTaxable)}</div>
             </div>` : ''}
             ${healthInsurance > 0 ? `<div class="tax-row deduction">
-                <div class="tax-label">− SE health insurance premiums <small>${allowedHealthIns < healthInsurance ? `(capped at SE earnings: ${fmt(allowedHealthIns)})` : ''}</small></div>
+                <div class="tax-label">− SE health insurance premiums${allowedHealthIns < healthInsurance ? ` <small>capped at SE earnings: ${fmt(allowedHealthIns)}</small>` : ''}</div>
                 <div class="tax-value">−${fmt(allowedHealthIns)}</div>
             </div>` : ''}
             ${retirementContrib > 0 ? `<div class="tax-row deduction">
-                <div class="tax-label">− Retirement contributions <small>(SEP / Solo 401k / IRA)</small></div>
+                <div class="tax-label">− Retirement contributions</div>
                 <div class="tax-value">−${fmt(retirementContrib)}</div>
             </div>` : ''}
         </div>` : ''}
@@ -4080,36 +4082,52 @@ function renderTaxProjection() {
         <div class="tax-section">
             <div class="tax-section-label">Estimated Taxes Owed (${filingLabel}, ${thisY})</div>
             <div class="tax-row">
-                <div class="tax-label">Sales tax <small>(collected, owed to KY)</small></div>
+                <div class="tax-label">Sales tax</div>
                 <div class="tax-value">${fmt(salesTaxOwed)}</div>
             </div>
             <div class="tax-row">
-                <div class="tax-label">Self-employment tax <small>(15.3% × 92.35% of SE income, w/ SS cap)</small></div>
+                <div class="tax-label">Self-employment tax</div>
                 <div class="tax-value">${fmt(seTax)}</div>
             </div>
             <div class="tax-row">
-                <div class="tax-label">Federal income tax <small>(AGI $${agi.toFixed(0)} − std ded $${stdDeduction.toLocaleString()} → taxable $${federalTaxableIncome.toFixed(0)})</small></div>
+                <div class="tax-label">Federal income tax</div>
                 <div class="tax-value">${fmt(federalTax)}</div>
             </div>
             <div class="tax-row">
-                <div class="tax-label">KY income tax <small>(3.5% × (AGI − $${kyStdDed.toLocaleString()} KY std ded))</small></div>
+                <div class="tax-label">KY income tax</div>
                 <div class="tax-value">${fmt(kyIncomeTax)}</div>
             </div>
             <div class="tax-row total">
                 <div class="tax-label">Set aside total</div>
                 <div class="tax-value">${fmt(setAside)}</div>
             </div>
-            <div style="text-align: right; color: var(--text-faint); font-size: 0.85em; margin-top: 4px;">
+            <div style="color: var(--text-faint); font-size: 0.85em; margin-top: 4px; max-width: 560px; text-align: right;">
                 ${effectiveRate.toFixed(1)}% of gross
             </div>
         </div>
 
         <div class="tax-caveat-toggle">
-            <button class="tax-caveat-btn" onclick="toggleTaxCaveat()" id="taxCaveatBtn">ⓘ What's included &amp; what's not</button>
+            <button class="tax-caveat-btn" onclick="toggleTaxCaveat()" id="taxCaveatBtn">How these numbers are calculated</button>
             <div class="tax-caveat" id="taxCaveatBody" style="display: none;">
-                <strong>What this gets right:</strong> SE tax (very accurate, includes SS wage base cap), KY sales tax (exact), federal &amp; KY standard deductions, progressive federal brackets, half-SE-tax deduction, SE health insurance deduction (capped at SE earnings per §162(l)), retirement contribution deduction.
+                <strong>Sales tax</strong> — 6% of gross is treated as extracted from your tax-inclusive prices: <code>gross × 6 ÷ 106 = ${fmt(salesTaxOwed)}</code>. Owed to the state of Kentucky.
                 <br><br>
-                <strong>What it doesn't yet handle:</strong> QBI deduction (20% off qualified business income — for pet care, fully available; but doesn't help unless taxable income exceeds standard deduction). Child Tax Credit / EITC. KY Family Size Tax Credit (could zero out KY tax if household MGI is near federal poverty level — check at tax time). Itemized deductions. Double KY std deduction if both spouses have income (file "MFS on combined return"). A CPA can dial these in.
+                <strong>Net service revenue</strong> — Gross minus the sales tax extracted. This is your actual service income before deductions.
+                <br><br>
+                <strong>Tips</strong> — Counted as taxable income but NOT subject to sales tax (gratuity, not service revenue).
+                <br><br>
+                <strong>Payment processing fees</strong> — Venmo (1.9% + $0.10), Stripe (2.9% + $0.30). Deductible business expense; CashApp / Cash / Rover / Zelle / Check have no fee.
+                <br><br>
+                <strong>Mileage deduction</strong> — IRS standard mileage rate × business miles driven. Currently ${totalMiles.toFixed(1)} mi.
+                <br><br>
+                <strong>Self-employment tax</strong> — <code>15.3% × 92.35% × SE income</code>, capped at the Social Security wage base for the Social Security portion (12.4%). Medicare portion (2.9%) has no cap. The 92.35% factor backs out the employer-equivalent half before the rate is applied.
+                <br><br>
+                <strong>Federal income tax</strong> — AGI = SE income − half SE tax − above-the-line deductions. Taxable income = AGI − standard deduction (${fmt(stdDeduction)} for ${filingLabel}). Tax computed using progressive brackets. AGI: ${fmt(agi)}, taxable: ${fmt(federalTaxableIncome)}.
+                <br><br>
+                <strong>KY income tax</strong> — Flat 3.5% × (AGI − KY standard deduction of ${fmt(kyStdDed)}).
+                <br><br>
+                <strong>What this gets right:</strong> SE tax (very accurate, includes SS wage base cap), KY sales tax (exact), federal and KY standard deductions, progressive federal brackets, half-SE-tax deduction, SE health insurance deduction (capped at SE earnings per §162(l)), retirement contribution deduction.
+                <br><br>
+                <strong>What it doesn't yet handle:</strong> QBI deduction (20% off qualified business income — for pet care, fully available; doesn't help unless taxable income exceeds standard deduction). Child Tax Credit / EITC. KY Family Size Tax Credit (could zero out KY tax if household MGI is near federal poverty level — check at tax time). Itemized deductions. Double KY std deduction if both spouses have income (file "MFS on combined return"). A CPA can dial these in.
             </div>
         </div>
     `;

@@ -1144,7 +1144,6 @@ async function autofillMilesFromAddress() {
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
 }
-window.captureClientLocation = captureClientLocation;
 
 function uploadLogo(e) {
     const file = e.target.files[0]; if (!file) return;
