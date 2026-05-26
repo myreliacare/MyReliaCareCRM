@@ -320,25 +320,38 @@
         .tax-projection-card .income-breakdown-title,
         .tax-projection-card #taxSettingsPanel,
         .tax-projection-card #taxProjectionBody { max-width: 720px; margin-left: auto; margin-right: auto; }
-        .tax-section { margin-top: 14px; }
-        /* Section labels + the trailing "% of gross" line need to sit inside the same centered column as the tables */
-        .tax-section .tax-section-label,
-        .tax-section .tax-rate-note { max-width: 560px; margin-left: auto; margin-right: auto; }
-        .tax-table { margin-left: auto; margin-right: auto; }
+        /* Tax projection sections — each wrapped in a single outlined card.
+         * No more stacked borders (section-label's bottom + table's top doubled up). */
+        .tax-section {
+            margin-top: 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            max-width: 560px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .tax-section + .tax-section { margin-top: 12px; }
+        .tax-section .tax-rate-note { padding: 0 14px 8px; color: var(--text-faint); font-size: 0.8em; font-style: italic; }
         .tax-caveat-toggle { max-width: 720px; margin-left: auto; margin-right: auto; }
-        .tax-section-label { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-        .tax-row { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: baseline; padding: 6px 0; font-size: 0.98em; max-width: 560px; }
+        .tax-section-label {
+            color: var(--text-faint);
+            font-size: 0.78em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--bg-input);
+            padding: 9px 14px;
+            margin: 0;
+        }
+        .tax-row { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: baseline; padding: 6px 14px; font-size: 0.98em; }
         .tax-row .tax-label { color: var(--text-dim); }
         .tax-row .tax-label small { color: var(--text-faint); font-size: 0.82em; }
         .tax-row .tax-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 500; min-width: 90px; }
 
-        /* ===== TAX TABLE: clean spreadsheet rows ===== */
+        /* ===== TAX TABLE: clean spreadsheet rows, no outer borders (section card has them) ===== */
         .tax-table {
             display: grid;
             grid-template-columns: 1fr auto;
-            max-width: 560px;
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
             font-variant-numeric: tabular-nums;
         }
         .tax-table-row {
@@ -897,10 +910,10 @@
     <div class="container">
         <div class="header">
             <a href="index.html" class="header-brand" style="text-decoration: none; color: inherit;">
-                <div class="header-logo-container" onclick="document.getElementById('logoUpload').click()">
+                <div class="header-logo-container" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('logoUpload').click()">
                     <img id="headerLogo" class="header-logo" alt="MyReliaCare Logo">
                     <div id="logoPlaceholder" class="header-logo-placeholder">+ Logo</div>
-                    <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo(event)">
+                    <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo(event)" onclick="event.stopPropagation()">
                 </div>
                 <div class="header-title">
                     <h1>MyReliaCare</h1>

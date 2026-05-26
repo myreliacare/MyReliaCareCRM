@@ -758,10 +758,10 @@
     <div class="container">
         <div class="header">
             <a href="index.html" class="header-brand" style="text-decoration: none; color: inherit;">
-                <div class="header-logo-container" onclick="document.getElementById('logoUpload').click()" title="Click to change logo">
+                <div class="header-logo-container" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('logoUpload').click()" title="Click to change logo">
                     <img id="headerLogo" class="header-logo" alt="MyReliaCare Logo">
                     <div id="logoPlaceholder" class="header-logo-placeholder">+ Logo</div>
-                    <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo(event)">
+                    <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo(event)" onclick="event.stopPropagation()">
                 </div>
                 <div class="header-title">
                     <h1>MyReliaCare</h1>
