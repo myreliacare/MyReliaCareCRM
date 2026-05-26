@@ -413,7 +413,7 @@ function _injectSignedInIndicator() {
     searchBtn.title = 'Search (Ctrl+K)';
     searchBtn.setAttribute('aria-label', 'Open global search');
     searchBtn.style.cssText = `
-        position: fixed; top: 12px; right: 130px; z-index: 9500;
+        position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 130px; z-index: 9500;
         background: rgba(42, 34, 32, 0.92); border: 1px solid #4A413E;
         color: #C0B0B4; width: 32px; height: 32px; border-radius: 50%;
         cursor: pointer; display: none; align-items: center; justify-content: center;
@@ -422,6 +422,29 @@ function _injectSignedInIndicator() {
     searchBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>`;
     searchBtn.addEventListener('click', () => window.openGlobalSearch());
     document.body.appendChild(searchBtn);
+
+    // REFRESH BUTTON — essential in PWA standalone mode where pull-to-refresh
+    // doesn't work. Sits to the left of the search button. Reloads current page.
+    const refreshBtn = document.createElement('button');
+    refreshBtn.id = 'globalRefreshBtn';
+    refreshBtn.title = 'Refresh page';
+    refreshBtn.setAttribute('aria-label', 'Refresh page');
+    refreshBtn.style.cssText = `
+        position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 170px; z-index: 9500;
+        background: rgba(42, 34, 32, 0.92); border: 1px solid #4A413E;
+        color: #C0B0B4; width: 32px; height: 32px; border-radius: 50%;
+        cursor: pointer; display: none; align-items: center; justify-content: center;
+        backdrop-filter: blur(4px); font-family: inherit;
+    `;
+    refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
+    refreshBtn.addEventListener('click', () => {
+        // Brief visual feedback before reload
+        refreshBtn.style.color = '#B59197';
+        refreshBtn.style.transform = 'rotate(180deg)';
+        refreshBtn.style.transition = 'transform 0.25s, color 0.15s';
+        setTimeout(() => location.reload(), 180);
+    });
+    document.body.appendChild(refreshBtn);
 
     // Cmd/Ctrl+K shortcut to open search anywhere
     document.addEventListener('keydown', (e) => {
@@ -434,7 +457,7 @@ function _injectSignedInIndicator() {
     const el = document.createElement('div');
     el.id = 'signedInIndicator';
     el.style.cssText = `
-        position: fixed; top: 12px; right: 12px; z-index: 9500;
+        position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 12px; z-index: 9500;
         background: rgba(42, 34, 32, 0.92); border: 1px solid #4A413E;
         color: #C0B0B4; padding: 6px 10px; border-radius: 20px;
         font-family: inherit; font-size: 0.78em;
@@ -452,7 +475,7 @@ function _injectSignedInIndicator() {
     const menu = document.createElement('div');
     menu.id = 'indicatorMenu';
     menu.style.cssText = `
-        position: fixed; top: 48px; right: 12px; z-index: 9501;
+        position: fixed; top: calc(env(safe-area-inset-top, 0px) + 52px); right: 12px; z-index: 9501;
         background: #2A2220; border: 1px solid #4A413E; border-radius: 8px;
         padding: 6px 0; min-width: 180px; display: none;
         box-shadow: 0 4px 14px rgba(0,0,0,0.45);
@@ -1512,6 +1535,8 @@ auth.onAuthStateChanged(async user => {
         if (indicator) indicator.style.display = 'flex';
         const searchBtn = document.getElementById('globalSearchBtn');
         if (searchBtn) searchBtn.style.display = 'flex';
+        const refreshBtn = document.getElementById('globalRefreshBtn');
+        if (refreshBtn) refreshBtn.style.display = 'flex';
 
         // CRITICAL ORDER:
         // 1) Run migration (uses _preMigrationCache; safe even before listeners)
@@ -1547,6 +1572,10 @@ auth.onAuthStateChanged(async user => {
         if (indicator) indicator.style.display = 'none';
         const menu = document.getElementById('indicatorMenu');
         if (menu) menu.style.display = 'none';
+        const searchBtn2 = document.getElementById('globalSearchBtn');
+        if (searchBtn2) searchBtn2.style.display = 'none';
+        const refreshBtn2 = document.getElementById('globalRefreshBtn');
+        if (refreshBtn2) refreshBtn2.style.display = 'none';
 
         detachListeners();
         if (passwordScreen) passwordScreen.style.display = 'flex';
