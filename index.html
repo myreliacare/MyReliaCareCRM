@@ -6582,13 +6582,14 @@ function _bfCalcDayDriverMiles(visits, clientsById) {
  * stored coords are wrong. Returns null if home address or all client
  * addresses are missing.
  */
-function _bfBuildDayMapsUrl(date) {
+function _bfBuildDayMapsUrl(date, visitsOverride) {
     const home = _bfGetHomeSetting();
     const homeAddr = home && home.homeAddress ? home.homeAddress : null;
     if (!homeAddr) return null;
 
-    const allVisits = Store.getVisits() || [];
-    const dayVisits = allVisits.filter(v => v.date === date);
+    const dayVisits = visitsOverride !== undefined
+        ? visitsOverride
+        : (Store.getVisits() || []).filter(v => v.date === date);
     const sorted = dayVisits.slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
     if (sorted.length === 0) return null;
 
@@ -6606,7 +6607,7 @@ function _bfBuildDayMapsUrl(date) {
     for (const v of sorted) {
         const c = clientsById[v.clientId];
         const addr = addrFor(c);
-        if (!addr) continue; // skip clients with no address
+        if (!addr) continue;
         const startMin = _bfTimeToMin(v.time);
         if (prevEndMin !== null && (startMin - prevEndMin) >= 60) {
             stops.push(homeAddr);
@@ -6631,36 +6632,23 @@ function _bfRenderMileage() {
     const list = document.getElementById('bfMileageList');
     const warningEl = document.getElementById('bfMileageWarning');
     const actionsEl = document.getElementById('bfMileageActions');
-    if (!list) return;    // Find unique dates in the session
+    if (!list) return;
+
     const allVisits = Store.getVisits();
     const sessionVisits = _bfSessionVisitIds.map(id => allVisits.find(v => v.id === id)).filter(Boolean);
     const dates = [...new Set(sessionVisits.map(v => v.date))].sort((a, b) => b.localeCompare(a));
 
     if (dates.length === 0) {
-        list.innerHTML = `<div class="bf-mileage-empty">Add visits above to see auto-calculated mileage here.</div>`;
+        list.innerHTML = `<div class="bf-mileage-empty">Add visits above to see them here for mileage logging.</div>`;
         actionsEl.style.display = 'none';
-        // Still render the setup panel — lets the user configure home address before adding any visits
-        _bfRenderSetupPanel([]);
+        _bfRenderSetupPanel();
         return;
     }
 
-    // Build clientsById index, surface any clients in session that lack milesFromHome
-    const clients = Store.getClients();
-    const clientsById = {};
-    clients.forEach(c => { clientsById[c.id] = c; });
-    const sessionClientIds = [...new Set(sessionVisits.map(v => v.clientId))];
-    const clientsMissingMiles = sessionClientIds
-        .map(id => clientsById[id])
-        .filter(c => c && (c.milesFromHome == null || c.milesFromHome === ''));
-    if (clientsMissingMiles.length > 0 || !(_bfGetHomeSetting() && _bfGetHomeSetting().homeAddress)) {
-        _bfRenderSetupPanel(clientsMissingMiles);
-    } else {
-        // Home is set and every session client has miles — render the compact home line anyway,
-        // so the user can still edit home address if needed
-        _bfRenderSetupPanel([]);
-    }
+    // Always render setup panel (home address is needed for the Maps URL origin)
+    _bfRenderSetupPanel();
 
-    // Existing mileage records (so we don't double-log)
+    // Existing mileage records (so we don't double-log + can show "already logged")
     const existingMileage = (Store.getMileage && Store.getMileage()) || [];
     const existingByKey = {};
     existingMileage.forEach(r => { existingByKey[`${r.date}|${r.driver}`] = r; });
@@ -6673,8 +6661,8 @@ function _bfRenderMileage() {
             const dv = dayVisits.filter(v => _visitCountsForDriver(v, driver));
             const key = `${date}|${driver}`;
             const existing = existingByKey[key];
-            const calc = _bfCalcDayDriverMiles(dv, clientsById);
-            // What value to display: user edit > existing record > calculated
+
+            // Display: user edit > existing record > empty. NO auto-estimate fallback.
             let displayMiles = '';
             let userEdited = false;
             if (_bfMileageEdits[key] !== undefined) {
@@ -6682,23 +6670,18 @@ function _bfRenderMileage() {
                 userEdited = true;
             } else if (existing) {
                 displayMiles = existing.miles;
-            } else {
-                displayMiles = calc.miles > 0 ? calc.miles.toFixed(1) : '';
             }
+
             const visitCount = dv.length;
             const driverLabel = driver === 'kasey' ? 'Kasey' : 'Charlie';
             const noVisits = visitCount === 0;
-            const bdKey = key;
-            const showBd = !!_bfMileageOpenBd[bdKey];
-            let bdHtml = '';
-            if (showBd && calc.breakdown.length > 0) {
-                bdHtml = `<div class="bf-mileage-breakdown">${calc.breakdown.map(b => `
-                    <div class="bf-mileage-breakdown-row">
-                        <span class="bf-bd-reason">${escapeHtml(b.label)}</span>
-                        <span>${b.miles == null ? '—' : b.miles.toFixed(1) + ' mi'}</span>
-                    </div>
-                `).join('')}</div>`;
-            }
+
+            // Per-driver Google Maps button (only if that driver had visits)
+            const mapsUrl = visitCount > 0 ? _bfBuildDayMapsUrl(date, dv) : null;
+            const mapsBtn = mapsUrl
+                ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 9px; text-decoration: none; font-size: 0.78em; margin-top: 6px; display: inline-block;">${driverLabel} route on Google Maps →</a>`
+                : '';
+
             return `
                 <div class="bf-mileage-driver">
                     <label>${driverLabel} ${noVisits ? '<span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0; font-size:0.9em;">· no visits</span>' : `· ${visitCount} visit${visitCount === 1 ? '' : 's'}`}</label>
@@ -6706,30 +6689,27 @@ function _bfRenderMileage() {
                         <input type="number" min="0" step="0.1"
                                class="${userEdited ? 'user-edited' : ''}"
                                value="${displayMiles}"
+                               placeholder="0.0"
                                data-date="${date}" data-driver="${driver}"
                                oninput="bfMileageEdit('${date}', '${driver}', this.value)"
                                ${noVisits && !existing ? 'disabled' : ''}>
                         <span class="bf-mileage-unit">mi</span>
                     </div>
-                    ${visitCount > 0 ? `<button class="bf-mileage-breakdown-toggle" onclick="bfMileageToggleBd('${bdKey}')">${showBd ? 'hide' : 'show'} breakdown</button>` : ''}
-                    ${bdHtml}
+                    ${mapsBtn}
                 </div>
             `;
         }).join('');
+
         // Status: are both drivers already logged for this date?
         const kLogged = !!existingByKey[`${date}|kasey`];
         const cLogged = !!existingByKey[`${date}|charlie`];
         const statusText = (kLogged || cLogged) ? `<span class="bf-mileage-status logged">already logged · will replace</span>` : `<span class="bf-mileage-status">new</span>`;
-        const mapsUrl = _bfBuildDayMapsUrl(date);
-        const mapsBtn = mapsUrl
-            ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="padding: 4px 12px; text-decoration: none; font-size: 0.82em; white-space: nowrap;">Get real miles from Google Maps</a>`
-            : '';
+
         return `
             <div class="bf-mileage-row">
                 <div class="bf-mileage-row-head">
                     <div class="bf-mileage-date">${date}</div>
                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        ${mapsBtn}
                         ${statusText}
                     </div>
                 </div>
@@ -6749,25 +6729,18 @@ function _bfUpdateSaveBtnLabel() {
     const sessionVisits = _bfSessionVisitIds.map(id => allVisits.find(v => v.id === id)).filter(Boolean);
     const dates = [...new Set(sessionVisits.map(v => v.date))];
     if (dates.length === 0) { saveBtn.textContent = 'Save Mileage'; return; }
-    const clients = Store.getClients();
-    const clientsById = {};
-    clients.forEach(c => { clientsById[c.id] = c; });
     const existingMileage = (Store.getMileage && Store.getMileage()) || [];
     const existingByKey = {};
     existingMileage.forEach(r => { existingByKey[`${r.date}|${r.driver}`] = r; });
     let pendingCount = 0;
     dates.forEach(date => {
-        const dayVisits = allVisits.filter(v => v.date === date);
         ['kasey', 'charlie'].forEach(driver => {
-            const dv = dayVisits.filter(v => _visitCountsForDriver(v, driver));
             const key = `${date}|${driver}`;
             const existing = existingByKey[key];
-            const calc = _bfCalcDayDriverMiles(dv, clientsById);
-            let val;
-            if (_bfMileageEdits[key] !== undefined) val = parseFloat(_bfMileageEdits[key]);
-            else if (existing) val = existing.miles;
-            else val = calc.miles > 0 ? calc.miles : null;
-            if (val == null || isNaN(val) || val <= 0) return;
+            // Only count what the user actually typed in. No auto-estimate fallback.
+            if (_bfMileageEdits[key] === undefined) return;
+            const val = parseFloat(_bfMileageEdits[key]);
+            if (isNaN(val) || val <= 0) return;
             if (existing && Math.abs(existing.miles - val) < 0.05) return;
             pendingCount++;
         });
@@ -7040,7 +7013,7 @@ function _bfClientAddressStr(c) {
 
 function _bfSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function _bfRenderSetupPanel(missingClients) {
+function _bfRenderSetupPanel() {
     const el = document.getElementById('bfMileageWarning');
     if (!el) return;
     const home = _bfGetHomeSetting();
@@ -7050,7 +7023,7 @@ function _bfRenderSetupPanel(missingClients) {
         el.style.display = 'block';
         el.innerHTML = `
             <div class="bf-setup-header">Set your home address</div>
-            <div class="bf-setup-sub">Mileage auto-calc starts from your home. Stored once, used everywhere.</div>
+            <div class="bf-setup-sub">Required so the Google Maps buttons below can build your route from home.</div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                 <input type="text" id="bfHomeAddressInput" placeholder="123 Main St, Walton KY, 41094" style="flex: 1; min-width: 220px; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 0.95em;">
                 <button class="btn btn-primary btn-sm" onclick="_bfSaveHomeAddress()">Save home address</button>
@@ -7059,81 +7032,14 @@ function _bfRenderSetupPanel(missingClients) {
         return;
     }
 
-    if (missingClients.length === 0) {
-        const gk = _bfGetGeocodioKey();
-        const gStatus = gk
-            ? `<span style="color: var(--success); font-size: 0.82em;">Geocodio active</span>`
-            : `<span style="color: var(--text-faint); font-size: 0.82em;">Geocodio not configured · using free fallback</span>`;
-        const homeCoords = (home && home.homeCoords) || null;
-        const homeMapBtn = homeCoords
-            ? `<a href="https://www.google.com/maps?q=${homeCoords.lat},${homeCoords.lng}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 10px; text-decoration: none;">View home on map</a>`
-            : '';
-        el.style.display = 'block';
-        el.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
-                <div style="color: var(--text-dim); font-size: 0.9em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    ${homeMapBtn}
-                    <button class="btn btn-ghost btn-sm" onclick="_bfEditHomeAddress()">Edit</button>
-                </div>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; background: var(--bg-input); border-radius: 6px; margin-bottom: 8px;">
-                <div>${gStatus}</div>
-                <button class="btn btn-ghost btn-sm" onclick="_bfShowGeocodioKeyModal()" style="padding: 3px 10px;">${gk ? 'Change key' : '+ Add Geocodio key'}</button>
-            </div>
-            <div style="padding: 10px 12px; background: rgba(196, 130, 92, 0.06); border-left: 2px solid var(--accent); border-radius: 4px; color: var(--text-dim); font-size: 0.85em; line-height: 1.5;">
-                Each day below has a <strong>Get real miles from Google Maps</strong> button. Click it, Google Maps opens with your whole day's route already filled in (home → all visits → home), and shows the real driving miles. Type that number into the day's input. Save. Done.
-            </div>
-            <div style="text-align: right; margin-top: 6px;">
-                <a href="#" onclick="event.preventDefault(); _bfShowVerifyCoordsModal()" style="color: var(--text-faint); font-size: 0.78em; text-decoration: underline;">advanced: verify geocoded coords</a>
-            </div>
-        `;
-        return;
-    }
-
-    const withAddr = missingClients.filter(c => _bfClientAddressStr(c));
-    const rows = missingClients.map(c => {
-        const hasAddr = !!_bfClientAddressStr(c);
-        return `
-            <div class="bf-setup-row">
-                <span class="bf-setup-client" title="${escapeHtml(_bfClientAddressStr(c) || 'no address')}">${escapeHtml(c.name || 'Unnamed')}${hasAddr ? '' : ' <span style="color: var(--text-faint); font-size: 0.85em;">· no address</span>'}</span>
-                <input type="number" min="0" step="0.1" data-cid="${c.id}" placeholder="mi" class="bf-setup-input">
-            </div>
-        `;
-    }).join('');
-
-    const geocodioKey = _bfGetGeocodioKey();
-    const geocodioStatus = geocodioKey
-        ? `<span style="color: var(--success); font-size: 0.82em;">Geocodio active (batch, ~1 sec)</span>`
-        : `<span style="color: var(--text-faint); font-size: 0.82em;">Using free fallback (slower, some addresses may miss)</span>`;
-
     el.style.display = 'block';
     el.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
-            <div style="color: var(--text-dim); font-size: 0.88em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
-            <button class="btn btn-ghost btn-sm" onclick="_bfEditHomeAddress()" style="padding: 3px 8px;">Edit</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+            <div style="color: var(--text-dim); font-size: 0.9em;"><span style="color: var(--text-faint);">Home:</span> ${escapeHtml(homeAddress)}</div>
+            <button class="btn btn-ghost btn-sm" onclick="_bfEditHomeAddress()">Edit</button>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 8px 12px; background: var(--bg-input); border-radius: 6px;">
-            <div>${geocodioStatus}</div>
-            <button class="btn btn-ghost btn-sm" onclick="_bfShowGeocodioKeyModal()" style="padding: 3px 10px;">${geocodioKey ? 'Change key' : '+ Add Geocodio key'}</button>
-        </div>
-        ${withAddr.length > 0 ? `
-            <div class="bf-setup-header">Auto-compute miles for ${withAddr.length} client${withAddr.length === 1 ? '' : 's'}</div>
-            <div class="bf-setup-sub">${geocodioKey
-                ? `All ${withAddr.length} addresses geocoded in one batch call — about 1 second.`
-                : `Slow (~${Math.ceil(withAddr.length * 1.2)} sec) and may miss rural addresses. Adding a free Geocodio key fixes both.`}</div>
-            <button class="btn btn-primary btn-sm" onclick="_bfAutoComputeMiles()" id="bfAutoComputeBtn" style="margin-bottom: 14px;">Auto-compute from addresses</button>
-            <div id="bfComputeProgress" style="color: var(--text-faint); font-size: 0.88em; margin-bottom: 12px;"></div>
-        ` : ''}
-        <div class="bf-setup-header" style="margin-top: 8px;">Or enter manually</div>
-        <div class="bf-setup-sub">Required for clients without an address; optional override for the rest.</div>
-        <div class="bf-setup-grid">${rows}</div>
-        <div class="bf-setup-actions">
-            <button class="btn btn-primary btn-sm" onclick="_bfSaveMissingMiles()">Save manual values</button>
-            <button class="btn btn-ghost btn-sm" onclick="_bfDismissSetup()">Skip for now</button>
-        </div>
-        <div style="text-align: right; margin-top: 6px;">
-            <a href="#" onclick="event.preventDefault(); _bfShowVerifyCoordsModal()" style="color: var(--text-faint); font-size: 0.78em; text-decoration: underline;">advanced: verify existing geocoded coords</a>
+        <div style="padding: 10px 12px; background: rgba(196, 130, 92, 0.06); border-left: 2px solid var(--accent); border-radius: 4px; color: var(--text-dim); font-size: 0.85em; line-height: 1.5;">
+            For each day below, tap the <strong>Kasey route</strong> or <strong>Charlie route</strong> button to open that car's stops in Google Maps. Read the trip total, type it into the matching box, save.
         </div>
     `;
 }

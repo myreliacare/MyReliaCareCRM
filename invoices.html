@@ -210,44 +210,44 @@
         .income-method-list { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
         .income-method-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.95em; }
 
-        /* New: payment-method flow chart */
-        .income-method-flow { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
-        .imf-title { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; }
-        .imf-row { padding: 8px 0 14px 0; border-bottom: 1px dashed var(--border); }
-        .imf-row:last-of-type { border-bottom: none; }
-        .imf-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
-        .imf-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-        .imf-name { color: var(--text); font-weight: 500; font-size: 0.98em; }
-        .imf-count { color: var(--text-faint); font-size: 0.82em; }
-        .imf-bar-track {
-            position: relative;
-            height: 14px;
-            background: rgba(196, 130, 92, 0.15);  /* fee color (warn-ish) — what's left after net carves out */
-            border-radius: 3px;
-            overflow: hidden;
-            margin: 4px 0 6px 0;
-            min-width: 8px;
+        .income-method-table { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+        .imr-title { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+        .income-method-row {
+            display: grid;
+            grid-template-columns: 1.4fr 0.5fr 1fr 1fr 1fr;
+            gap: 10px;
+            align-items: center;
+            padding: 9px 12px;
+            font-size: 0.93em;
+            font-variant-numeric: tabular-nums;
+            border-bottom: 1px solid var(--border);
         }
-        .imf-bar-net {
-            position: absolute;
-            left: 0; top: 0; bottom: 0;
-            border-radius: 3px 0 0 3px;
-            transition: width 0.25s ease;
+        .income-method-row:last-child { border-bottom: none; }
+        .income-method-row:nth-child(odd):not(.imr-header) { background: rgba(58, 53, 48, 0.35); }
+        .income-method-row.imr-header {
+            color: var(--text-faint);
+            font-size: 0.74em;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 600;
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+            background: transparent;
         }
-        .imf-numbers { display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline; font-variant-numeric: tabular-nums; font-size: 0.92em; }
-        .imf-gross { color: var(--text); font-weight: 600; }
-        .imf-fee { color: var(--warn); font-size: 0.88em; }
-        .imf-fee-zero { color: var(--text-faint); font-size: 0.85em; font-style: italic; }
-        .imf-net { color: var(--success); font-weight: 500; margin-left: auto; }
-        .imf-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); color: var(--text-faint); font-size: 0.78em; align-items: center; }
-        .imf-legend-swatch { display: inline-block; width: 12px; height: 10px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
-        .imf-legend-swatch.solid { background: var(--accent); }
-        .imf-legend-swatch.fee { background: rgba(196, 130, 92, 0.4); }
-        .imf-legend-note { margin-left: auto; font-style: italic; }
+        .imr-method { display: flex; align-items: center; gap: 9px; }
+        .imr-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+        .imr-name { color: var(--text); font-weight: 500; }
+        .imr-cell { text-align: right; }
+        .imr-cell.imr-count { color: var(--text-dim); }
+        .imr-cell.imr-gross { color: var(--text); font-weight: 500; }
+        .imr-cell.imr-fee { color: var(--warn); font-size: 0.92em; }
+        .imr-cell.imr-net { color: var(--success); font-weight: 500; }
+        .income-method-row.imr-header .imr-cell { color: var(--text-faint); font-weight: 600; }
         @media (max-width: 700px) {
-            .imf-numbers { font-size: 0.85em; gap: 10px; }
-            .imf-net { margin-left: 0; }
-            .imf-legend-note { margin-left: 0; flex-basis: 100%; }
+            .income-method-row { grid-template-columns: 1.3fr 1fr 1fr; gap: 6px; padding: 8px 10px; font-size: 0.87em; }
+            .income-method-row .imr-cell.imr-count,
+            .income-method-row .imr-cell.imr-fee { display: none; }
         }
         .income-method-row:last-child { border-bottom: none; }
         .income-method-row.header { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; }
@@ -275,85 +275,50 @@
         .tax-row .tax-label small { color: var(--text-faint); font-size: 0.82em; }
         .tax-row .tax-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 500; min-width: 90px; }
 
-        /* ===== TAX FLOW: vertical connector + dot markers + magnitude bars ===== */
-        .tax-flow-rows {
-            position: relative;
-            padding-left: 22px;
-            max-width: 720px;
-        }
-        .tax-flow-rows::before {
-            /* the vertical connector line running through all dots */
-            content: '';
-            position: absolute;
-            left: 6px;
-            top: 14px;
-            bottom: 14px;
-            width: 1px;
-            background: var(--border);
-        }
-        .tax-flow-row {
-            position: relative;
+        /* ===== TAX TABLE: clean spreadsheet rows ===== */
+        .tax-table {
             display: grid;
-            grid-template-columns: minmax(180px, 1fr) 100px minmax(60px, 200px);
-            gap: 14px;
-            align-items: center;
-            padding: 8px 0;
-            font-size: 0.96em;
+            grid-template-columns: 1fr auto;
+            max-width: 560px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            font-variant-numeric: tabular-nums;
         }
-        .tf-marker {
-            position: absolute;
-            left: -22px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 13px;
-            height: 13px;
-            border-radius: 50%;
-            background: var(--bg);
-            border: 2px solid var(--text-faint);
-            z-index: 1;
+        .tax-table-row {
+            display: contents;
         }
-        .tf-marker.subtotal { border-color: var(--accent); background: var(--accent); width: 15px; height: 15px; }
-        .tf-marker.total { border-color: var(--accent); background: var(--accent); width: 17px; height: 17px; box-shadow: 0 0 0 3px rgba(196, 167, 123, 0.2); }
-        .tf-marker.tax { border-color: var(--warn); }
-        .tf-label { color: var(--text-dim); line-height: 1.3; }
-        .tf-label small { color: var(--text-faint); font-size: 0.82em; }
-        .tf-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 500; }
-        .tf-bar {
-            height: 8px;
-            background: rgba(140, 120, 110, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
-            min-width: 40px;
+        .tax-table-row .ttr-label,
+        .tax-table-row .ttr-value {
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95em;
         }
-        .tf-bar-fill {
-            height: 100%;
-            border-radius: 2px;
-            transition: width 0.3s ease;
-        }
-        .tf-bar-fill.income { background: var(--success); }
-        .tf-bar-fill.deduction { background: var(--warn); }
-        .tf-bar-fill.subtotal-mini { background: rgba(196, 167, 123, 0.5); }
-        .tf-bar-fill.subtotal { background: var(--accent); }
-        .tf-bar-fill.tax { background: var(--warn); opacity: 0.7; }
-        .tf-bar-fill.total { background: var(--accent); }
-        .tax-flow-row.income .tf-value { color: var(--success); }
-        .tax-flow-row.deduction .tf-value { color: var(--warn); }
-        .tax-flow-row.subtotal { padding-top: 12px; padding-bottom: 10px; border-top: 1px solid var(--border); margin-top: 4px; }
-        .tax-flow-row.subtotal .tf-label { color: var(--text); font-weight: 600; }
-        .tax-flow-row.subtotal .tf-value { color: var(--accent); font-weight: 700; font-size: 1.08em; }
-        .tax-flow-row.subtotal-mini .tf-label { color: var(--text); font-weight: 500; }
-        .tax-flow-row.subtotal-mini .tf-value { color: var(--text); font-weight: 600; }
-        .tax-flow-row.total { padding-top: 14px; margin-top: 6px; border-top: 2px solid var(--accent); }
-        .tax-flow-row.total .tf-label { color: var(--accent); font-weight: 700; font-family: 'Cormorant Unicase', serif; text-transform: uppercase; letter-spacing: 1px; font-size: 0.95em; }
-        .tax-flow-row.total .tf-value { color: var(--accent); font-size: 1.3em; font-weight: 700; font-family: 'Cormorant Unicase', serif; }
-        .tax-flow-row.tax-owed .tf-value { color: var(--warn); }
+        .tax-table-row:last-child .ttr-label,
+        .tax-table-row:last-child .ttr-value { border-bottom: none; }
+        .tax-table-row .ttr-label { color: var(--text-dim); }
+        .tax-table-row .ttr-label small { color: var(--text-faint); font-size: 0.82em; }
+        .tax-table-row .ttr-value { text-align: right; color: var(--text); font-weight: 500; min-width: 100px; }
+        /* zebra striping for readability */
+        .tax-table-row:nth-child(even) .ttr-label,
+        .tax-table-row:nth-child(even) .ttr-value { background: rgba(58, 53, 48, 0.35); }
+        /* row color accents */
+        .tax-table-row.income .ttr-value { color: var(--success); }
+        .tax-table-row.deduction .ttr-value { color: var(--warn); }
+        .tax-table-row.tax-owed .ttr-value { color: var(--warn); }
+        .tax-table-row.subtotal-mini .ttr-label { color: var(--text); font-weight: 500; }
+        .tax-table-row.subtotal-mini .ttr-value { color: var(--text); font-weight: 600; }
+        .tax-table-row.subtotal .ttr-label { color: var(--text); font-weight: 600; }
+        .tax-table-row.subtotal .ttr-value { color: var(--accent); font-weight: 700; font-size: 1.05em; }
+        .tax-table-row.subtotal .ttr-label,
+        .tax-table-row.subtotal .ttr-value { border-top: 1px solid var(--accent); }
+        .tax-table-row.total .ttr-label { color: var(--accent); font-weight: 700; font-family: 'Cormorant Unicase', serif; text-transform: uppercase; letter-spacing: 1px; font-size: 0.92em; padding-top: 12px; padding-bottom: 12px; }
+        .tax-table-row.total .ttr-value { color: var(--accent); font-size: 1.25em; font-weight: 700; font-family: 'Cormorant Unicase', serif; padding-top: 12px; padding-bottom: 12px; }
+        .tax-table-row.total .ttr-label,
+        .tax-table-row.total .ttr-value { border-top: 2px solid var(--accent); }
         @media (max-width: 700px) {
-            .tax-flow-rows { padding-left: 18px; }
-            .tax-flow-rows::before { left: 5px; }
-            .tf-marker { left: -18px; width: 11px; height: 11px; }
-            .tax-flow-row { grid-template-columns: minmax(120px, 1fr) 80px; gap: 10px; font-size: 0.88em; }
-            .tax-flow-row .tf-bar { display: none; }
-            .tax-flow-row.total .tf-value { font-size: 1.15em; }
+            .tax-table-row .ttr-label,
+            .tax-table-row .ttr-value { padding: 8px 10px; font-size: 0.88em; }
+            .tax-table-row.total .ttr-value { font-size: 1.1em; }
         }
         .tax-row.deduction .tax-value { color: var(--warn); }
         .tax-row.income .tax-value { color: var(--accent-light); font-weight: 600; }
@@ -2579,55 +2544,47 @@ function renderIncomeBreakdown() {
         </div>
     `;
 
-    // By-method breakdown — horizontal bars showing each method's contribution
+    // By-method breakdown — clean spreadsheet rows
     const methodOrder = ['venmo', 'cashapp', 'stripe', 'rover', 'cash', 'other', 'unrecorded'];
     const usedMethods = methodOrder.filter(k => byMethod[k]);
-    const maxGross = usedMethods.reduce((m, k) => Math.max(m, byMethod[k].gross || 0), 0) || 1;
     const methodColor = {
-        venmo:      '#B59197',  // accent rose
-        cashapp:    '#C9A66B',  // success gold
-        stripe:     '#A47F85',  // accent dark
-        rover:      '#C4825C',  // warn terracotta
-        cash:       '#D4C5C9',  // accent light (creamy rose)
-        other:      '#8B7378',  // text faint (muted)
-        unrecorded: '#5A4F4C',  // border (very muted)
+        venmo:      '#B59197',
+        cashapp:    '#C9A66B',
+        stripe:     '#A47F85',
+        rover:      '#C4825C',
+        cash:       '#D4C5C9',
+        other:      '#8B7378',
+        unrecorded: '#5A4F4C',
     };
     const methodRows = usedMethods.map(k => {
         const m = byMethod[k];
         const label = k === 'unrecorded' ? 'Unrecorded' : paymentMethodLabel(k);
         const color = methodColor[k] || 'var(--accent)';
-        const grossPct = (m.gross / maxGross) * 100;
-        // The fee carves out of the bar from the right — net is the solid part
-        const netPctOfGross = m.gross > 0 ? (m.net / m.gross) * 100 : 0;
         return `
-            <div class="imf-row">
-                <div class="imf-head">
-                    <span class="imf-dot" style="background: ${color};"></span>
-                    <span class="imf-name">${label}</span>
-                    <span class="imf-count">${m.count} payment${m.count === 1 ? '' : 's'}</span>
+            <div class="income-method-row">
+                <div class="imr-method">
+                    <span class="imr-dot" style="background: ${color};"></span>
+                    <span class="imr-name">${label}</span>
                 </div>
-                <div class="imf-bar-track" style="width: ${grossPct.toFixed(1)}%;">
-                    <div class="imf-bar-net" style="width: ${netPctOfGross.toFixed(1)}%; background: ${color};"></div>
-                    <div class="imf-bar-fee"></div>
-                </div>
-                <div class="imf-numbers">
-                    <span class="imf-gross">$${m.gross.toFixed(2)}</span>
-                    ${m.fee > 0 ? `<span class="imf-fee">−$${m.fee.toFixed(2)}</span>` : `<span class="imf-fee-zero">no fee</span>`}
-                    <span class="imf-net">$${m.net.toFixed(2)} net</span>
-                </div>
+                <div class="imr-cell imr-count">${m.count}</div>
+                <div class="imr-cell imr-gross">$${m.gross.toFixed(2)}</div>
+                <div class="imr-cell imr-fee">${m.fee > 0 ? '−$' + m.fee.toFixed(2) : '—'}</div>
+                <div class="imr-cell imr-net">$${m.net.toFixed(2)}</div>
             </div>
         `;
     }).join('');
 
     body.insertAdjacentHTML('beforeend', `
-        <div class="income-method-flow" style="grid-column: 1 / -1;">
-            <div class="imf-title">Where it came from</div>
-            ${methodRows}
-            <div class="imf-legend">
-                <span><span class="imf-legend-swatch solid"></span>net (kept)</span>
-                <span><span class="imf-legend-swatch fee"></span>processor fee</span>
-                <span class="imf-legend-note">bar length = gross relative to largest method</span>
+        <div class="income-method-table" style="grid-column: 1 / -1;">
+            <div class="imr-title">By payment method</div>
+            <div class="income-method-row imr-header">
+                <div class="imr-method">Method</div>
+                <div class="imr-cell">Count</div>
+                <div class="imr-cell">Gross</div>
+                <div class="imr-cell">Fees</div>
+                <div class="imr-cell">Net</div>
             </div>
+            ${methodRows}
         </div>
     `);
 }
@@ -4141,116 +4098,84 @@ function renderTaxProjection() {
     const filingLabel = filingLabels[settings.filingStatus];
 
     body.innerHTML = `
-        <div class="tax-section tax-flow">
+        <div class="tax-section">
             <div class="tax-section-label">Net Business Income (MyReliaCare)</div>
-            <div class="tax-flow-rows">
-                <div class="tax-flow-row income">
-                    <div class="tf-marker"></div>
-                    <div class="tf-label">Gross collected</div>
-                    <div class="tf-value">${fmt(gross)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill income" style="width: 100%"></div></div>
+            <div class="tax-table">
+                <div class="tax-table-row income">
+                    <div class="ttr-label">Gross collected</div>
+                    <div class="ttr-value">${fmt(gross)}</div>
                 </div>
-                <div class="tax-flow-row deduction">
-                    <div class="tf-marker"></div>
-                    <div class="tf-label">− KY sales tax extracted</div>
-                    <div class="tf-value">−${fmt(salesTaxOwed)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill deduction" style="width: ${_tfPct(salesTaxOwed, gross)}%"></div></div>
+                <div class="tax-table-row deduction">
+                    <div class="ttr-label">− KY sales tax extracted</div>
+                    <div class="ttr-value">−${fmt(salesTaxOwed)}</div>
                 </div>
-                <div class="tax-flow-row subtotal-mini">
-                    <div class="tf-marker"></div>
-                    <div class="tf-label">Net service revenue</div>
-                    <div class="tf-value">${fmt(netServiceRevenue)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill subtotal-mini" style="width: ${_tfPct(netServiceRevenue, gross)}%"></div></div>
+                <div class="tax-table-row subtotal-mini">
+                    <div class="ttr-label">Net service revenue</div>
+                    <div class="ttr-value">${fmt(netServiceRevenue)}</div>
                 </div>
-                ${tips > 0 ? `<div class="tax-flow-row income">
-                    <div class="tf-marker"></div>
-                    <div class="tf-label">+ Tips</div>
-                    <div class="tf-value">+${fmt(tips)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill income" style="width: ${_tfPct(tips, gross)}%"></div></div>
+                ${tips > 0 ? `<div class="tax-table-row income">
+                    <div class="ttr-label">+ Tips</div>
+                    <div class="ttr-value">+${fmt(tips)}</div>
                 </div>` : ''}
-                <div class="tax-flow-row deduction">
-                    <div class="tf-marker"></div>
-                    <div class="tf-label">− Payment processing fees</div>
-                    <div class="tf-value">−${fmt(totalFees)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill deduction" style="width: ${_tfPct(totalFees, gross)}%"></div></div>
+                <div class="tax-table-row deduction">
+                    <div class="ttr-label">− Payment processing fees</div>
+                    <div class="ttr-value">−${fmt(totalFees)}</div>
                 </div>
-                <div class="tax-flow-row deduction">
-                    <div class="tf-marker"></div>
-                    <div class="tf-label">− Mileage deduction <small>${totalMiles.toFixed(1)} mi</small></div>
-                    <div class="tf-value">−${fmt(mileageDeduction)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill deduction" style="width: ${_tfPct(mileageDeduction, gross)}%"></div></div>
+                <div class="tax-table-row deduction">
+                    <div class="ttr-label">− Mileage deduction <small>${totalMiles.toFixed(1)} mi</small></div>
+                    <div class="ttr-value">−${fmt(mileageDeduction)}</div>
                 </div>
-                <div class="tax-flow-row subtotal">
-                    <div class="tf-marker subtotal"></div>
-                    <div class="tf-label">= Net business income</div>
-                    <div class="tf-value">${fmt(netBusinessIncome)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill subtotal" style="width: ${_tfPct(netBusinessIncome, gross)}%"></div></div>
+                <div class="tax-table-row subtotal">
+                    <div class="ttr-label">= Net business income</div>
+                    <div class="ttr-value">${fmt(netBusinessIncome)}</div>
                 </div>
             </div>
         </div>
 
-        ${(otherSe > 0 || otherTaxable > 0 || healthInsurance > 0 || retirementContrib > 0) ? `<div class="tax-section tax-flow">
+        ${(otherSe > 0 || otherTaxable > 0 || healthInsurance > 0 || retirementContrib > 0) ? `<div class="tax-section">
             <div class="tax-section-label">Other Income & Above-the-Line Deductions (from Tax Settings)</div>
-            <div class="tax-flow-rows">
-            ${otherSe > 0 ? `<div class="tax-flow-row income">
-                <div class="tf-marker"></div>
-                <div class="tf-label">+ Other self-employment income</div>
-                <div class="tf-value">+${fmt(otherSe)}</div>
-                <div class="tf-bar"><div class="tf-bar-fill income" style="width: ${_tfPct(otherSe, gross)}%"></div></div>
+            <div class="tax-table">
+            ${otherSe > 0 ? `<div class="tax-table-row income">
+                <div class="ttr-label">+ Other self-employment income</div>
+                <div class="ttr-value">+${fmt(otherSe)}</div>
             </div>` : ''}
-            ${otherTaxable > 0 ? `<div class="tax-flow-row income">
-                <div class="tf-marker"></div>
-                <div class="tf-label">+ Other taxable income</div>
-                <div class="tf-value">+${fmt(otherTaxable)}</div>
-                <div class="tf-bar"><div class="tf-bar-fill income" style="width: ${_tfPct(otherTaxable, gross)}%"></div></div>
+            ${otherTaxable > 0 ? `<div class="tax-table-row income">
+                <div class="ttr-label">+ Other taxable income</div>
+                <div class="ttr-value">+${fmt(otherTaxable)}</div>
             </div>` : ''}
-            ${healthInsurance > 0 ? `<div class="tax-flow-row deduction">
-                <div class="tf-marker"></div>
-                <div class="tf-label">− SE health insurance premiums${allowedHealthIns < healthInsurance ? ` <small>capped at SE earnings: ${fmt(allowedHealthIns)}</small>` : ''}</div>
-                <div class="tf-value">−${fmt(allowedHealthIns)}</div>
-                <div class="tf-bar"><div class="tf-bar-fill deduction" style="width: ${_tfPct(allowedHealthIns, gross)}%"></div></div>
+            ${healthInsurance > 0 ? `<div class="tax-table-row deduction">
+                <div class="ttr-label">− SE health insurance premiums${allowedHealthIns < healthInsurance ? ` <small>capped at SE earnings: ${fmt(allowedHealthIns)}</small>` : ''}</div>
+                <div class="ttr-value">−${fmt(allowedHealthIns)}</div>
             </div>` : ''}
-            ${retirementContrib > 0 ? `<div class="tax-flow-row deduction">
-                <div class="tf-marker"></div>
-                <div class="tf-label">− Retirement contributions</div>
-                <div class="tf-value">−${fmt(retirementContrib)}</div>
-                <div class="tf-bar"><div class="tf-bar-fill deduction" style="width: ${_tfPct(retirementContrib, gross)}%"></div></div>
+            ${retirementContrib > 0 ? `<div class="tax-table-row deduction">
+                <div class="ttr-label">− Retirement contributions</div>
+                <div class="ttr-value">−${fmt(retirementContrib)}</div>
             </div>` : ''}
             </div>
         </div>` : ''}
 
-        <div class="tax-section tax-flow">
+        <div class="tax-section">
             <div class="tax-section-label">Estimated Taxes Owed (${filingLabel}, ${thisY})</div>
-            <div class="tax-flow-rows">
-                <div class="tax-flow-row tax-owed">
-                    <div class="tf-marker tax"></div>
-                    <div class="tf-label">Sales tax</div>
-                    <div class="tf-value">${fmt(salesTaxOwed)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill tax" style="width: ${_tfPct(salesTaxOwed, setAside || gross)}%"></div></div>
+            <div class="tax-table">
+                <div class="tax-table-row tax-owed">
+                    <div class="ttr-label">Sales tax</div>
+                    <div class="ttr-value">${fmt(salesTaxOwed)}</div>
                 </div>
-                <div class="tax-flow-row tax-owed">
-                    <div class="tf-marker tax"></div>
-                    <div class="tf-label">Self-employment tax</div>
-                    <div class="tf-value">${fmt(seTax)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill tax" style="width: ${_tfPct(seTax, setAside || gross)}%"></div></div>
+                <div class="tax-table-row tax-owed">
+                    <div class="ttr-label">Self-employment tax</div>
+                    <div class="ttr-value">${fmt(seTax)}</div>
                 </div>
-                <div class="tax-flow-row tax-owed">
-                    <div class="tf-marker tax"></div>
-                    <div class="tf-label">Federal income tax</div>
-                    <div class="tf-value">${fmt(federalTax)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill tax" style="width: ${_tfPct(federalTax, setAside || gross)}%"></div></div>
+                <div class="tax-table-row tax-owed">
+                    <div class="ttr-label">Federal income tax</div>
+                    <div class="ttr-value">${fmt(federalTax)}</div>
                 </div>
-                <div class="tax-flow-row tax-owed">
-                    <div class="tf-marker tax"></div>
-                    <div class="tf-label">KY income tax</div>
-                    <div class="tf-value">${fmt(kyIncomeTax)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill tax" style="width: ${_tfPct(kyIncomeTax, setAside || gross)}%"></div></div>
+                <div class="tax-table-row tax-owed">
+                    <div class="ttr-label">KY income tax</div>
+                    <div class="ttr-value">${fmt(kyIncomeTax)}</div>
                 </div>
-                <div class="tax-flow-row total">
-                    <div class="tf-marker total"></div>
-                    <div class="tf-label">Set aside total</div>
-                    <div class="tf-value">${fmt(setAside)}</div>
-                    <div class="tf-bar"><div class="tf-bar-fill total" style="width: 100%"></div></div>
+                <div class="tax-table-row total">
+                    <div class="ttr-label">Set aside total</div>
+                    <div class="ttr-value">${fmt(setAside)}</div>
                 </div>
             </div>
             <div style="color: var(--text-faint); font-size: 0.85em; margin-top: 8px; max-width: 560px; text-align: right;">
