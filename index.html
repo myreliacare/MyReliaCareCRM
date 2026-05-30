@@ -483,6 +483,58 @@
         .view-filter-pill.active { background: var(--accent); color: var(--bg-card); font-weight: 600; }
 
         /* Mileage prompt banner — homepage nudge for days with completed visits but no mileage */
+        .ui-icon { vertical-align: -2px; }
+        .daily-report-btn { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; cursor: pointer; font-family: inherit; color: var(--text); transition: border-color 0.12s, box-shadow 0.12s; text-align: left; }
+        .daily-report-btn:hover { border-color: var(--accent); }
+        .daily-report-btn.needs-log { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+        .drb-left { display: inline-flex; align-items: center; gap: 9px; color: var(--accent); }
+        .drb-title { font-family: 'Cormorant', serif; font-size: 1.15em; font-weight: 600; }
+        .drb-status { color: var(--text-faint); font-size: 0.82em; text-align: right; }
+        .dr-section { margin-bottom: 18px; }
+        .dr-section-title { color: var(--accent); font-weight: 600; font-size: 1.05em; font-family: 'Cormorant', serif; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+        .dr-pay { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+        .dr-pay-item { background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 9px 10px; text-align: center; }
+        .dr-pay-val { display: block; font-size: 1.15em; font-weight: 600; color: var(--text); }
+        .dr-pay-val.ok { color: var(--success); }
+        .dr-pay-val.warn { color: var(--accent-light); }
+        .dr-pay-lbl { display: block; color: var(--text-faint); font-size: 0.75em; margin-top: 2px; }
+        /* Inside the report the relocated cards shouldn't double their own chrome margin */
+        #dailyReportModal .today-route-card, #dailyReportModal .unpaid-card { margin-bottom: 18px; }
+        .today-route-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+        .today-route-card.needs-log { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+        .unpaid-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+        .unpaid-card.needs-action { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+        .uv-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+        .uv-title { color: var(--accent); font-weight: 600; font-size: 1.08em; font-family: 'Cormorant', serif; }
+        .uv-summary { color: var(--text-faint); font-size: 0.85em; }
+        .uv-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px dashed var(--border); }
+        .uv-row:first-of-type { border-top: none; }
+        .uv-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .uv-client { color: var(--text); font-weight: 500; }
+        .uv-meta { color: var(--text-faint); font-size: 0.82em; }
+        .uv-meta .uv-overdue { color: var(--accent-light); }
+        .uv-pay { flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; }
+        .uv-more { color: var(--text-faint); font-size: 0.82em; margin-top: 8px; }
+        .trc-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+        .trc-title { color: var(--accent); font-weight: 600; font-size: 1.08em; font-family: 'Cormorant', serif; }
+        .trc-sub { color: var(--text-faint); font-size: 0.85em; }
+        .trc-remind { color: var(--accent-light); font-size: 0.85em; font-weight: 600; }
+        .trc-done { color: var(--success); font-size: 0.85em; }
+        .trc-cars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .trc-car { background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; }
+        .trc-car.logged { opacity: 0.85; }
+        .trc-car-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+        .trc-car-name { color: var(--text); font-weight: 600; }
+        .trc-car-count { color: var(--text-faint); font-size: 0.8em; }
+        .trc-car-body { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .trc-route-btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 13px; background: var(--accent); color: var(--bg-card); border-radius: 7px; text-decoration: none; font-size: 0.86em; font-weight: 600; transition: background 0.12s; }
+        .trc-route-btn:hover { background: var(--accent-light); }
+        .trc-route-missing { color: var(--text-faint); font-size: 0.8em; }
+        .trc-input-wrap { color: var(--text-dim); font-size: 0.85em; display: inline-flex; align-items: center; gap: 5px; }
+        .trc-mi-input { width: 64px; padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.9em; }
+        .trc-logged { color: var(--success); font-size: 0.85em; font-weight: 600; }
+        .trc-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+        @media (max-width: 700px) { .trc-cars { grid-template-columns: 1fr; } }
         .mileage-prompt-banner {
             background: var(--bg-card);
             border: 1px solid var(--accent);
@@ -1032,6 +1084,22 @@
         .schedule-item:hover { background: var(--bg-card-light); }
         .schedule-item.personal { border-left-color: var(--personal); }
         .schedule-item.completed { opacity: 0.55; }
+        /* Inline complete/paid quick-actions on schedule + day-modal rows */
+        .row-quick-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .plan-day-stop .row-quick-actions { grid-column: 1 / -1; }
+        .row-qbtn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px;
+            background: transparent; color: var(--text-dim);
+            font-family: inherit; font-size: 0.82em; font-weight: 600;
+            cursor: pointer; transition: background 0.12s, color 0.12s, border-color 0.12s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .row-qbtn svg { display: block; }
+        .row-qbtn:hover { border-color: var(--accent); color: var(--text); }
+        .row-qbtn.on { background: var(--success); border-color: var(--success); color: var(--bg-card); }
+        .row-qbtn.paid.on { background: var(--accent); border-color: var(--accent); color: var(--bg-card); }
+        .row-qbtn .qbtn-mark { width: 15px; text-align: center; }
         .schedule-time {
             color: var(--accent);
             font-weight: 600;
@@ -2145,9 +2213,6 @@
             border-color: var(--accent);
             color: var(--bg-card);
         }
-        .status-toggle.checked .toggle-box {
-            position: relative;
-        }
 </style>
 </head>
 <body>
@@ -2198,8 +2263,17 @@
             <button class="btn btn-ghost" onclick="openBackfill()" data-mobile-label="Backfill" title="Rapid entry mode for historical visits">Backfill</button>
         </div>
 
-        <!-- Mileage prompt banner — surfaces days with completed visits but no mileage logged.
-             Hidden by default; _renderMileagePrompt() reveals it when there's pending work. -->
+        <!-- Daily Report — consolidated daily hub: today's schedule & pay, route/mileage,
+             unpaid completed visits, and outstanding notes. The cards live inside the modal. -->
+        <button id="dailyReportBtn" class="daily-report-btn" onclick="openDailyReport()">
+            <span class="drb-left">
+                <svg class="ui-icon" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="2.5" width="10" height="12" rx="1.5"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>
+                <span class="drb-title">Daily Report</span>
+            </span>
+            <span class="drb-status" id="dailyReportStatus">Today at a glance</span>
+        </button>
+
+        <!-- Mileage prompt banner — surfaces PAST days with completed visits but no mileage logged. -->
         <div id="mileagePromptBanner" class="mileage-prompt-banner" style="display: none;"></div>
 
         <!-- Today's Schedule -->
@@ -2540,6 +2614,37 @@
 </div>
 
 <!-- ========= DAY EVENTS MODAL ========= -->
+<!-- ========= DAILY REPORT MODAL ========= -->
+<div class="modal-overlay" id="dailyReportModal">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h2 id="dailyReportTitle">Daily Report</h2>
+            <button class="modal-close" onclick="closeModal('dailyReportModal')">×</button>
+        </div>
+        <div class="modal-body modal-body-scrollable">
+            <div class="dr-section">
+                <div class="dr-section-title">Today's Schedule &amp; Pay</div>
+                <div id="drPaySummary"></div>
+                <div id="drScheduleList" class="schedule-list"></div>
+            </div>
+
+            <!-- Route + mileage (relocated card; self-titled) -->
+            <div id="todayRouteCard" class="today-route-card" style="display: none;"></div>
+
+            <!-- Unpaid completed visits (relocated card; self-titled) -->
+            <div id="unpaidVisitsCard" class="unpaid-card" style="display: none;"></div>
+
+            <div class="dr-section">
+                <div class="dr-section-title">Outstanding Notes</div>
+                <div id="drNotes" class="todo-list"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('dailyReportModal')">Close</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="dayModal">
     <div class="modal">
         <div class="modal-header">
@@ -3810,11 +3915,11 @@ function openEventDetail(eventId, eventType) {
         document.getElementById('detailBody').innerHTML = `
             <div class="status-toggles">
                 <button class="status-toggle ${isComplete ? 'checked' : ''}" onclick="toggleVisitComplete('${v.id}')">
-                    <span class="toggle-box">${isComplete ? '✓' : ''}</span>
+                    <span class="toggle-box">${isComplete ? '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8L7 12L13 4"/></svg>' : ''}</span>
                     <span class="toggle-label">Complete</span>
                 </button>
                 <button class="status-toggle ${isPaid ? 'checked paid' : ''}" onclick="toggleVisitPaid('${v.id}')">
-                    <span class="toggle-box">${isPaid ? '✓' : ''}</span>
+                    <span class="toggle-box">${isPaid ? '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8L7 12L13 4"/></svg>' : ''}</span>
                     <span class="toggle-label">Paid</span>
                 </button>
             </div>
@@ -3869,15 +3974,24 @@ function openEventDetail(eventId, eventType) {
 }
 
 // Toggle complete/paid status independently — no modal close, just refresh in place
+/* After any visit complete/paid change, refresh the page and re-render whichever
+   context is currently open — the detail modal OR the day modal — without
+   forcing the detail modal open when the change came from an inline calendar chip. */
+function _refreshAfterVisitChange(id) {
+    refreshAll();
+    const detailOpen = document.getElementById('detailModal')?.classList.contains('active');
+    const dayOpen = document.getElementById('dayModal')?.classList.contains('active');
+    if (detailOpen) openEventDetail(id, 'visit');
+    else if (dayOpen && _dayModalDate) openDayModal(_dayModalDate);
+}
+
 function toggleVisitComplete(id) {
     const visits = Store.getVisits();
     const v = visits.find(x => x.id === id);
     if (!v) return;
     v.status = (v.status === 'completed') ? 'scheduled' : 'completed';
     Store.saveVisits(visits);
-    refreshAll();
-    // Re-render the modal so the checkbox state updates
-    openEventDetail(id, 'visit');
+    _refreshAfterVisitChange(id);
     showToast(v.status === 'completed' ? 'Marked complete' : 'Marked incomplete');
 }
 // Payment method modal state — what we're marking paid
@@ -3925,8 +4039,7 @@ function toggleVisitPaid(id) {
         v.paymentFee = 0;
         v.netAmount = 0;
         Store.saveVisits(visits);
-        refreshAll();
-        openEventDetail(id, 'visit');
+        _refreshAfterVisitChange(id);
         showToast('Marked unpaid');
     }
 }
@@ -3949,8 +4062,7 @@ function confirmPaymentMethod() {
         closeModal('paymentMethodModal');
         _payMethodContext = null;
         _selectedPaymentMethod = null;
-        refreshAll();
-        openEventDetail(id, 'visit');
+        _refreshAfterVisitChange(id);
         showToast(`Saved as ${paymentMethodLabel(method)}`);
     } else {
         closeModal('paymentMethodModal');
@@ -4714,7 +4826,9 @@ function goToToday() {
 /* ============================================================
    DAY MODAL (when user clicks a calendar day)
    ============================================================ */
+let _dayModalDate = null;
 function openDayModal(dateStr) {
+    _dayModalDate = dateStr;
     document.getElementById('dayModalTitle').textContent = formatDateLong(dateStr);
     const events = getEventsForDate(dateStr);
     const body = document.getElementById('dayModalBody');
@@ -4741,6 +4855,7 @@ function renderPlanDay(dateStr, events) {
     // Only the work visits get the route treatment; personal events shown but not numbered
     const visits = events.filter(e => e._type === 'visit');
     const personal = events.filter(e => e._type === 'personal');
+    const clientsById = _itemClientsById();  // hoisted once — was deep-cloning all clients per row
 
     // Compute summary
     const total = events.length;
@@ -4785,7 +4900,7 @@ function renderPlanDay(dateStr, events) {
         stopNum++;
         const v = e;
         const t = VISIT_TYPES[v.visitType] || { label: 'Visit' };
-        const client = Store.getClients().find(c => c.id === v.clientId);
+        const client = clientsById[v.clientId];
         // Effective address: visit's own override, or fall back to client record
         let effAddr = v.address || '';
         if (!effAddr.trim() && client) {
@@ -4840,6 +4955,7 @@ function renderPlanDay(dateStr, events) {
                     <div style="color: var(--accent-light); font-weight: 600;">$${(v.price || 0).toFixed(2)}</div>
                     ${mapsLinks}
                 </div>
+                ${_visitQuickActions(v)}
             </div>
         `;
     });
@@ -4860,7 +4976,20 @@ function addMinutes(t, mins) {
     return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
 }
 
-function renderListItem(e) {
+/* Inline complete/paid toggles for visit rows on the schedule and day modal.
+   stopPropagation so tapping a chip doesn't also fire the row's open-detail. */
+function _visitQuickActions(v) {
+    const done = v.status === 'completed';
+    const paid = !!v.paid;
+    const chk = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8L7 12L13 4"/></svg>';
+    return `
+            <div class="row-quick-actions" onclick="event.stopPropagation()">
+                <button class="row-qbtn ${done ? 'on' : ''}" onclick="event.stopPropagation(); toggleVisitComplete('${v.id}')" title="${done ? 'Mark not complete' : 'Mark complete'}"><span class="qbtn-mark">${done ? chk : '○'}</span>Complete</button>
+                <button class="row-qbtn paid ${paid ? 'on' : ''}" onclick="event.stopPropagation(); toggleVisitPaid('${v.id}')" title="${paid ? 'Mark unpaid' : 'Mark paid'}"><span class="qbtn-mark">${paid ? chk : '$'}</span>Paid</button>
+            </div>`;
+}
+
+function renderListItem(e, clientsById) {
     if (e._type === 'personal') {
         return `
             <div class="schedule-item personal" onclick="closeModal('dayModal'); openEventDetail('${e.id}', 'personal')">
@@ -4870,8 +4999,9 @@ function renderListItem(e) {
         `;
     }
     const t = VISIT_TYPES[e.visitType] || { label: e.visitType };
-    // Look up pet names from client record so they stay current
-    const client = Store.getClients().find(c => c.id === e.clientId);
+    // Look up pet names from client record so they stay current.
+    // clientsById is passed in by the caller so we don't deep-clone all clients per row.
+    const client = clientsById ? clientsById[e.clientId] : Store.getClients().find(c => c.id === e.clientId);
     const petNames = (client && client.pets && client.pets.length > 0)
         ? client.pets.map(p => p.name).filter(Boolean).join(', ')
         : '';
@@ -4898,6 +5028,7 @@ function renderListItem(e) {
             <div class="schedule-time">${formatTime12(e.time)} · ${t.label}</div>
             <div class="schedule-title">${titleHtml}</div>
             ${inboxLine}
+            ${_visitQuickActions(e)}
         </div>
     `;
 }
@@ -5028,7 +5159,8 @@ function renderToday() {
         const emptyMsg = viewDate === today ? 'Nothing scheduled today.' : 'Nothing scheduled.';
         todayList.innerHTML = `<p class="empty-state">${emptyMsg}</p>`;
     } else {
-        todayList.innerHTML = events.map(e => renderListItem(e)).join('');
+        const clientsById = _itemClientsById();
+        todayList.innerHTML = events.map(e => renderListItem(e, clientsById)).join('');
     }
 }
 
@@ -5807,6 +5939,303 @@ function relativeTime(iso) {
    Surfaces on the homepage when there are completed visits in the last 7 days
    that don't have mileage logged. Shows up to 3 most-recent pending days inline
    with Google Maps buttons + miles inputs + save. Dismissable for the day. */
+/* Inline SVG icons (no emoji) — monochrome, inherit text color via currentColor. */
+function _svgIcon(name) {
+    const I = {
+        route: '<svg class="ui-icon" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.6c-2.4 0-4.3 1.9-4.3 4.3 0 3 4.3 8 4.3 8s4.3-5 4.3-8c0-2.4-1.9-4.3-4.3-4.3z"/><circle cx="8" cy="5.9" r="1.5"/></svg>',
+        bell: '<svg class="ui-icon" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2a3.3 3.3 0 0 0-3.3 3.3c0 2.8-1.4 3.8-1.4 3.8h9.4s-1.4-1-1.4-3.8A3.3 3.3 0 0 0 8 2.2z"/><path d="M6.9 12.4a1.3 1.3 0 0 0 2.2 0"/></svg>',
+        check: '<svg class="ui-icon" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4 4 6-8"/></svg>',
+        dollar: '<svg class="ui-icon" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5v13M10.6 4.1C10 3.5 9.1 3.1 8 3.1c-1.7 0-3 .9-3 2.2 0 1.4 1.3 1.9 3 2.3s3 .9 3 2.3c0 1.3-1.3 2.2-3 2.2-1.1 0-2.1-.4-2.7-1"/></svg>',
+    };
+    return I[name] || '';
+}
+
+/* ============================================================
+   TODAY'S DRIVE — homepage route links + same-day mileage logging
+   Kasey's car = kasey + both visits; Charlie's car = charlie only.
+   Always available for today's visits (not gated on completion), so the
+   route is there to drive AND to log. Surfaces an evening reminder until logged.
+   ============================================================ */
+function renderTodayRouteCard() {
+    const card = document.getElementById('todayRouteCard');
+    if (!card) return;
+    const today = todayYmd();
+    const todays = (Store.getVisits() || []).filter(v => v.date === today);
+    const kVisits = todays.filter(v => _visitCountsForDriver(v, 'kasey'));
+    const cVisits = todays.filter(v => _visitCountsForDriver(v, 'charlie'));
+
+    if (kVisits.length === 0 && cVisits.length === 0) {
+        card.style.display = 'none';
+        return;
+    }
+
+    const mileage = (Store.getMileage && Store.getMileage()) || [];
+    const logged = {};
+    mileage.forEach(r => { if (r.date === today) logged[r.driver] = r.miles; });
+
+    const home = _bfGetHomeSetting();
+    const hasHome = !!(home && home.homeAddress);
+
+    const carRow = (driver, label, visits) => {
+        if (visits.length === 0) return '';
+        const url = hasHome ? _bfBuildDayMapsUrl(today, visits) : null;
+        const routeBtn = url
+            ? `<a href="${url}" target="_blank" rel="noopener" class="trc-route-btn">${_svgIcon('route')} ${label}'s route</a>`
+            : `<a onclick="openBackfill()" style="cursor:pointer" class="trc-route-missing">Set home address for route →</a>`;
+        const isLogged = logged[driver] != null;
+        const logCtl = isLogged
+            ? `<span class="trc-logged">${_svgIcon('check')} ${(+logged[driver]).toFixed(1)} mi logged</span>`
+            : `<span class="trc-input-wrap"><input type="number" min="0" step="0.1" class="trc-mi-input" data-trc-driver="${driver}" placeholder="0.0"> mi</span>`;
+        return `
+            <div class="trc-car ${isLogged ? 'logged' : ''}">
+                <div class="trc-car-head">
+                    <span class="trc-car-name">${label}'s car</span>
+                    <span class="trc-car-count">${visits.length} visit${visits.length === 1 ? '' : 's'}</span>
+                </div>
+                <div class="trc-car-body">${routeBtn}${logCtl}</div>
+            </div>`;
+    };
+
+    const kDone = kVisits.length === 0 || logged.kasey != null;
+    const cDone = cVisits.length === 0 || logged.charlie != null;
+    const bothLogged = kDone && cDone;
+    const eveningPending = (new Date().getHours() >= 16) && !bothLogged;
+
+    const headerNote = bothLogged
+        ? `<span class="trc-done">${_svgIcon('check')} Mileage logged for today</span>`
+        : eveningPending
+            ? `<span class="trc-remind">Don't forget to log today's mileage</span>`
+            : `<span class="trc-sub">Open the route, then log your miles</span>`;
+
+    const canRemind = typeof Notification !== 'undefined' && localStorage.getItem('myreliacare_mileage_remind') !== 'on';
+
+    card.className = 'today-route-card' + (eveningPending ? ' needs-log' : '');
+    card.innerHTML = `
+        <div class="trc-header">
+            <div class="trc-title">Today's Drive</div>
+            ${headerNote}
+        </div>
+        <div class="trc-cars">
+            ${carRow('kasey', 'Kasey', kVisits)}
+            ${carRow('charlie', 'Charlie', cVisits)}
+        </div>
+        ${bothLogged ? '' : `<div class="trc-actions">
+            <button class="btn btn-primary btn-sm" onclick="_saveTodayMileage()">Save today's miles</button>
+            ${canRemind ? `<button class="btn btn-ghost btn-sm" onclick="_enableMileageReminder()">${_svgIcon('bell')} Nightly reminder</button>` : ''}
+        </div>`}
+    `;
+    card.style.display = 'block';
+}
+
+function _saveTodayMileage() {
+    const today = todayYmd();
+    const inputs = document.querySelectorAll('#todayRouteCard input[data-trc-driver]');
+    const toSave = [];
+    inputs.forEach(inp => {
+        const raw = inp.value;
+        if (raw === '' || raw == null) return;
+        const miles = parseFloat(raw);
+        if (isNaN(miles) || miles <= 0) return;
+        toSave.push({ date: today, driver: inp.dataset.trcDriver, miles });
+    });
+    if (toSave.length === 0) { showToast('Enter miles for at least one car', 'error'); return; }
+
+    const existing = (Store.getMileage && Store.getMileage()) || [];
+    const byKey = {};
+    existing.forEach(r => { byKey[`${r.date}|${r.driver}`] = r; });
+    toSave.forEach(s => {
+        byKey[`${s.date}|${s.driver}`] = {
+            id: byKey[`${s.date}|${s.driver}`]?.id || ('mile_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)),
+            date: s.date, driver: s.driver, miles: s.miles,
+        };
+    });
+    const ok = Store.saveMileage(Object.values(byKey));
+    if (ok !== false) {
+        showToast(`Logged today's mileage (${toSave.length} car${toSave.length === 1 ? '' : 's'})`);
+        refreshAll();
+    } else {
+        showToast('Save failed', 'error');
+    }
+}
+
+/* Opt-in nightly reminder. Honest limitation: a web app can't fire a push when
+   it's fully closed, so this notifies when the app is opened in the evening with
+   today's mileage still unlogged. The homepage card is the always-on reminder. */
+function _enableMileageReminder() {
+    if (typeof Notification === 'undefined') { showToast('Notifications not supported on this device', 'error'); return; }
+    Notification.requestPermission().then(perm => {
+        if (perm === 'granted') {
+            localStorage.setItem('myreliacare_mileage_remind', 'on');
+            showToast('Nightly reminder on — fires when you open the app in the evening');
+            renderTodayRouteCard();
+        } else {
+            showToast('Notification permission denied', 'error');
+        }
+    }).catch(() => showToast('Could not enable reminder', 'error'));
+}
+
+function _maybeFireMileageReminder() {
+    try {
+        if (localStorage.getItem('myreliacare_mileage_remind') !== 'on') return;
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+        const today = todayYmd();
+        if (localStorage.getItem('myreliacare_mileage_notified') === today) return;
+        if (new Date().getHours() < 16) return; // evening only
+        const todays = (Store.getVisits() || []).filter(v => v.date === today);
+        const kVisits = todays.filter(v => _visitCountsForDriver(v, 'kasey'));
+        const cVisits = todays.filter(v => _visitCountsForDriver(v, 'charlie'));
+        if (kVisits.length === 0 && cVisits.length === 0) return;
+        const mileage = (Store.getMileage && Store.getMileage()) || [];
+        const logged = {};
+        mileage.forEach(r => { if (r.date === today) logged[r.driver] = true; });
+        const pending = (kVisits.length > 0 && !logged.kasey) || (cVisits.length > 0 && !logged.charlie);
+        if (!pending) return;
+        new Notification('MyReliaCare — log mileage', {
+            body: "Don't forget to log today's mileage.",
+            tag: 'mileage-' + today,
+        });
+        localStorage.setItem('myreliacare_mileage_notified', today);
+    } catch (e) { console.warn('[mileage reminder]', e); }
+}
+
+/* ============================================================
+   UNPAID VISITS — completed visits awaiting payment. One-tap mark-paid via the
+   standard payment-method modal (preselects the client's default method), so
+   fee/net are calculated consistently with the rest of the app.
+   ============================================================ */
+/* ============================================================
+   DAILY REPORT — consolidated daily hub. Pulls together today's schedule & pay,
+   route/mileage logging, unpaid completed visits, and outstanding notes into one
+   view. The route and unpaid cards are the same elements rendered on the homepage
+   before; they now live inside this modal and are populated by their own renderers.
+   ============================================================ */
+function openDailyReport() {
+    refreshAll();           // ensure every section is current
+    const title = document.getElementById('dailyReportTitle');
+    if (title) title.textContent = 'Daily Report · ' + formatDateLong(todayYmd());
+    openModal('dailyReportModal');
+}
+
+function _renderDailyReportSchedule() {
+    const list = document.getElementById('drScheduleList');
+    const paySummary = document.getElementById('drPaySummary');
+    if (!list) return;
+    const today = todayYmd();
+    const events = getEventsForDate(today);          // filtered + time-sorted
+    const visits = events.filter(e => e._type === 'visit');
+    const projected  = visits.reduce((s, v) => s + (v.price || 0), 0);
+    const collected  = visits.filter(v => v.paid).reduce((s, v) => s + (v.price || 0), 0);
+    const outstanding = visits.filter(v => !v.paid).reduce((s, v) => s + (v.price || 0), 0);
+
+    if (paySummary) {
+        paySummary.innerHTML = `
+            <div class="dr-pay">
+                <div class="dr-pay-item"><span class="dr-pay-val">$${projected.toFixed(2)}</span><span class="dr-pay-lbl">Projected</span></div>
+                <div class="dr-pay-item"><span class="dr-pay-val ok">$${collected.toFixed(2)}</span><span class="dr-pay-lbl">Collected</span></div>
+                <div class="dr-pay-item"><span class="dr-pay-val warn">$${outstanding.toFixed(2)}</span><span class="dr-pay-lbl">Outstanding</span></div>
+            </div>`;
+    }
+    list.innerHTML = events.length === 0
+        ? `<p class="empty-state">Nothing scheduled today.</p>`
+        : events.map(e => renderListItem(e)).join('');
+}
+
+function _renderDailyReportNotes() {
+    const wrap = document.getElementById('drNotes');
+    if (!wrap) return;
+    const today = todayYmd();
+    const open = getTodos().filter(t => !t.done).sort(_todoSortOpen);
+    if (open.length === 0) {
+        wrap.innerHTML = `<p class="empty-state">No outstanding notes.</p>`;
+        return;
+    }
+    const prioLabel = { high: 'High', med: 'Med', low: 'Low' };
+    wrap.innerHTML = open.map(t => {
+        const due = _todoDueLabel(t, today);
+        const dueCls = _todoDueClass(t, today);
+        const over = _todoIsOverdue(t, today) ? 'overdue' : '';
+        return `
+            <div class="todo-item item-task ${over}">
+                <div class="todo-check" onclick="toggleTodoDone('${t.id}')" title="Mark done"></div>
+                <div class="todo-text">${escapeHtml(t.text || '')}</div>
+                <span class="todo-prio-badge ${t.priority}">${prioLabel[t.priority] || 'Med'}</span>
+                <span class="todo-due ${dueCls}">${due}</span>
+            </div>`;
+    }).join('');
+}
+
+function _renderDailyReportButton() {
+    const btn = document.getElementById('dailyReportBtn');
+    const statusEl = document.getElementById('dailyReportStatus');
+    if (!btn || !statusEl) return;
+    const today = todayYmd();
+    const allVisits = Store.getVisits() || [];
+    const todays = _filterVisitsByDriver(allVisits.filter(v => v.date === today));
+    const unpaidCount = _filterVisitsByDriver(allVisits.filter(v => v.status === 'completed' && !v.paid)).length;
+    const openNotes = getTodos().filter(t => !t.done).length;
+
+    // Mileage logged for today?
+    const kVisits = todays.filter(v => _visitCountsForDriver(v, 'kasey'));
+    const cVisits = todays.filter(v => _visitCountsForDriver(v, 'charlie'));
+    const mileage = (Store.getMileage && Store.getMileage()) || [];
+    const logged = {};
+    mileage.forEach(r => { if (r.date === today) logged[r.driver] = true; });
+    const milePending = (kVisits.length > 0 && !logged.kasey) || (cVisits.length > 0 && !logged.charlie);
+
+    const parts = [`${todays.length} visit${todays.length === 1 ? '' : 's'} today`];
+    if (unpaidCount > 0) parts.push(`${unpaidCount} unpaid`);
+    if (kVisits.length || cVisits.length) parts.push(milePending ? 'mileage to log' : 'mileage logged');
+    if (openNotes > 0) parts.push(`${openNotes} note${openNotes === 1 ? '' : 's'}`);
+    statusEl.textContent = parts.join(' · ');
+
+    const eveningPending = (new Date().getHours() >= 16) && milePending;
+    btn.classList.toggle('needs-log', eveningPending);
+}
+
+function renderUnpaidVisitsCard() {
+    const card = document.getElementById('unpaidVisitsCard');
+    if (!card) return;
+    const today = todayYmd();
+    // Respect the Kasey/Charlie view filter for consistency with the rest of the homepage.
+    const unpaid = _filterVisitsByDriver(
+        Store.getVisits().filter(v => v.status === 'completed' && !v.paid)
+    ).sort((a, b) => (a.date || '').localeCompare(b.date || '')); // oldest first
+
+    if (unpaid.length === 0) { card.style.display = 'none'; return; }
+
+    const total = unpaid.reduce((s, v) => s + (v.price || 0), 0);
+    const cap = 12;
+    const shown = unpaid.slice(0, cap);
+    const hidden = unpaid.length - shown.length;
+
+    const rows = shown.map(v => {
+        let ageLabel = '';
+        if (v.date < today) {
+            const d = _daysBetween(v.date, today);
+            ageLabel = ` · <span class="uv-overdue">${d}d unpaid</span>`;
+        }
+        return `
+            <div class="uv-row">
+                <div class="uv-info">
+                    <span class="uv-client">${escapeHtml(v.clientName || 'Client')}</span>
+                    <span class="uv-meta">${formatDate(v.date)} · $${(v.price || 0).toFixed(2)}${ageLabel}</span>
+                </div>
+                <button class="btn btn-primary btn-sm uv-pay" onclick="toggleVisitPaid('${v.id}')">${_svgIcon('dollar')} Mark paid</button>
+            </div>`;
+    }).join('');
+
+    card.className = 'unpaid-card needs-action';
+    card.innerHTML = `
+        <div class="uv-header">
+            <div class="uv-title">Unpaid Visits</div>
+            <div class="uv-summary">${unpaid.length} completed · $${total.toFixed(2)} outstanding</div>
+        </div>
+        ${rows}
+        ${hidden > 0 ? `<div class="uv-more">+ ${hidden} more — mark these off to clear them</div>` : ''}
+    `;
+    card.style.display = 'block';
+}
+
 function _renderMileagePrompt() {
     const banner = document.getElementById('mileagePromptBanner');
     if (!banner) return;
@@ -5818,12 +6247,13 @@ function _renderMileagePrompt() {
         return;
     }
 
-    // Look back 7 days for completed visits
+    // Look back 7 days for completed visits — EXCLUDING today (today's mileage is
+    // handled by the always-on "Today's Drive" card, so the two don't overlap).
     const sevenAgo = _addDaysYmd(today, -7);
     const completedVisits = Store.getVisits().filter(v =>
         v.status === 'completed' &&
         v.date >= sevenAgo &&
-        v.date <= today
+        v.date < today
     );
     if (completedVisits.length === 0) { banner.style.display = 'none'; return; }
 
@@ -5891,7 +6321,7 @@ function _renderMileagePrompt() {
         ${dayHtml}
         <div class="mpb-actions">
             <button class="btn btn-primary btn-sm" onclick="_saveMileagePromptInputs()">Save miles</button>
-            <button class="btn btn-ghost btn-sm" onclick="openBackfillMilesModal()">Open full backfill</button>
+            <button class="btn btn-ghost btn-sm" onclick="window.location.href='invoices.html?openBackfill=1'">Open full backfill</button>
             ${hidden > 0 ? `<span class="mpb-more-link">+ ${hidden} more day${hidden === 1 ? '' : 's'} in full backfill</span>` : ''}
         </div>
     `;
@@ -5944,6 +6374,11 @@ function refreshAll() {
     renderToday();
     renderWeeklySnapshot();
     _renderAllTodoUI();
+    renderTodayRouteCard();
+    renderUnpaidVisitsCard();
+    _renderDailyReportSchedule();
+    _renderDailyReportNotes();
+    _renderDailyReportButton();
     _renderMileagePrompt();
 }
 
@@ -5960,6 +6395,9 @@ function initApp() {
     // Set both Inbox forms to default 'task' type so conditional fields hide correctly
     try { setItemFormType('dash', 'task'); } catch {}
     try { setItemFormType('modal', 'task'); } catch {}
+
+    // Evening mileage reminder (opt-in; fires once/day when app opened after 4pm with miles unlogged)
+    setTimeout(() => { try { _maybeFireMileageReminder(); } catch {} }, 1200);
 
     // refresh data when tab regains focus (so changes from other tabs/pages show)
     window.addEventListener('focus', refreshAll);

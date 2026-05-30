@@ -3795,6 +3795,18 @@ function init() {
             }, 150);
         }
     } catch (e) { console.warn('[init] openInvoice handler error:', e); }
+
+    // Handle ?openBackfill=1 — opens the full mileage backfill modal (from the
+    // dashboard mileage-prompt banner, where this modal doesn't exist).
+    try {
+        const params = new URLSearchParams(location.search);
+        if (params.get('openBackfill') === '1' && typeof openBackfillMilesModal === 'function') {
+            setTimeout(() => {
+                openBackfillMilesModal();
+                history.replaceState({}, '', location.pathname);
+            }, 150);
+        }
+    } catch (e) { console.warn('[init] openBackfill handler error:', e); }
 }
 window.initApp = init;
 
