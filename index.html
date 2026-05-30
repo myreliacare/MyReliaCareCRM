@@ -459,6 +459,23 @@
         /* To-Do list */
         .todo-card-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
         .today-header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        .day-nav { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .day-nav .card-title { min-width: 0; white-space: nowrap; }
+        .day-nav-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; flex-shrink: 0;
+            background: transparent; border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text-dim); font-size: 1.25em; line-height: 1; cursor: pointer;
+            transition: background 0.12s, color 0.12s, border-color 0.12s;
+        }
+        .day-nav-btn:hover { background: var(--accent); color: var(--bg-card); border-color: var(--accent); }
+        .day-today-btn {
+            display: inline-flex; align-items: center;
+            padding: 4px 10px; background: transparent; border: 1px solid var(--accent);
+            border-radius: 8px; color: var(--accent-light); font-family: inherit;
+            font-size: 0.8em; cursor: pointer; flex-shrink: 0; transition: background 0.12s, color 0.12s;
+        }
+        .day-today-btn:hover { background: var(--accent); color: var(--bg-card); }
         .view-filter-pills { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
         .view-filter-pill { padding: 5px 11px; background: transparent; border: none; color: var(--text-faint); font-family: inherit; font-size: 0.82em; cursor: pointer; transition: background 0.12s, color 0.12s; }
         .view-filter-pill + .view-filter-pill { border-left: 1px solid var(--border); }
@@ -2119,16 +2136,14 @@
             flex-shrink: 0;
         }
         .status-toggle.checked .toggle-box {
-            background: currentColor;
-        }
-        .status-toggle.checked .toggle-box::before {
-            content: '';
-        }
-        .status-toggle.checked .toggle-box {
-            color: var(--success);
+            background: var(--success);
+            border-color: var(--success);
+            color: var(--bg-card);   /* dark glyph on filled gold box — was gold-on-gold (invisible) */
         }
         .status-toggle.checked.paid .toggle-box {
-            color: var(--accent);
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--bg-card);
         }
         .status-toggle.checked .toggle-box {
             position: relative;
@@ -2190,7 +2205,12 @@
         <!-- Today's Schedule -->
         <div class="card">
             <div class="today-header-row">
-                <h2 class="card-title" style="margin: 0;">Today's Schedule</h2>
+                <div class="day-nav">
+                    <button type="button" class="day-nav-btn" id="dayNavPrev" onclick="scheduleNavDay(-1)" title="Previous day" aria-label="Previous day">‹</button>
+                    <h2 class="card-title" id="scheduleTitle" style="margin: 0;">Today's Schedule</h2>
+                    <button type="button" class="day-nav-btn" id="dayNavNext" onclick="scheduleNavDay(1)" title="Next day" aria-label="Next day">›</button>
+                    <button type="button" class="day-today-btn" id="dayNavToday" onclick="scheduleGoToday()" style="display: none;">Today</button>
+                </div>
                 <div class="view-filter-pills" id="viewFilterPills">
                     <button type="button" class="view-filter-pill active" data-filter="all" onclick="setViewFilter('all')">All</button>
                     <button type="button" class="view-filter-pill" data-filter="kasey" onclick="setViewFilter('kasey')">Kasey</button>
@@ -2211,29 +2231,13 @@
                        onfocus="_itemFormSetExpanded('dash', true)"
                        onkeydown="if(event.key==='Enter') addOrUpdateTodo('dash')">
                 <div class="todo-add-meta">
-                    <div class="item-type-toggle">
-                        <button type="button" class="item-type-btn active" id="todoDashType_task" onclick="setItemFormType('dash','task')">Task</button>
-                        <button type="button" class="item-type-btn" id="todoDashType_reminder" onclick="setItemFormType('dash','reminder')">Reminder</button>
-                        <button type="button" class="item-type-btn" id="todoDashType_note" onclick="setItemFormType('dash','note')">Note</button>
-                    </div>
-                    <!-- Task only: priority -->
-                    <div class="item-conditional todo-priority-toggle" data-for-type="task" data-source="dash">
+                    <div class="todo-priority-toggle" data-source="dash">
                         <button type="button" class="todo-prio-btn high" data-prio="high" onclick="setTodoFormPriority('dash','high')" title="High priority">H</button>
                         <button type="button" class="todo-prio-btn med active" data-prio="med" onclick="setTodoFormPriority('dash','med')" title="Medium priority">M</button>
                         <button type="button" class="todo-prio-btn low" data-prio="low" onclick="setTodoFormPriority('dash','low')" title="Low priority">L</button>
                     </div>
-                    <!-- Task + Reminder: single shared date input -->
-                    <input type="date" id="todoDashDate" class="item-conditional" data-for-type="task reminder" title="Date">
-                    <!-- Reminder only: repeat dropdown -->
-                    <select id="todoDashRecur" class="item-conditional item-recur-select" data-for-type="reminder" onchange="setItemFormRecur('dash', this.value)" title="Repeat">
-                        <option value="">no repeat</option>
-                        <option value="daily">daily</option>
-                        <option value="weekly">weekly</option>
-                        <option value="monthly">monthly</option>
-                        <option value="quarterly">quarterly</option>
-                        <option value="yearly">yearly</option>
-                    </select>
-                    <!-- Client tag (always available; optional for any type) -->
+                    <input type="date" id="todoDashDate" title="Due date (optional)">
+                    <!-- Client tag (optional) -->
                     <select id="todoDashClient" class="item-client-picker" onchange="setItemFormClient('dash', this.value)" title="Tag a client (optional)">
                         <option value="">No client</option>
                     </select>
@@ -2562,25 +2566,12 @@
                        onfocus="_itemFormSetExpanded('modal', true)"
                        onkeydown="if(event.key==='Enter') addOrUpdateTodo('modal')">
                 <div class="todo-add-meta">
-                    <div class="item-type-toggle">
-                        <button type="button" class="item-type-btn active" id="todoModalType_task" onclick="setItemFormType('modal','task')">Task</button>
-                        <button type="button" class="item-type-btn" id="todoModalType_reminder" onclick="setItemFormType('modal','reminder')">Reminder</button>
-                        <button type="button" class="item-type-btn" id="todoModalType_note" onclick="setItemFormType('modal','note')">Note</button>
-                    </div>
-                    <div class="item-conditional todo-priority-toggle" data-for-type="task" data-source="modal">
+                    <div class="todo-priority-toggle" data-source="modal">
                         <button type="button" class="todo-prio-btn high" data-prio="high" onclick="setTodoFormPriority('modal','high')" title="High priority">H</button>
                         <button type="button" class="todo-prio-btn med active" data-prio="med" onclick="setTodoFormPriority('modal','med')" title="Medium priority">M</button>
                         <button type="button" class="todo-prio-btn low" data-prio="low" onclick="setTodoFormPriority('modal','low')" title="Low priority">L</button>
                     </div>
-                    <input type="date" id="todoModalDate" class="item-conditional" data-for-type="task reminder" title="Date">
-                    <select id="todoModalRecur" class="item-conditional item-recur-select" data-for-type="reminder" onchange="setItemFormRecur('modal', this.value)" title="Repeat">
-                        <option value="">no repeat</option>
-                        <option value="daily">daily</option>
-                        <option value="weekly">weekly</option>
-                        <option value="monthly">monthly</option>
-                        <option value="quarterly">quarterly</option>
-                        <option value="yearly">yearly</option>
-                    </select>
+                    <input type="date" id="todoModalDate" title="Due date (optional)">
                     <select id="todoModalClient" class="item-client-picker" onchange="setItemFormClient('modal', this.value)" title="Tag a client (optional)">
                         <option value="">No client</option>
                     </select>
@@ -2589,8 +2580,7 @@
                 </div>
             </div>
             <div class="todo-tabs">
-                <button class="todo-tab active" data-tab="today" onclick="setTodoTab('today')">Today <span class="todo-tab-count" id="todoCountToday"></span></button>
-                <button class="todo-tab" data-tab="notes" onclick="setTodoTab('notes')">Notes <span class="todo-tab-count" id="todoCountNotes"></span></button>
+                <button class="todo-tab active" data-tab="open" onclick="setTodoTab('open')">Open <span class="todo-tab-count" id="todoCountOpen"></span></button>
                 <button class="todo-tab" data-tab="done" onclick="setTodoTab('done')">Done <span class="todo-tab-count" id="todoCountDone"></span></button>
             </div>
             <div id="todoModalList" class="todo-list"></div>
@@ -3413,7 +3403,7 @@ function addVisitRow(prefilledDate = null) {
         <input type="time" class="visit-time" value="09:00">
         <select class="visit-type" onchange="onVisitTypeChange(this.closest('.visit-row'))">
             ${Object.entries(VISIT_TYPES).map(([k, v]) =>
-                `<option value="${k}">${v.label}</option>`
+                `<option value="${k}" ${k === '30min' ? 'selected' : ''}>${v.label}</option>`
             ).join('')}
         </select>
         <input type="number" class="visit-price" placeholder="Price" min="0" step="0.01" value="0">
@@ -4246,6 +4236,24 @@ function escapeHtml(str) {
    total-revenue calcs always see the full visit set. */
 let _viewFilter = localStorage.getItem('myreliacare_view_filter') || 'all';
 
+/* SCHEDULE DAY NAVIGATION — the "Today's Schedule" card can page forward/back
+   through days. null = today (always resolves live so it stays correct past
+   midnight). Not persisted — every fresh load starts on today. */
+let _scheduleViewDate = null;
+
+function _scheduleDate() { return _scheduleViewDate || todayYmd(); }
+
+function scheduleNavDay(delta) {
+    const base = parseYmd(_scheduleDate());
+    _scheduleViewDate = ymd(addDays(base, delta));
+    renderToday();
+}
+
+function scheduleGoToday() {
+    _scheduleViewDate = null;
+    renderToday();
+}
+
 function _filterVisitsByDriver(visits) {
     if (_viewFilter === 'all') return visits;
     if (_viewFilter === 'kasey')   return visits.filter(v => v.assignedTo === 'kasey'   || v.assignedTo === 'both');
@@ -4878,8 +4886,7 @@ function renderListItem(e) {
         const tagged = _itemsForClient(e.clientId);
         if (tagged.length > 0) {
             const previews = tagged.slice(0, 3).map(it => {
-                const typeLabel = it.type === 'reminder' ? 'remind' : it.type === 'note' ? 'note' : 'task';
-                return `<span class="schedule-inbox-item"><span class="schedule-inbox-tag">${typeLabel}</span> ${escapeHtml((it.text || '').slice(0, 80))}</span>`;
+                return `<span class="schedule-inbox-item"><span class="schedule-inbox-tag">task</span> ${escapeHtml((it.text || '').slice(0, 80))}</span>`;
             }).join('');
             const more = tagged.length > 3 ? `<span class="schedule-inbox-more">+${tagged.length - 3} more</span>` : '';
             inboxLine = `<div class="schedule-inbox-row">${previews}${more}</div>`;
@@ -4993,13 +5000,35 @@ function renderAddressWithMaps(address) {
    TODAY'S SCHEDULE
    ============================================================ */
 function renderToday() {
+    const viewDate = _scheduleDate();
     const today = todayYmd();
-    const todayEvents = getEventsForDate(today);
+    const events = getEventsForDate(viewDate);
     const todayList = document.getElementById('todayList');
-    if (todayEvents.length === 0) {
-        todayList.innerHTML = '<p class="empty-state">Nothing scheduled today.</p>';
+
+    // Dynamic title: relative label for today/±1, otherwise weekday + date.
+    const titleEl = document.getElementById('scheduleTitle');
+    if (titleEl) {
+        let label;
+        if (viewDate === today) {
+            label = "Today's Schedule";
+        } else if (viewDate === ymd(addDays(parseYmd(today), 1))) {
+            label = 'Tomorrow';
+        } else if (viewDate === ymd(addDays(parseYmd(today), -1))) {
+            label = 'Yesterday';
+        } else {
+            label = parseYmd(viewDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+        titleEl.textContent = label;
+    }
+    // Show the "Today" reset button only when we've navigated away.
+    const todayBtn = document.getElementById('dayNavToday');
+    if (todayBtn) todayBtn.style.display = (viewDate === today) ? 'none' : 'inline-flex';
+
+    if (events.length === 0) {
+        const emptyMsg = viewDate === today ? 'Nothing scheduled today.' : 'Nothing scheduled.';
+        todayList.innerHTML = `<p class="empty-state">${emptyMsg}</p>`;
     } else {
-        todayList.innerHTML = todayEvents.map(e => renderListItem(e)).join('');
+        todayList.innerHTML = events.map(e => renderListItem(e)).join('');
     }
 }
 
@@ -5095,7 +5124,7 @@ function renderWeeklySnapshot() {
    defaults — old data still readable, new shape persists on next save.
    ============================================================ */
 
-let _todoTab = 'today';           // current modal tab — 'today' | 'notes' | 'done'
+let _todoTab = 'open';            // current modal tab — 'open' | 'done'
 let _todoEdit = { dash: null, modal: null };   // editing item id per form source
 let _todoFormPrio = { dash: 'med', modal: 'med' };
 let _itemFormType = { dash: 'task', modal: 'task' };       // 'task' | 'reminder' | 'note'
@@ -5104,24 +5133,17 @@ let _itemFormClient = { dash: '', modal: '' };             // optional client ta
 
 function _todoNormalize(t) {
     if (!t) return t;
-    // Legacy items (created before the typed inbox redesign) have no `type` —
-    // default them to 'task' so existing behavior is unchanged.
-    const type = (t.type === 'reminder' || t.type === 'note') ? t.type : 'task';
+    // Unified model: every Inbox item is a task now. Legacy reminders and notes
+    // fold in automatically on read (non-destructive — the Firestore record is
+    // only rewritten clean the next time the item is edited). A legacy reminder's
+    // surfaceDate becomes the task due date so dated items keep their day.
     return {
         id: t.id,
-        type,
+        type: 'task',
         text: t.text || '',
         clientId: t.clientId || null,
-        // task fields
         priority: (t.priority === 'high' || t.priority === 'low') ? t.priority : 'med',
-        dueDate: t.dueDate || null,
-        // reminder fields
-        surfaceDate: t.surfaceDate || null,
-        recurrence: ['daily','weekly','monthly','quarterly','yearly'].includes(t.recurrence) ? t.recurrence : null,
-        recurrenceAnchor: t.recurrenceAnchor || null,
-        // note fields
-        pinned: !!t.pinned,
-        // shared
+        dueDate: t.dueDate || t.surfaceDate || null,
         done: !!t.done,
         doneAt: t.doneAt || null,
         createdAt: t.createdAt || null,
@@ -5226,29 +5248,9 @@ function setTodoFormPriority(source, prio) {
 }
 
 function setItemFormType(source, type) {
-    if (!['task', 'reminder', 'note'].includes(type)) return;
-    _itemFormType[source] = type;
-    const prefix = source === 'dash' ? 'todoDash' : 'todoModal';
-    // Toggle the type buttons' active state
-    ['task', 'reminder', 'note'].forEach(tp => {
-        const btn = document.getElementById(`${prefix}Type_${tp}`);
-        if (btn) btn.classList.toggle('active', tp === type);
-    });
-    // Show/hide conditional fields. data-for-type can be "task" or "task reminder" etc.
-    const formId = source === 'dash' ? 'todoDashboardForm' : 'todoModalForm';
-    const form = document.getElementById(formId);
-    if (form) {
-        form.querySelectorAll('.item-conditional').forEach(el => {
-            const types = (el.dataset.forType || '').split(/\s+/).filter(Boolean);
-            el.style.display = types.includes(type) ? '' : 'none';
-        });
-    }    // Adjust placeholder text on the text input
-    const textEl = document.getElementById(source === 'dash' ? 'todoDashText' : 'todoModalText');
-    if (textEl) {
-        textEl.placeholder = type === 'reminder' ? 'Remind me to...'
-            : type === 'note' ? 'Note or mental marker...'
-            : 'What needs doing?';
-    }
+    // Type toggle removed — everything is a task. Kept as a no-op stub so the
+    // existing callers (edit/cancel/init) don't break.
+    _itemFormType[source] = 'task';
 }
 
 function setItemFormRecur(source, value) {
@@ -5301,7 +5303,6 @@ function addOrUpdateTodo(source) {
     const ids = _todoIdsFor(source);
     const text = (document.getElementById(ids.text).value || '').trim();
     if (!text) return;
-    const type = _itemFormType[source] || 'task';
     const dateInput = document.getElementById(ids.date)?.value || null;
     const editingId = _todoEdit[source];
     const clientPicker = document.getElementById(ids.client);
@@ -5309,34 +5310,14 @@ function addOrUpdateTodo(source) {
 
     const todos = getTodos();
 
-    // Build the canonical record for this type — explicitly nulling fields that
-    // don't apply, so a "task → reminder" edit doesn't leave stale dueDate behind.
+    // Single unified record: a task with a priority and an optional due date.
     const baseFields = {
-        type,
+        type: 'task',
         text,
         clientId: clientId || null,
-        priority: 'med',
-        dueDate: null,
-        surfaceDate: null,
-        recurrence: null,
-        recurrenceAnchor: null,
-        pinned: false,
+        priority: _todoFormPrio[source] || 'med',
+        dueDate: dateInput,
     };
-    if (type === 'task') {
-        baseFields.priority = _todoFormPrio[source] || 'med';
-        baseFields.dueDate = dateInput;
-    } else if (type === 'reminder') {
-        baseFields.surfaceDate = dateInput;
-        const recur = _itemFormRecur[source] || '';
-        if (recur) {
-            baseFields.recurrence = recur;
-            // Recurrence requires an anchor to advance from. Default to today
-            // if the user didn't pick a date — otherwise "got it" can't roll the
-            // schedule forward (anchor=null → next=null → reminder never moves).
-            baseFields.recurrenceAnchor = dateInput || todayYmd();
-            if (!baseFields.surfaceDate) baseFields.surfaceDate = todayYmd();
-        }
-    }
 
     if (editingId) {
         const idx = todos.findIndex(t => t.id === editingId);
@@ -5388,19 +5369,11 @@ function startEditTodo(id, source) {
     const t = todos.find(x => x.id === id);
     if (!t) return;
     const ids = _todoIdsFor(source);
-    setItemFormType(source, t.type || 'task');
     document.getElementById(ids.text).value = t.text || '';
     if (document.getElementById(ids.date)) {
-        document.getElementById(ids.date).value = (t.type === 'reminder') ? (t.surfaceDate || '') : (t.dueDate || '');
+        document.getElementById(ids.date).value = t.dueDate || '';
     }
     setTodoFormPriority(source, t.priority || 'med');
-    if (document.getElementById(ids.recur)) {
-        document.getElementById(ids.recur).value = t.recurrence || '';
-        _itemFormRecur[source] = t.recurrence || '';
-    }
-    if (document.getElementById(ids.pin)) {
-        document.getElementById(ids.pin).checked = !!t.pinned;
-    }
     if (document.getElementById(ids.client)) {
         document.getElementById(ids.client).value = t.clientId || '';
         _itemFormClient[source] = t.clientId || '';
@@ -5417,12 +5390,9 @@ function cancelEditTodo(source) {
     const ids = _todoIdsFor(source);
     document.getElementById(ids.text).value = '';
     if (document.getElementById(ids.date)) document.getElementById(ids.date).value = '';
-    if (document.getElementById(ids.recur)) document.getElementById(ids.recur).value = '';
     if (document.getElementById(ids.client)) document.getElementById(ids.client).value = '';
-    _itemFormRecur[source] = '';
     _itemFormClient[source] = '';
     setTodoFormPriority(source, 'med');
-    setItemFormType(source, 'task');
     _todoEdit[source] = null;
     document.getElementById(ids.addBtn).textContent = '+ Add';
     document.getElementById(ids.cancelBtn).style.display = 'none';
@@ -5588,7 +5558,7 @@ function setTodoTab(tab) {
 
 function openTodoModal() {
     openModal('todoModal');
-    setTodoTab(_todoTab || 'today');
+    setTodoTab((_todoTab === 'done') ? 'done' : 'open');
     setTimeout(() => document.getElementById('todoModalText').focus(), 80);
 }
 
@@ -5746,37 +5716,19 @@ function renderTodoDashboardCard() {
     const container = document.getElementById('todoDashList');
     if (!container) return;
     const today = todayYmd();
-    const reminders = _itemRemindersToday(today);
+    // Open tasks that are due (or undated). Future-dated tasks stay hidden here
+    // until their day arrives, so the home card only shows what's actually on deck.
     const tasks = _itemTasksToday(today);
-    const notes = _itemNotesForDashboard();
 
-    if (reminders.length === 0 && tasks.length === 0 && notes.length === 0) {
+    if (tasks.length === 0) {
         container.innerHTML = `<div class="todo-empty">All clear for today.</div>`;
         return;
     }
 
-    const cap = 5;
-    let html = '';
-    let overflowCount = 0;
-
-    if (reminders.length > 0) {
-        html += `<div class="item-section-label">Reminders</div>`;
-        html += reminders.slice(0, cap).map(t => _renderReminderItem(t, today, 'dash')).join('');
-        if (reminders.length > cap) overflowCount += (reminders.length - cap);
-    }
-    if (tasks.length > 0) {
-        html += `<div class="item-section-label">Tasks</div>`;
-        html += tasks.slice(0, cap).map(t => _renderTaskItem(t, today, 'dash')).join('');
-        if (tasks.length > cap) overflowCount += (tasks.length - cap);
-    }
-    if (notes.length > 0) {
-        html += `<div class="item-section-label">Notes</div>`;
-        html += notes.slice(0, cap).map(t => _renderNoteItem(t, today, 'dash')).join('');
-        if (notes.length > cap) overflowCount += (notes.length - cap);
-    }
-
-    if (overflowCount > 0) {
-        html += `<button class="todo-more-link" onclick="openTodoModal()">+ ${overflowCount} more — view all</button>`;
+    const cap = 8;
+    let html = tasks.slice(0, cap).map(t => _renderTaskItem(t, today, 'dash')).join('');
+    if (tasks.length > cap) {
+        html += `<button class="todo-more-link" onclick="openTodoModal()">+ ${tasks.length - cap} more — view all</button>`;
     }
     container.innerHTML = html;
 }
@@ -5787,56 +5739,25 @@ function _renderTodoModalList() {
     const today = todayYmd();
     const all = getTodos();
 
-    // Tab counts (Today section is the unified dashboard view: anything currently surfacing)
-    const todayReminders = all.filter(t => t.type === 'reminder' && !t.done && (!t.surfaceDate || t.surfaceDate <= today));
-    const todayTasks = all.filter(t => t.type === 'task' && !t.done && (!t.dueDate || t.dueDate <= today));
-    const allNotes = all.filter(t => t.type === 'note' && !t.done);
-    const todayCount = todayReminders.length + todayTasks.length + allNotes.length;
-    const notesCount = allNotes.length;
-    const doneCount = all.filter(t => t.done).length;
-    if (document.getElementById('todoCountToday')) document.getElementById('todoCountToday').textContent = todayCount || '';
-    if (document.getElementById('todoCountNotes')) document.getElementById('todoCountNotes').textContent = notesCount || '';
-    if (document.getElementById('todoCountDone')) document.getElementById('todoCountDone').textContent = doneCount || '';
+    const openTasks = all.filter(t => !t.done);
+    const doneTasks = all.filter(t => t.done);
+
+    // Tab counts
+    if (document.getElementById('todoCountOpen')) document.getElementById('todoCountOpen').textContent = openTasks.length || '';
+    if (document.getElementById('todoCountDone')) document.getElementById('todoCountDone').textContent = doneTasks.length || '';
 
     let html = '';
-    if (_todoTab === 'today') {
-        if (todayCount === 0) {
-            html = `<div class="todo-empty">Nothing on deck for today.</div>`;
-        } else {
-            if (todayReminders.length > 0) {
-                html += `<div class="item-section-label">Reminders</div>`;
-                html += todayReminders.sort((a,b) => {
-                        if (!a.surfaceDate && b.surfaceDate) return -1;
-                        if (a.surfaceDate && !b.surfaceDate) return 1;
-                        return (a.surfaceDate||'').localeCompare(b.surfaceDate||'');
-                    })
-                    .map(t => _renderReminderItem(t, today, 'modal')).join('');
-            }
-            if (todayTasks.length > 0) {
-                html += `<div class="item-section-label">Tasks</div>`;
-                html += todayTasks.sort(_todoSortOpen).map(t => _renderTaskItem(t, today, 'modal')).join('');
-            }
-            if (allNotes.length > 0) {
-                html += `<div class="item-section-label">Notes</div>`;
-                html += allNotes.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
-                    .map(t => _renderNoteItem(t, today, 'modal')).join('');
-            }
-        }
-    } else if (_todoTab === 'notes') {
-        // All non-done notes — most recent first
-        const notes = allNotes.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-        if (notes.length === 0) {
-            html = `<div class="todo-empty">No notes yet. Use the form above and pick "Note" to capture a thought without a deadline.</div>`;
-        } else {
-            html = notes.map(t => _renderNoteItem(t, today, 'modal')).join('');
-        }
-    } else if (_todoTab === 'done') {
-        const done = all.filter(t => t.done).sort(_todoSortDone);
-        if (done.length === 0) {
-            html = `<div class="todo-empty">Nothing archived yet.</div>`;
-        } else {
-            html = done.map(t => _renderTodoItem(t, today, 'modal')).join('');
-        }
+    if (_todoTab === 'done') {
+        const done = doneTasks.sort(_todoSortDone);
+        html = done.length === 0
+            ? `<div class="todo-empty">Nothing done yet.</div>`
+            : done.map(t => _renderTaskItem(t, today, 'modal')).join('');
+    } else {
+        // 'open' (default): every non-done task, overdue/dated first, then undated
+        const open = openTasks.sort(_todoSortOpen);
+        html = open.length === 0
+            ? `<div class="todo-empty">Nothing open. You're all caught up.</div>`
+            : open.map(t => _renderTaskItem(t, today, 'modal')).join('');
     }
     container.innerHTML = html;
 }
@@ -5850,17 +5771,11 @@ function _renderAllTodoUI() {
     } else {
         // Keep tab counts fresh even when modal is closed
         try {
-            const today = todayYmd();
             const all = getTodos();
-            const todayReminders = all.filter(t => t.type === 'reminder' && !t.done && (!t.surfaceDate || t.surfaceDate <= today));
-            const todayTasks = all.filter(t => t.type === 'task' && !t.done && (!t.dueDate || t.dueDate <= today));
-            const allNotes = all.filter(t => t.type === 'note' && !t.done);
-            const todayCount = todayReminders.length + todayTasks.length + allNotes.length;
-            const notesCount = allNotes.length;
+            const openCount = all.filter(t => !t.done).length;
             const doneCount = all.filter(t => t.done).length;
             const el = (id) => document.getElementById(id);
-            if (el('todoCountToday')) el('todoCountToday').textContent = todayCount || '';
-            if (el('todoCountNotes')) el('todoCountNotes').textContent = notesCount || '';
+            if (el('todoCountOpen')) el('todoCountOpen').textContent = openCount || '';
             if (el('todoCountDone')) el('todoCountDone').textContent = doneCount || '';
         } catch {}
     }
