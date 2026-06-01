@@ -3117,6 +3117,13 @@ function formatDateLong(str) {
     const d = parseYmd(str);
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
+function formatDate(str) {
+    // Short date used by the mileage banner and unpaid-visits list. Was referenced
+    // but never defined on this page (only existed in invoices.html), which threw
+    // "formatDate is not defined" and aborted refreshAll whenever those rendered.
+    if (!str) return '';
+    return parseYmd(str).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 function formatTime12(t) {
     if (!t) return '';
     const [h, m] = t.split(':').map(Number);
@@ -6204,11 +6211,8 @@ function renderUnpaidVisitsCard() {
     if (unpaid.length === 0) { card.style.display = 'none'; return; }
 
     const total = unpaid.reduce((s, v) => s + (v.price || 0), 0);
-    const cap = 12;
-    const shown = unpaid.slice(0, cap);
-    const hidden = unpaid.length - shown.length;
 
-    const rows = shown.map(v => {
+    const rows = unpaid.map(v => {
         let ageLabel = '';
         if (v.date < today) {
             const d = _daysBetween(v.date, today);
@@ -6231,7 +6235,6 @@ function renderUnpaidVisitsCard() {
             <div class="uv-summary">${unpaid.length} completed · $${total.toFixed(2)} outstanding</div>
         </div>
         ${rows}
-        ${hidden > 0 ? `<div class="uv-more">+ ${hidden} more — mark these off to clear them</div>` : ''}
     `;
     card.style.display = 'block';
 }
