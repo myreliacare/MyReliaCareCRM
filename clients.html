@@ -466,8 +466,10 @@
         ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
     
         /* === MOBILE / HAMBURGER (appended at end so it wins the CSS cascade) === */
-        html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-        body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+        html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+        body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+        /* iOS ignores user-scalable=no and zooms when focusing inputs under 16px — force 16px on touch screens to stop it */
+        @media (max-width: 768px) { input, select, textarea, .li-amount, .visit-price, .trc-mi-input, .mpb-mi-input { font-size: 16px !important; } }
         body.menu-open { overflow: hidden; }
         body.modal-open { overflow: hidden; }
         @media (max-width: 700px) {
@@ -2776,5 +2778,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="tab-label">Finances</span>
         </a>
     </nav>
+<script>
+/* App-like behavior: block pinch-zoom and double-tap zoom on iOS, where the
+   viewport meta's user-scalable=no is ignored. Page scrolling is unaffected. */
+(function(){
+  ['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+    document.addEventListener(ev, function(e){ e.preventDefault(); }, { passive: false });
+  });
+})();
+</script>
 </body>
 </html>

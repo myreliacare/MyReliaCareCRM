@@ -721,8 +721,10 @@
         ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
     
         /* === MOBILE / HAMBURGER (appended at end so it wins the CSS cascade) === */
-        html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-        body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+        html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+        body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+        /* iOS ignores user-scalable=no and zooms when focusing inputs under 16px — force 16px on touch screens to stop it */
+        @media (max-width: 768px) { input, select, textarea, .li-amount, .visit-price, .trc-mi-input, .mpb-mi-input { font-size: 16px !important; } }
         body.menu-open { overflow: hidden; }
         body.modal-open { overflow: hidden; }
         @media (max-width: 700px) {
@@ -1252,7 +1254,33 @@ const VISIT_TYPES = {
     '60min':      { label: '1 hour Visit' }
 };
 
-const DEFAULT_CLOSING = `Reply here if you need to modify your booking. We're looking forward to caring for everyone!`;
+const DEFAULT_CLOSING_PREFIX = `Please let us know if you need to make a change to your booking. We look forward to caring for`;
+
+// Names the client's pets for the closing line:
+//   0 pets / unknown -> "everyone"
+//   1 pet            -> "Max"
+//   2 pets           -> "Max and Bella"
+//   3-4 pets         -> "Max, Bella, and Charlie"
+//   5+ pets          -> "everyone"
+function _petPhrase(client) {
+    const names = (client && Array.isArray(client.pets) ? client.pets : [])
+        .map(p => (p && p.name ? String(p.name).trim() : '')).filter(Boolean);
+    if (names.length === 0 || names.length >= 5) return 'everyone';
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} and ${names[1]}`;
+    return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+}
+function defaultClosing(client) {
+    return `${DEFAULT_CLOSING_PREFIX} ${_petPhrase(client)}!`;
+}
+// True if a note is an untouched default closing (current OR the older wording),
+// or blank — safe to regenerate with the client's pets.
+const OLD_DEFAULT_CLOSING_PREFIX = `Reply here if you need to modify your booking`;
+function _isDefaultClosing(note) {
+    if (!note || !note.trim()) return true;
+    const t = note.trim();
+    return t.startsWith(DEFAULT_CLOSING_PREFIX) || t.startsWith(OLD_DEFAULT_CLOSING_PREFIX);
+}
 
 let currentFilter = 'all';
 let editingInvoiceId = null;
@@ -1385,8 +1413,8 @@ function daysBetween(a, b) { return Math.round((parseYmd(b) - parseYmd(a)) / (10
 function generateId(p) { return `${p}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; }
 function nextInvoiceNumber() {
     // Derive next number from existing invoices so cancelled drafts don't waste numbers
-    // and the system self-corrects if storage gets out of sync. First invoice = MRC1001.
-    let maxNum = 1000;
+    // and the system self-corrects if storage gets out of sync. First invoice = MRC300.
+    let maxNum = 299;
     Store.getInvoices().forEach(inv => {
         const m = (inv.invoiceNumber || '').match(/^MRC(\d+)$/);
         if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
@@ -1726,7 +1754,8 @@ function openInvoiceEditor(seed) {
 
     document.getElementById('invNumber').value = nextInvoiceNumber();
     document.getElementById('invIssueDate').value = todayYmd();
-    document.getElementById('invNotes').value = seed.notes !== undefined && seed.notes !== '' ? seed.notes : DEFAULT_CLOSING;
+    const seedClient = seed.clientId ? Store.getClients().find(x => x.id === seed.clientId) : null;
+    document.getElementById('invNotes').value = (seed.notes !== undefined && seed.notes !== '') ? seed.notes : defaultClosing(seedClient);
 
     // reset discount + tax
     toggleDiscount(false);
@@ -1786,6 +1815,14 @@ function editInvoice(id) {
 }
 
 function onInvClientChange() {
+    // Keep the default closing's pet names in sync with the chosen client,
+    // but never overwrite a note the user has customized.
+    const notesEl = document.getElementById('invNotes');
+    if (notesEl && _isDefaultClosing(notesEl.value)) {
+        const { clientId } = resolveInvClient();
+        const client = clientId ? Store.getClients().find(c => c.id === clientId) : null;
+        notesEl.value = defaultClosing(client);
+    }
     renderVisitPicker();
 }
 
@@ -2240,16 +2277,34 @@ function copyInvoiceAsText(id) {
     // Schedule lines from linked visits, fall back to line item dates
     const scheduleLines = buildScheduleLines(inv);
 
-    // Group line items by amount: "4 visits @ $28.00 = $112.00"
+    // Split items: real visits (grouped by length + amount) vs. other charges
+    // (late fees, key copies, surcharges) which keep their own description.
+    const isVisit = (it) => !!it.visitId || _itemDurationLabel(it) != null;
     const groups = {};
+    const chargeLines = [];
     (inv.items || []).forEach(it => {
-        const key = (it.amount || 0).toFixed(2);
-        if (!groups[key]) groups[key] = { amount: it.amount, count: 0 };
-        groups[key].count++;
+        const amt = it.amount || 0;
+        if (isVisit(it)) {
+            const dur = _itemDurationLabel(it);
+            const key = `${dur || ''}|${amt.toFixed(2)}`;
+            if (!groups[key]) groups[key] = { dur, amount: amt, count: 0 };
+            groups[key].count++;
+        } else {
+            const desc = (it.description || '').trim() || 'Additional charge';
+            chargeLines.push(`${desc} = ${_money(amt)}`);
+        }
     });
     const itemLines = Object.values(groups)
         .sort((a, b) => b.amount - a.amount)
-        .map(g => `${g.count} visit${g.count === 1 ? '' : 's'} @ $${g.amount.toFixed(2)} = $${(g.count * g.amount).toFixed(2)}`);
+        .map(g => {
+            let label;
+            if (g.dur) {
+                label = g.count === 1 ? `${g.dur} visit` : `${g.count} × ${g.dur} visits`;
+            } else {
+                label = `${g.count} visit${g.count === 1 ? '' : 's'}`;
+            }
+            return `${label} @ $${g.amount.toFixed(2)} = $${(g.count * g.amount).toFixed(2)}`;
+        });
 
     const subtotal = inv.subtotal != null ? inv.subtotal : (inv.items || []).reduce((s, i) => s + (i.amount || 0), 0);
     const discount = inv.discount;
@@ -2260,8 +2315,19 @@ function copyInvoiceAsText(id) {
     const total = inv.total != null ? inv.total : (afterDiscount + taxAmount);
 
     const lines = [];
-    lines.push(`Hi ${firstName}!`);
-    lines.push(`MyReliaCare has confirmed your visits for this week.`);
+    const datedEntries = _invoiceDatedEntries(inv);
+    const visitCount = datedEntries.length;
+    const datePhrase = _invoiceDatePhrase(datedEntries.map(e => e.date));
+    let confirm;
+    if (visitCount === 0) {
+        confirm = `Here's your invoice from MyReliaCare.`;
+    } else {
+        const visitWord = visitCount === 1 ? 'visit' : 'visits';
+        confirm = datePhrase
+            ? `MyReliaCare has confirmed your ${visitWord} for ${datePhrase}.`
+            : `MyReliaCare has confirmed your ${visitWord}.`;
+    }
+    lines.push(`Hi ${firstName}! ${confirm}`);
 
     if (scheduleLines.length > 0) {
         lines.push(``);
@@ -2271,9 +2337,10 @@ function copyInvoiceAsText(id) {
     }
 
     lines.push(``);
-    lines.push(`— INVOICE ${inv.invoiceNumber} —`);
+    lines.push(inv.invoiceNumber ? `— INVOICE ${inv.invoiceNumber} —` : `— INVOICE —`);
     lines.push(``);
     itemLines.forEach(l => lines.push(l));
+    chargeLines.forEach(l => lines.push(l));
 
     if (discount && discount.percent > 0) {
         lines.push(`${discount.label} (${formatPercent(discount.percent)}%) = -$${discountAmount.toFixed(2)}`);
@@ -2285,7 +2352,11 @@ function copyInvoiceAsText(id) {
         lines.push(`Tax (${formatPercent(taxRate)}%) = +$${taxAmount.toFixed(2)}`);
     }
     lines.push(``);
-    lines.push(`Total due: $${total.toFixed(2)}`);
+    if (total < 0) {
+        lines.push(`Credit balance: $${Math.abs(total).toFixed(2)}`);
+    } else {
+        lines.push(`Total due: ${_money(total)}`);
+    }
 
     lines.push(``);
     lines.push(`— PAYMENT —`);
@@ -2294,10 +2365,13 @@ function copyInvoiceAsText(id) {
     lines.push(`CashApp: $MyReliaCare`);
     lines.push(`myreliacare.com/makeapayment`);
 
-    if (inv.notes && inv.notes.trim()) {
+    // Closing: regenerate the default with the client's current pets, or keep a custom note.
+    const closing = _isDefaultClosing(inv.notes) ? defaultClosing(c) : inv.notes.trim();
+    if (closing) {
         lines.push(``);
-        lines.push(inv.notes.trim());
+        lines.push(closing);
     }
+    lines.push(``);
     lines.push(`– Kasey & Charlie, MyReliaCare`);
 
     const text = lines.join('\n');
@@ -2312,9 +2386,30 @@ function copyInvoiceAsText(id) {
     }
 }
 
-function buildScheduleLines(inv) {
+// Map a line item to its visit length: "30 min", "1 hr", "meet & greet", or null.
+function _itemDurationLabel(it) {
+    let vt = null;
+    if (it.visitId) {
+        const v = Store.getVisits().find(x => x.id === it.visitId);
+        if (v) vt = v.visitType;
+    }
+    if (!vt && it.description) {
+        const d = it.description.toLowerCase();
+        if (d.includes('30 min')) vt = '30min';
+        else if (d.includes('1 hour') || d.includes('60 min') || d.includes('1 hr')) vt = '60min';
+        else if (d.includes('meet')) vt = 'meet-greet';
+    }
+    if (vt === '30min') return '30 min';
+    if (vt === '60min') return '1 hr';
+    if (vt === 'meet-greet') return 'meet & greet';
+    return null;
+}
+
+// Collect (date, time) for each line item that has a date — prefer the linked
+// visit, fall back to the item's own date. Shared by the schedule block and the
+// "confirmed your visits for ___" phrase so they always agree.
+function _invoiceDatedEntries(inv) {
     const visits = Store.getVisits();
-    // Pull (date, time) for each line item — prefer linked visit, fall back to item date if present
     const entries = [];
     (inv.items || []).forEach(it => {
         let date = null, time = null;
@@ -2325,8 +2420,54 @@ function buildScheduleLines(inv) {
         if (!date && it.date) date = it.date;
         if (date) entries.push({ date, time });
     });
-    entries.sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
-    return entries.map(e => formatScheduleLine(e.date, e.time));
+    return entries;
+}
+
+function _isThisWeek(minYmd, maxYmd) {
+    const now = new Date();
+    const weekStart = new Date(now); weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(now.getDate() - now.getDay()); // back to Sunday
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6); weekEnd.setHours(23, 59, 59, 999);
+    return parseYmd(minYmd) >= weekStart && parseYmd(maxYmd) <= weekEnd;
+}
+
+// Human phrase for the span of visit dates: "this week", "July 3", "July 1-5",
+// "June 28 - July 3", "Dec 30, 2025 - Jan 2, 2026", or null if there are no dates.
+function _invoiceDatePhrase(dates) {
+    if (!dates.length) return null;
+    const sorted = [...new Set(dates)].sort();
+    const minS = sorted[0], maxS = sorted[sorted.length - 1];
+    if (_isThisWeek(minS, maxS)) return 'this week';
+    const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const a = parseYmd(minS), b = parseYmd(maxS);
+    const nowYear = new Date().getFullYear();
+    const crossYear = a.getFullYear() !== b.getFullYear();
+    const needYear = crossYear || a.getFullYear() !== nowYear || b.getFullYear() !== nowYear;
+    const one = (d, withYear) => `${MON[d.getMonth()]} ${d.getDate()}${withYear ? ', ' + d.getFullYear() : ''}`;
+    if (minS === maxS) return one(a, needYear);
+    if (!crossYear && a.getMonth() === b.getMonth()) {
+        // same month: "July 1-5" (year appended once if needed)
+        return `${MON[a.getMonth()]} ${a.getDate()}-${b.getDate()}${needYear ? ', ' + a.getFullYear() : ''}`;
+    }
+    // cross-month (and/or cross-year)
+    return `${one(a, crossYear || needYear)} - ${one(b, crossYear || needYear)}`;
+}
+
+function buildScheduleLines(inv) {
+    const entries = _invoiceDatedEntries(inv);
+    // Group times under each day so multiple visits read "Tue 5/5: 2:30pm, 6:30pm, 9:30pm".
+    const byDate = {};
+    entries.forEach(e => {
+        if (!byDate[e.date]) byDate[e.date] = [];
+        if (e.time) byDate[e.date].push(e.time);
+    });
+    return Object.keys(byDate).sort().map(date => {
+        const d = parseYmd(date);
+        const dayAbbr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+        const md = `${d.getMonth() + 1}/${d.getDate()}`;
+        const times = [...new Set(byDate[date])].sort().map(t => formatTimeSms(t));
+        return times.length ? `${dayAbbr} ${md}: ${times.join(', ')}` : `${dayAbbr} ${md}`;
+    });
 }
 
 function formatScheduleLine(date, time) {
@@ -2351,6 +2492,10 @@ function formatTimeSms(t) {
 function formatPercent(p) {
     // 10 -> "10", 6.5 -> "6.5"
     return Number.isInteger(p) ? String(p) : String(parseFloat(p.toFixed(2)));
+}
+// Money with a sign that reads naturally: 28 -> "$28.00", -20 -> "-$20.00"
+function _money(n) {
+    return n < 0 ? `-$${Math.abs(n).toFixed(2)}` : `$${n.toFixed(2)}`;
 }
 
 function showCopyFallback(text) {
@@ -3832,5 +3977,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="tab-label">Finances</span>
         </a>
     </nav>
+<script>
+/* App-like behavior: block pinch-zoom and double-tap zoom on iOS, where the
+   viewport meta's user-scalable=no is ignored. Page scrolling is unaffected. */
+(function(){
+  ['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+    document.addEventListener(ev, function(e){ e.preventDefault(); }, { passive: false });
+  });
+})();
+</script>
 </body>
 </html>

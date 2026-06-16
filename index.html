@@ -56,8 +56,10 @@
 
 
         h1, h2, h3 { font-family: 'Cormorant Unicase', serif; font-weight: 600; }
-        html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-        body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+        html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+        body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+        /* iOS ignores user-scalable=no and zooms when focusing inputs under 16px — force 16px on touch screens to stop it */
+        @media (max-width: 768px) { input, select, textarea, .li-amount, .visit-price, .trc-mi-input, .mpb-mi-input { font-size: 16px !important; } }
         body.menu-open { overflow: hidden; }
         body.modal-open { overflow: hidden; }
         @media (max-width: 700px) {
@@ -484,12 +486,13 @@
 
         /* Mileage prompt banner — homepage nudge for days with completed visits but no mileage */
         .ui-icon { vertical-align: -2px; }
-        .daily-report-btn { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; cursor: pointer; font-family: inherit; color: var(--text); transition: border-color 0.12s, box-shadow 0.12s; text-align: left; }
-        .daily-report-btn:hover { border-color: var(--accent); }
-        .daily-report-btn.needs-log { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-        .drb-left { display: inline-flex; align-items: center; gap: 9px; color: var(--accent); }
-        .drb-title { font-family: 'Cormorant', serif; font-size: 1.15em; font-weight: 600; }
-        .drb-status { color: var(--text-faint); font-size: 0.82em; text-align: right; }
+        .dash-actions { display: flex; gap: 10px; margin-bottom: 16px; }
+        .dash-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; cursor: pointer; font-family: inherit; color: var(--text); text-align: left; transition: border-color 0.12s, box-shadow 0.12s; }
+        .dash-btn:hover { border-color: var(--accent); }
+        .dash-btn.needs-log { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+        .dash-btn-title { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-family: 'Cormorant', serif; font-size: 1.12em; font-weight: 600; }
+        .dash-btn-status { color: var(--text-faint); font-size: 0.78em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 359px) { .dash-actions { flex-direction: column; } }
         .dr-section { margin-bottom: 18px; }
         .dr-section-title { color: var(--accent); font-weight: 600; font-size: 1.05em; font-family: 'Cormorant', serif; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
         .dr-pay { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
@@ -529,6 +532,10 @@
         .trc-car-body { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .trc-route-btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 13px; background: var(--accent); color: var(--bg-card); border-radius: 7px; text-decoration: none; font-size: 0.86em; font-weight: 600; transition: background 0.12s; }
         .trc-route-btn:hover { background: var(--accent-light); }
+        .trc-trips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+        .trc-trips .trc-route-btn { padding: 7px 11px; font-size: 0.82em; }
+        .trc-trips-note { width: 100%; color: var(--text-faint); font-size: 0.74em; margin-top: 2px; }
+        .trc-est-note { width: 100%; color: var(--success); font-size: 0.72em; margin-top: 3px; }
         .trc-route-missing { color: var(--text-faint); font-size: 0.8em; }
         .trc-input-wrap { color: var(--text-dim); font-size: 0.85em; display: inline-flex; align-items: center; gap: 5px; }
         .trc-mi-input { width: 64px; padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.9em; }
@@ -2265,16 +2272,22 @@
 
         <!-- Daily Report — consolidated daily hub: today's schedule & pay, route/mileage,
              unpaid completed visits, and outstanding notes. The cards live inside the modal. -->
-        <button id="dailyReportBtn" class="daily-report-btn" onclick="openDailyReport()">
-            <span class="drb-left">
-                <svg class="ui-icon" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="2.5" width="10" height="12" rx="1.5"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>
-                <span class="drb-title">Daily Report</span>
-            </span>
-            <span class="drb-status" id="dailyReportStatus">Today at a glance</span>
-        </button>
-
-        <!-- Mileage prompt banner — surfaces PAST days with completed visits but no mileage logged. -->
-        <div id="mileagePromptBanner" class="mileage-prompt-banner" style="display: none;"></div>
+        <div class="dash-actions">
+            <button id="dailyReportBtn" class="dash-btn" onclick="openDailyReport()">
+                <span class="dash-btn-title">
+                    <svg class="ui-icon" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="2.5" width="10" height="12" rx="1.5"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>
+                    Daily Report
+                </span>
+                <span class="dash-btn-status" id="dailyReportStatus">Today at a glance</span>
+            </button>
+            <button id="logMileageBtn" class="dash-btn" onclick="openLogMileage()">
+                <span class="dash-btn-title">
+                    <svg class="ui-icon" viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.6c-2.4 0-4.3 1.9-4.3 4.3 0 3 4.3 8 4.3 8s4.3-5 4.3-8c0-2.4-1.9-4.3-4.3-4.3z"/><circle cx="8" cy="5.9" r="1.5"/></svg>
+                    Log Mileage
+                </span>
+                <span class="dash-btn-status" id="logMileageStatus">Tap to log</span>
+            </button>
+        </div>
 
         <!-- Today's Schedule -->
         <div class="card">
@@ -2614,6 +2627,25 @@
 </div>
 
 <!-- ========= DAY EVENTS MODAL ========= -->
+<!-- ========= LOG MILEAGE MODAL ========= -->
+<div class="modal-overlay" id="logMileageModal">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h2 id="logMileageTitle">Log Mileage</h2>
+            <button class="modal-close" onclick="closeModal('logMileageModal')">×</button>
+        </div>
+        <div class="modal-body modal-body-scrollable">
+            <div id="todayRouteCard" class="today-route-card" style="display: none;"></div>
+            <!-- Past days with completed visits but no mileage logged yet -->
+            <div id="mileagePromptBanner" class="mileage-prompt-banner" style="display: none;"></div>
+            <div id="logMileageEmpty" class="empty-state" style="display: none;">No mileage to log right now.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('logMileageModal')">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- ========= DAILY REPORT MODAL ========= -->
 <div class="modal-overlay" id="dailyReportModal">
     <div class="modal modal-wide">
@@ -2628,10 +2660,7 @@
                 <div id="drScheduleList" class="schedule-list"></div>
             </div>
 
-            <!-- Route + mileage (relocated card; self-titled) -->
-            <div id="todayRouteCard" class="today-route-card" style="display: none;"></div>
-
-            <!-- Unpaid completed visits (relocated card; self-titled) -->
+            <!-- Route + mileage logging lives in its own "Log Mileage" modal now -->
             <div id="unpaidVisitsCard" class="unpaid-card" style="display: none;"></div>
 
             <div class="dr-section">
@@ -3277,7 +3306,7 @@ function openScheduleModal(prefilledDate = null) {
 
     // reset visit rows
     document.getElementById('visitRows').innerHTML = '';
-    addVisitRow(prefilledDate);
+    addVisitRow(prefilledDate, true);
 
     // build day checkboxes
     buildDayCheckboxes();
@@ -3505,20 +3534,21 @@ function createInlineClient() {
     showToast(`Added "${name}" — fill in their full info on the Clients page later`);
 }
 
-function addVisitRow(prefilledDate = null) {
+function addVisitRow(prefilledDate = null, isAuto = false) {
     const container = document.getElementById('visitRows');
     const hadRows = container.children.length > 0;
     const row = document.createElement('div');
     row.className = 'visit-row';
+    if (isAuto) row.setAttribute('data-auto', '1'); // untouched default row added when the modal opens
     row.innerHTML = `
-        <input type="date" class="visit-date" value="${prefilledDate || todayYmd()}" onchange="updateRowWindowHint(this.closest('.visit-row'))">
-        <input type="time" class="visit-time" value="09:00">
-        <select class="visit-type" onchange="onVisitTypeChange(this.closest('.visit-row'))">
+        <input type="date" class="visit-date" value="${prefilledDate || todayYmd()}" onchange="updateRowWindowHint(this.closest('.visit-row')); this.closest('.visit-row').removeAttribute('data-auto')">
+        <input type="time" class="visit-time" value="09:00" onchange="this.closest('.visit-row').removeAttribute('data-auto')">
+        <select class="visit-type" onchange="onVisitTypeChange(this.closest('.visit-row')); this.closest('.visit-row').removeAttribute('data-auto')">
             ${Object.entries(VISIT_TYPES).map(([k, v]) =>
                 `<option value="${k}" ${k === '30min' ? 'selected' : ''}>${v.label}</option>`
             ).join('')}
         </select>
-        <input type="number" class="visit-price" placeholder="Price" min="0" step="0.01" value="0">
+        <input type="number" class="visit-price" placeholder="Price" min="0" step="0.01" value="0" oninput="this.closest('.visit-row').removeAttribute('data-auto')">
         <button type="button" class="visit-remove" onclick="this.parentElement.remove()" title="Remove">×</button>
         <div class="window-hint" style="display: none;"></div>
     `;
@@ -3645,6 +3675,8 @@ function applyRangeBuilder() {
     let cursor = parseYmd(start);
     const endDate = parseYmd(end);
     const visitRows = document.getElementById('visitRows');
+    // Remove the untouched default row so the range doesn't leave an empty visit behind.
+    visitRows.querySelectorAll('.visit-row[data-auto="1"]').forEach(r => r.remove());
     let added = 0;
     while (cursor <= endDate) {
         slots.forEach(s => {
@@ -5985,21 +6017,33 @@ function renderTodayRouteCard() {
 
     const carRow = (driver, label, visits) => {
         if (visits.length === 0) return '';
-        const url = hasHome ? _bfBuildDayMapsUrl(today, visits) : null;
-        const routeBtn = url
-            ? `<a href="${url}" target="_blank" rel="noopener" class="trc-route-btn">${_svgIcon('route')} ${label}'s route</a>`
-            : `<a onclick="openBackfill()" style="cursor:pointer" class="trc-route-missing">Set home address for route →</a>`;
+        const trips = hasHome ? _bfBuildDayTrips(today, visits) : [];
+        let routeBtns;
+        if (!hasHome) {
+            routeBtns = `<a onclick="openBackfill()" style="cursor:pointer" class="trc-route-missing">Set home address for route →</a>`;
+        } else if (trips.length === 0) {
+            routeBtns = `<span class="trc-route-missing">No mappable addresses</span>`;
+        } else if (trips.length === 1) {
+            routeBtns = `<a href="${trips[0].url}" target="_blank" rel="noopener" class="trc-route-btn">${_svgIcon('route')} ${label}'s route</a>`;
+        } else {
+            routeBtns = `<div class="trc-trips">`
+                + trips.map((t, i) => `<a href="${t.url}" target="_blank" rel="noopener" class="trc-route-btn">${_svgIcon('route')} Trip ${i + 1}${t.startTime ? ' · ' + formatTime12(t.startTime) : ''}</a>`).join('')
+                + `<span class="trc-trips-note">${trips.length} trips (you drove home between)</span></div>`;
+        }
         const isLogged = logged[driver] != null;
+        const est = isLogged ? null : _bfDayMilesEstimate(today, visits);
+        const valAttr = est != null ? ` value="${est.toFixed(1)}"` : '';
+        const estNote = est != null ? `<span class="trc-est-note">auto-estimated — tap to edit</span>` : '';
         const logCtl = isLogged
             ? `<span class="trc-logged">${_svgIcon('check')} ${(+logged[driver]).toFixed(1)} mi logged</span>`
-            : `<span class="trc-input-wrap"><input type="number" min="0" step="0.1" class="trc-mi-input" data-trc-driver="${driver}" placeholder="0.0"> mi</span>`;
+            : `<span class="trc-input-wrap"><input type="number" min="0" step="0.1" class="trc-mi-input" data-trc-driver="${driver}"${valAttr} placeholder="0.0"> mi</span>${estNote}`;
         return `
             <div class="trc-car ${isLogged ? 'logged' : ''}">
                 <div class="trc-car-head">
                     <span class="trc-car-name">${label}'s car</span>
                     <span class="trc-car-count">${visits.length} visit${visits.length === 1 ? '' : 's'}</span>
                 </div>
-                <div class="trc-car-body">${routeBtn}${logCtl}</div>
+                <div class="trc-car-body">${routeBtns}${logCtl}</div>
             </div>`;
     };
 
@@ -6123,6 +6167,58 @@ function openDailyReport() {
     openModal('dailyReportModal');
 }
 
+function openLogMileage() {
+    refreshAll();
+    const title = document.getElementById('logMileageTitle');
+    if (title) title.textContent = 'Log Mileage · ' + formatDateLong(todayYmd());
+    openModal('logMileageModal');
+    // Fill home + client coords in the background so miles can be auto-estimated.
+    // Covers today's visits plus the recent unlogged days shown in the catch-up list.
+    try {
+        const today = todayYmd();
+        const cutoff = (() => { const d = new Date(); d.setDate(d.getDate() - 21); return ymd(d); })();
+        const relevant = (Store.getVisits() || []).filter(v => v.date >= cutoff && v.date <= today);
+        _bfEnsureGeocoded(relevant);
+    } catch (e) { /* non-blocking */ }
+}
+
+function _renderLogMileageButton() {
+    const btn = document.getElementById('logMileageBtn');
+    const statusEl = document.getElementById('logMileageStatus');
+    if (!btn || !statusEl) return;
+    const today = todayYmd();
+    const todays = _filterVisitsByDriver((Store.getVisits() || []).filter(v => v.date === today));
+    const kVisits = todays.filter(v => _visitCountsForDriver(v, 'kasey'));
+    const cVisits = todays.filter(v => _visitCountsForDriver(v, 'charlie'));
+    const mileage = (Store.getMileage && Store.getMileage()) || [];
+    const logged = {};
+    mileage.forEach(r => { if (r.date === today) logged[r.driver] = true; });
+    const todayPending = (kVisits.length > 0 && !logged.kasey) || (cVisits.length > 0 && !logged.charlie);
+    // Past days needing mileage = the banner is visible (set by _renderMileagePrompt, which runs first)
+    const banner = document.getElementById('mileagePromptBanner');
+    const pastPending = !!(banner && banner.style.display !== 'none');
+
+    if (kVisits.length === 0 && cVisits.length === 0 && !pastPending) {
+        statusEl.textContent = 'Nothing to log';
+    } else if (todayPending || pastPending) {
+        statusEl.textContent = pastPending && !todayPending ? 'Earlier days to log' : 'Tap to log today';
+    } else {
+        statusEl.textContent = 'Logged for today';
+    }
+    const eveningPending = (new Date().getHours() >= 16) && (todayPending || pastPending);
+    btn.classList.toggle('needs-log', eveningPending);
+}
+
+function _renderLogMileageEmpty() {
+    const empty = document.getElementById('logMileageEmpty');
+    if (!empty) return;
+    const card = document.getElementById('todayRouteCard');
+    const banner = document.getElementById('mileagePromptBanner');
+    const cardVisible = card && card.style.display !== 'none';
+    const bannerVisible = banner && banner.style.display !== 'none';
+    empty.style.display = (cardVisible || bannerVisible) ? 'none' : 'block';
+}
+
 function _renderDailyReportSchedule() {
     const list = document.getElementById('drScheduleList');
     const paySummary = document.getElementById('drPaySummary');
@@ -6181,22 +6277,10 @@ function _renderDailyReportButton() {
     const unpaidCount = _filterVisitsByDriver(allVisits.filter(v => v.status === 'completed' && !v.paid)).length;
     const openNotes = getTodos().filter(t => !t.done).length;
 
-    // Mileage logged for today?
-    const kVisits = todays.filter(v => _visitCountsForDriver(v, 'kasey'));
-    const cVisits = todays.filter(v => _visitCountsForDriver(v, 'charlie'));
-    const mileage = (Store.getMileage && Store.getMileage()) || [];
-    const logged = {};
-    mileage.forEach(r => { if (r.date === today) logged[r.driver] = true; });
-    const milePending = (kVisits.length > 0 && !logged.kasey) || (cVisits.length > 0 && !logged.charlie);
-
     const parts = [`${todays.length} visit${todays.length === 1 ? '' : 's'} today`];
     if (unpaidCount > 0) parts.push(`${unpaidCount} unpaid`);
-    if (kVisits.length || cVisits.length) parts.push(milePending ? 'mileage to log' : 'mileage logged');
     if (openNotes > 0) parts.push(`${openNotes} note${openNotes === 1 ? '' : 's'}`);
     statusEl.textContent = parts.join(' · ');
-
-    const eveningPending = (new Date().getHours() >= 16) && milePending;
-    btn.classList.toggle('needs-log', eveningPending);
 }
 
 function renderUnpaidVisitsCard() {
@@ -6290,19 +6374,23 @@ function _renderMileagePrompt() {
     const hidden = pendingDays.length - shown.length;
 
     const dayHtml = shown.map(d => {
-        const kMapsUrl = d.kVisits.length > 0 ? _bfBuildDayMapsUrl(d.date, d.kVisits) : null;
-        const cMapsUrl = d.cVisits.length > 0 ? _bfBuildDayMapsUrl(d.date, d.cVisits) : null;
-        const kBtn = (d.kPending && kMapsUrl)
-            ? `<a href="${kMapsUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 8px; text-decoration: none; font-size: 0.78em;">Kasey route →</a>`
-            : '';
-        const cBtn = (d.cPending && cMapsUrl)
-            ? `<a href="${cMapsUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 8px; text-decoration: none; font-size: 0.78em;">Charlie route →</a>`
-            : '';
+        const tripLinks = (pending, visits, lbl) => {
+            if (!pending || visits.length === 0) return '';
+            const trips = _bfBuildDayTrips(d.date, visits);
+            if (trips.length === 0) return '';
+            const mk = (url, text) => `<a href="${url}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 8px; text-decoration: none; font-size: 0.78em;">${text}</a>`;
+            if (trips.length === 1) return mk(trips[0].url, `${lbl} route →`);
+            return trips.map((t, i) => mk(t.url, `${lbl} trip ${i + 1} →`)).join(' ');
+        };
+        const kBtn = tripLinks(d.kPending, d.kVisits, 'Kasey');
+        const cBtn = tripLinks(d.cPending, d.cVisits, 'Charlie');
+        const kEst = d.kPending ? _bfDayMilesEstimate(d.date, d.kVisits) : null;
+        const cEst = d.cPending ? _bfDayMilesEstimate(d.date, d.cVisits) : null;
         const kInput = d.kPending
-            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Kasey</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="kasey" placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
+            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Kasey</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="kasey"${kEst != null ? ` value="${kEst.toFixed(1)}"` : ''} placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
             : '';
         const cInput = d.cPending
-            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Charlie</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="charlie" placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
+            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Charlie</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="charlie"${cEst != null ? ` value="${cEst.toFixed(1)}"` : ''} placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
             : '';
         const totalVisits = (d.kPending ? d.kVisits.length : 0) + (d.cPending ? d.cVisits.length : 0);
         return `
@@ -6383,6 +6471,8 @@ function refreshAll() {
     _renderDailyReportNotes();
     _renderDailyReportButton();
     _renderMileagePrompt();
+    _renderLogMileageButton();
+    _renderLogMileageEmpty();
 }
 
 /* ============================================================
@@ -7161,50 +7251,163 @@ function _visitCountsForDriver(visit, driver) {
  * stored coords are wrong. Returns null if home address or all client
  * addresses are missing.
  */
-function _bfBuildDayMapsUrl(date, visitsOverride) {
-    const home = _bfGetHomeSetting();
-    const homeAddr = home && home.homeAddress ? home.homeAddress : null;
-    if (!homeAddr) return null;
+const BF_HOME_RETURN_GAP_MIN = 45; // a gap >= this (min) between visits implies a drive home → new trip
 
+// Straight-line distance × 1.3 road factor (mi), matching the per-client estimate
+// the client form uses. Returns null if either point is missing.
+function _bfRoadMiles(a, b) {
+    if (!a || !b || typeof a.lat !== 'number' || typeof b.lat !== 'number') return null;
+    const toRad = d => d * Math.PI / 180;
+    const R = 3958.7613;
+    const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h)) * 1.3;
+}
+
+// Estimated total driving miles for a driver's day: sum over trips of
+// home -> visits -> home using stored coordinates. Returns null if home or any
+// visited client lacks coordinates (so we never pre-fill a made-up number).
+function _bfDayMilesEstimate(date, visitsOverride) {
+    const home = _bfGetHomeSetting();
+    const homeCoords = home && home.homeCoords;
+    if (!homeCoords || typeof homeCoords.lat !== 'number') return null;
+    const groups = _bfDayTripGroups(date, visitsOverride);
+    if (groups.length === 0) return null;
+    const clientsById = {};
+    (Store.getClients() || []).forEach(c => { clientsById[c.id] = c; });
+    let total = 0;
+    for (const group of groups) {
+        const pts = [homeCoords];
+        for (const v of group) {
+            const c = clientsById[v.clientId];
+            const cc = c && (c.coords || c.coordsCache);
+            if (!cc || typeof cc.lat !== 'number') return null;
+            pts.push(cc);
+        }
+        pts.push(homeCoords);
+        for (let i = 0; i < pts.length - 1; i++) {
+            const leg = _bfRoadMiles(pts[i], pts[i + 1]);
+            if (leg == null) return null;
+            total += leg;
+        }
+    }
+    return Math.round(total * 10) / 10;
+}
+
+// Geocode one address via the configured providers. Runs in the browser.
+async function _bfGeocodeAny(addr) {
+    if (!addr) return null;
+    try {
+        const home = _bfGetHomeSetting();
+        const key = home && home.geocodioKey;
+        let r = key ? await _bfGeocodioSingle(addr, key) : null;
+        if (!r) r = await _bfCensusGeocode(addr);
+        if (!r) r = await _bfPhotonGeocode(addr);
+        if (r && typeof r.lat === 'number' && typeof r.lng === 'number') return { lat: r.lat, lng: r.lng };
+    } catch (e) { /* network/geocoder failure — leave un-geocoded */ }
+    return null;
+}
+
+// One-time, cached geocoding so mileage can be auto-estimated: fills home coords
+// and any missing client coords for the given visits, then re-renders. Best effort.
+let _bfGeocodingInFlight = false;
+async function _bfEnsureGeocoded(visits) {
+    if (_bfGeocodingInFlight) return;
+    _bfGeocodingInFlight = true;
+    try {
+        let homeChanged = false, clientsChanged = false;
+        const home = _bfGetHomeSetting();
+        if (home && home.homeAddress && (!home.homeCoords || typeof home.homeCoords.lat !== 'number')) {
+            const hc = await _bfGeocodeAny(home.homeAddress);
+            if (hc) { _bfSaveHomeSetting({ homeCoords: hc }); homeChanged = true; }
+        }
+        const clients = Store.getClients() || [];
+        const byId = {}; clients.forEach(c => { byId[c.id] = c; });
+        const ids = [...new Set((visits || []).map(v => v.clientId))];
+        for (const id of ids) {
+            const c = byId[id];
+            if (!c || (c.coords || c.coordsCache)) continue;
+            const parts = [c.address, c.city, c.state, c.zip].map(x => (x || '').trim()).filter(Boolean);
+            if (!parts.length) continue;
+            const coord = await _bfGeocodeAny(parts.join(', '));
+            if (coord) { c.coords = coord; clientsChanged = true; }
+        }
+        if (clientsChanged) Store.saveClients(clients);
+        if (homeChanged || clientsChanged) {
+            if (typeof renderTodayRouteCard === 'function') renderTodayRouteCard();
+            if (typeof _renderMileagePrompt === 'function') _renderMileagePrompt();
+        }
+    } finally {
+        _bfGeocodingInFlight = false;
+    }
+}
+
+// Returns an array of trips for the day's visits. Each trip is one "leave home →
+// do visits → back home" run; a gap of >= BF_HOME_RETURN_GAP_MIN minutes between
+// visits starts a new trip (you drove home). Each trip becomes its own Google Maps
+// link so it stays under the consumer ~9-stop limit and loads without errors.
+// Segment a day's visits into trips (groups). A gap >= BF_HOME_RETURN_GAP_MIN
+// between the end of one visit and the start of the next means a drive home.
+function _bfDayTripGroups(date, visitsOverride) {
     const dayVisits = visitsOverride !== undefined
         ? visitsOverride
         : (Store.getVisits() || []).filter(v => v.date === date);
     const sorted = dayVisits.slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-    if (sorted.length === 0) return null;
+    const groups = [];
+    let cur = null, prevEndMin = null;
+    for (const v of sorted) {
+        const startMin = _bfTimeToMin(v.time);
+        if (cur === null || (prevEndMin !== null && (startMin - prevEndMin) >= BF_HOME_RETURN_GAP_MIN)) {
+            cur = []; groups.push(cur);
+        }
+        cur.push(v);
+        prevEndMin = startMin + (BF_VISIT_DURATION[v.visitType] || 30);
+    }
+    return groups;
+}
+
+function _bfBuildDayTrips(date, visitsOverride) {
+    const home = _bfGetHomeSetting();
+    const homeAddr = home && home.homeAddress ? home.homeAddress : null;
+    if (!homeAddr) return [];
 
     const clientsById = {};
     (Store.getClients() || []).forEach(c => { clientsById[c.id] = c; });
-
     const addrFor = (c) => {
         if (!c) return null;
         const parts = [c.address, c.city, c.state, c.zip].map(x => (x || '').trim()).filter(Boolean);
-        return parts.length >= 2 ? parts.join(', ') : null;
+        return parts.length ? parts.join(', ') : null;
     };
 
-    const stops = [];
-    let prevEndMin = null;
-    for (const v of sorted) {
-        const c = clientsById[v.clientId];
-        const addr = addrFor(c);
-        if (!addr) continue;
-        const startMin = _bfTimeToMin(v.time);
-        if (prevEndMin !== null && (startMin - prevEndMin) >= 60) {
-            stops.push(homeAddr);
-        }
-        stops.push(addr);
-        const dur = BF_VISIT_DURATION[v.visitType] || 30;
-        prevEndMin = startMin + dur;
-    }
-    if (stops.length === 0) return null;
+    const tripGroups = _bfDayTripGroups(date, visitsOverride);
 
-    const params = new URLSearchParams({
-        api: '1',
-        origin: homeAddr,
-        destination: homeAddr,
-        waypoints: stops.join('|'),
-        travelmode: 'driving'
-    });
-    return 'https://www.google.com/maps/dir/?' + params.toString();
+    // One Google Maps link per trip: home -> trip's visits in order -> home.
+    const trips = [];
+    for (const group of tripGroups) {
+        const stops = [];
+        for (const v of group) {
+            const addr = addrFor(clientsById[v.clientId]);
+            if (addr) stops.push(addr);
+        }
+        if (stops.length === 0) continue;
+        const params = new URLSearchParams({
+            api: '1', origin: homeAddr, destination: homeAddr,
+            waypoints: stops.join('|'), travelmode: 'driving'
+        });
+        trips.push({
+            url: 'https://www.google.com/maps/dir/?' + params.toString(),
+            count: stops.length,
+            startTime: group[0].time || '',
+        });
+    }
+    return trips;
+}
+
+// Legacy single-link helper (used by the backfill workspace). Returns the first trip.
+function _bfBuildDayMapsUrl(date, visitsOverride) {
+    const trips = _bfBuildDayTrips(date, visitsOverride);
+    return trips.length ? trips[0].url : null;
 }
 
 function _bfRenderMileage() {
@@ -7751,5 +7954,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="tab-label">Finances</span>
         </a>
     </nav>
+<script>
+/* App-like behavior: block pinch-zoom and double-tap zoom on iOS, where the
+   viewport meta's user-scalable=no is ignored. Page scrolling is unaffected. */
+(function(){
+  ['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+    document.addEventListener(ev, function(e){ e.preventDefault(); }, { passive: false });
+  });
+})();
+</script>
 </body>
 </html>
