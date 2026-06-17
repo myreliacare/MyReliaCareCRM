@@ -466,8 +466,11 @@
         ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
     
         /* === MOBILE / HAMBURGER (appended at end so it wins the CSS cascade) === */
-        html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
-        body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+        html, body { -webkit-tap-highlight-color: transparent; }
+        @media (max-width: 768px) {
+            html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior: none; }
+            body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+        }
         /* iOS ignores user-scalable=no and zooms when focusing inputs under 16px — force 16px on touch screens to stop it */
         @media (max-width: 768px) { input, select, textarea, .li-amount, .visit-price, .trc-mi-input, .mpb-mi-input { font-size: 16px !important; } }
         body.menu-open { overflow: hidden; }

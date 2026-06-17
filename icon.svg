@@ -1,41 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- background -->
   <rect width="512" height="512" fill="#ECE6E1"/>
-  <!-- badge -->
-  <circle cx="256" cy="256" r="232" fill="#F7F3EF"/>
-  <circle cx="256" cy="256" r="232" fill="none" stroke="#B59197" stroke-width="12"/>
-
-  <g stroke="#B59197" fill="none" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
-    <!-- roof -->
-    <path d="M150,250 L256,150 L362,250"/>
-    <!-- walls (open bottom) -->
-    <path d="M172,234 L172,356"/>
-    <path d="M340,234 L340,356"/>
+  <g transform="translate(256,256) scale(1.5) translate(-256,-256)">
+    <g stroke="#B59197" fill="none" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M150,250 L256,150 L362,250"/>
+      <path d="M172,234 L172,356"/>
+      <path d="M340,234 L340,356"/>
+    </g>
+    <path d="M256,216 C248,198 222,198 222,220 C222,240 256,258 256,258 C256,258 290,240 290,220 C290,198 264,198 256,216 Z" fill="#B59197"/>
+    <g fill="#B59197">
+      <path d="M194,356 C188,322 200,300 213,300 C226,300 238,322 232,356 Z"/>
+      <circle cx="213" cy="298" r="20"/>
+      <path d="M197,286 L194,264 L212,280 Z"/>
+      <path d="M229,286 L232,264 L214,280 Z"/>
+    </g>
+    <path d="M232,352 C256,350 258,320 244,312" fill="none" stroke="#B59197" stroke-width="10" stroke-linecap="round"/>
+    <g fill="#B59197">
+      <path d="M283,356 C277,324 289,302 302,302 C315,302 327,324 321,356 Z"/>
+      <circle cx="302" cy="302" r="21"/>
+      <path d="M285,294 C273,296 272,318 283,320 C288,308 288,300 285,294 Z"/>
+      <path d="M319,294 C331,296 332,318 321,320 C316,308 316,300 319,294 Z"/>
+    </g>
+    <path d="M321,352 C338,350 342,330 332,322" fill="none" stroke="#B59197" stroke-width="10" stroke-linecap="round"/>
   </g>
-
-  <!-- heart -->
-  <path d="M256,196 C248,178 222,178 222,200 C222,220 256,238 256,238 C256,238 290,220 290,200 C290,178 264,178 256,196 Z" fill="#B59197"/>
-
-  <!-- CAT (left, sitting) -->
-  <g fill="#B59197">
-    <path d="M194,356 C188,322 200,300 213,300 C226,300 238,322 232,356 Z"/>
-    <circle cx="213" cy="298" r="20"/>
-    <path d="M197,286 L194,264 L212,280 Z"/>
-    <path d="M229,286 L232,264 L214,280 Z"/>
-  </g>
-  <path d="M232,352 C256,350 258,320 244,312" fill="none" stroke="#B59197" stroke-width="10" stroke-linecap="round"/>
-
-  <!-- DOG (right, sitting) -->
-  <g fill="#B59197">
-    <path d="M283,356 C277,324 289,302 302,302 C315,302 327,324 321,356 Z"/>
-    <circle cx="302" cy="302" r="21"/>
-    <path d="M285,294 C273,296 272,318 283,320 C288,308 288,300 285,294 Z"/>
-    <path d="M319,294 C331,296 332,318 321,320 C316,308 316,300 319,294 Z"/>
-  </g>
-  <path d="M321,352 C338,350 342,330 332,322" fill="none" stroke="#B59197" stroke-width="10" stroke-linecap="round"/>
-
-  <!-- sparkles -->
-  <path d="M372,150 Q376,176 402,180 Q376,184 372,210 Q368,184 342,180 Q368,176 372,150 Z" fill="#B59197"/>
-  <path d="M410,196 Q412,210 426,212 Q412,214 410,228 Q408,214 394,212 Q408,210 410,196 Z" fill="#B59197"/>
-  <path d="M408,140 Q409,150 419,151 Q409,152 408,162 Q407,152 397,151 Q407,150 408,140 Z" fill="#B59197"/>
+  <path d="M429,98 Q429,126 457,126 Q429,126 429,154 Q429,126 401,126 Q429,126 429,98 Z" fill="#B59197"/><path d="M467,82 Q467,96 481,96 Q467,96 467,110 Q467,96 453,96 Q467,96 467,82 Z" fill="#B59197"/><path d="M454,159 Q454,172 467,172 Q454,172 454,185 Q454,172 441,172 Q454,172 454,159 Z" fill="#B59197"/>
 </svg>

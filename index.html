@@ -49,15 +49,18 @@
         }
 
         html, body {
-            overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
         }
         body { font-family: 'Cormorant', serif; background: var(--bg-deep); min-height: 100vh; padding: 20px; color: var(--text); line-height: 1.6; font-size: 18px; }
 
 
         h1, h2, h3 { font-family: 'Cormorant Unicase', serif; font-weight: 600; }
-        html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
-        body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+        /* Zoom/horizontal-pan guards are mobile-only. On desktop, overflow-x:hidden on
+           html/body breaks mouse-wheel + keyboard scrolling (Chrome), so keep it off there. */
+        @media (max-width: 768px) {
+            html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior: none; }
+            body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+        }
         /* iOS ignores user-scalable=no and zooms when focusing inputs under 16px — force 16px on touch screens to stop it */
         @media (max-width: 768px) { input, select, textarea, .li-amount, .visit-price, .trc-mi-input, .mpb-mi-input { font-size: 16px !important; } }
         body.menu-open { overflow: hidden; }
@@ -105,9 +108,14 @@
             }
             /* Today's Schedule header + Kasey/Charlie filter on ONE line on mobile */
             .today-header-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
                 flex-wrap: nowrap;
                 gap: 8px;
             }
+            /* Drop the small status sub-line under the dashboard action buttons on mobile */
+            .dash-btn-status { display: none; }
             .today-header-row .card-title {
                 font-size: 1.05em;
                 flex: 0 1 auto;
