@@ -203,6 +203,50 @@
         .income-summary-cell.fee .value { color: var(--warn); }
         .income-summary-cell.net .value { color: var(--success); }
         .income-summary-cell .sub { color: var(--text-faint); font-size: 0.8em; margin-top: 2px; }
+        .income-summary-cell.clickable { cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
+        .income-summary-cell.clickable:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+        /* ---- Income Report (full-screen drill-down) ---- */
+        .income-report { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .income-report-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+        .ir-bar-title { font-family: 'Cormorant Unicase', serif; font-size: 1.15em; font-weight: 600; color: var(--text); }
+        .ir-bar-actions { display: flex; gap: 8px; }
+        .income-report-body { max-width: 920px; margin: 0 auto; padding: 20px; }
+        .ir-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+        .ir-biz { font-family: 'Cormorant Unicase', serif; font-size: 1.3em; font-weight: 600; color: var(--accent); }
+        .ir-period { color: var(--text-faint); font-size: 0.9em; margin-top: 2px; }
+        .ir-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .ir-sum { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .ir-sum span { color: var(--text-faint); font-size: 0.78em; }
+        .ir-sum strong { color: var(--text); font-size: 1.15em; font-family: 'Cormorant Unicase', serif; }
+        .ir-sum-net strong { color: var(--success); }
+        .ir-note { color: var(--text-faint); font-size: 0.82em; font-style: italic; margin-bottom: 10px; }
+        .ir-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .ir-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+        .ir-table th, .ir-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .ir-table th { color: var(--text-faint); font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ir-table .ir-num { text-align: right; font-variant-numeric: tabular-nums; }
+        .ir-table .ir-totals td { border-top: 2px solid var(--border); border-bottom: none; font-weight: 700; color: var(--text); }
+        .ir-tag { background: var(--success); color: var(--bg-deep); border-radius: 4px; padding: 1px 5px; font-size: 0.72em; }
+        .ir-empty { text-align: center; color: var(--text-faint); padding: 24px; }
+        .ir-edit-btn { background: transparent; border: 1px solid var(--border); color: var(--accent); border-radius: 6px; padding: 3px 10px; font-family: inherit; font-size: 0.85em; cursor: pointer; }
+        .ir-edit-btn:hover { border-color: var(--accent); }
+        .ir-net-line { color: var(--text-faint); font-size: 0.9em; margin-top: 4px; }
+        .ir-net-line strong { color: var(--success); }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff !important; }
+            body * { visibility: hidden !important; }
+            #incomeReport, #incomeReport * { visibility: visible !important; }
+            #incomeReport { position: absolute !important; left: 0; top: 0; right: 0; display: block !important; overflow: visible !important; background: #fff !important; }
+            #incomeReport .income-report-body { padding: 0 !important; max-width: none !important; }
+            #incomeReport .ir-biz { color: #000 !important; }
+            #incomeReport .ir-period, #incomeReport .ir-sum span { color: #333 !important; }
+            #incomeReport .ir-sum, #incomeReport .ir-sum strong, #incomeReport .ir-table th, #incomeReport .ir-table td { color: #000 !important; }
+            #incomeReport .ir-sum { border-color: #999 !important; }
+            #incomeReport .ir-table th, #incomeReport .ir-table td { border-color: #999 !important; }
+        }
         .income-method-list { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
         .income-method-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.95em; }
 
@@ -511,10 +555,10 @@
         .modal-footer { padding: 20px 28px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 
         /* Form */
-        .form-group { margin-bottom: 18px; }
+        .form-group { margin-bottom: 18px; min-width: 0; }
         .form-group label { display: block; color: var(--text-dim); margin-bottom: 6px; font-size: 1em; font-weight: 500; }
         .form-group label .required { color: var(--accent); }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; min-width: 0; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); }
         .form-group textarea { resize: vertical; min-height: 70px; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -648,11 +692,11 @@
                 padding: 10px !important;
             }
             .line-item > .li-date { grid-column: 1; grid-row: 1; }
-            .line-item > .item-remove { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; }
+            .line-item > .item-remove { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; }
             .line-item > .li-desc { grid-column: 1 / -1; grid-row: 2; }
             .line-item > .li-amount { grid-column: 1 / -1; grid-row: 3; }
         }
-        .line-item input, .line-item select { padding: 6px 10px; font-size: 0.95em; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: 'Cormorant', serif; width: 100%; }
+        .line-item input, .line-item select { padding: 6px 10px; font-size: 0.95em; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: 'Cormorant', serif; width: 100%; min-width: 0; }
         .item-remove { background: transparent; color: var(--text-faint); border: none; cursor: pointer; font-size: 1.3em; padding: 4px 8px; line-height: 1; }
         .item-remove:hover { color: var(--danger); }
         .totals-row { display: flex; justify-content: flex-end; align-items: center; gap: 14px; padding: 14px 8px 4px; border-top: 1px solid var(--border); margin-top: 8px; }
@@ -696,6 +740,8 @@
         #logoUpload { display: none; }
         /* === THEMED FORM CONTROLS === */
         input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], select { color-scheme: dark; }
+        input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"] { min-width: 0; text-align: left; }
+        @media (max-width: 768px) { input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"] { -webkit-appearance: none; appearance: none; width: 100%; } }
         select {
             appearance: none; -webkit-appearance: none; -moz-appearance: none;
             background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0 L10 0 L5 6 Z' fill='%23B59197'/></svg>");
@@ -1138,6 +1184,62 @@
 </div>
 
 <!-- ========= LOG MILES MODAL ========= -->
+<div id="incomeReport" class="income-report" style="display:none;">
+    <div class="income-report-bar no-print">
+        <div class="ir-bar-title">Income Report</div>
+        <div class="ir-bar-actions">
+            <button class="btn btn-ghost btn-sm" onclick="printIncomeReport()">Print / Save PDF</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeIncomeReport()">✕ Close</button>
+        </div>
+    </div>
+    <div class="income-report-body" id="incomeReportBody"></div>
+</div>
+
+<div class="modal-overlay" id="incomeRowEditModal" style="z-index: 9600;">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h2 id="incomeRowEditTitle">Edit payment</h2>
+            <button class="modal-close" onclick="closeModal('incomeRowEditModal')">×</button>
+        </div>
+        <div class="modal-body modal-body-scrollable">
+            <div class="form-group">
+                <label>Date paid</label>
+                <input type="date" id="incomeRowEditDate">
+            </div>
+            <div class="form-group">
+                <label>Payment method</label>
+                <select id="incomeRowEditMethod" onchange="incomeRowMethodChanged()" style="background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 11px; font-family: inherit; font-size: 0.95em; width: 100%;">
+                    <option value="">Unrecorded</option>
+                    <option value="venmo">Venmo</option>
+                    <option value="cashapp">CashApp</option>
+                    <option value="stripe">Stripe</option>
+                    <option value="rover">Rover</option>
+                    <option value="cash">Cash</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-row form-row-compact">
+                <div class="form-group">
+                    <label id="incomeRowEditGrossLabel">Amount</label>
+                    <input type="number" id="incomeRowEditGross" min="0" step="0.01" oninput="_updateIncomeRowNet()">
+                </div>
+                <div class="form-group">
+                    <label>Fee</label>
+                    <input type="number" id="incomeRowEditFee" min="0" step="0.01" oninput="_updateIncomeRowNet()">
+                </div>
+            </div>
+            <div class="ir-net-line">Net deposited: <strong id="incomeRowEditNet">$0.00</strong></div>
+            <div id="incomeRowEditInvoiceLink" style="display:none;">
+                <button class="btn btn-ghost btn-sm" onclick="openIncomeRowInvoice()" style="width:100%; margin-top:8px;">Open invoice to change its total &rarr;</button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('incomeRowEditModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveIncomeRowEdit()">Save</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="logMilesModal">
     <div class="modal modal-sm">
         <div class="modal-header">
@@ -2289,16 +2391,19 @@ function copyInvoiceAsText(id) {
         const amt = it.amount || 0;
         if (isVisit(it)) {
             const dur = _itemDurationLabel(it);
-            const key = `${dur || ''}|${amt.toFixed(2)}`;
-            if (!groups[key]) groups[key] = { dur, amount: amt, count: 0 };
-            groups[key].count++;
+            const key = dur || '';                 // group by visit length only
+            if (!groups[key]) groups[key] = { dur, unit: amt, total: 0, count: 0, mixed: false };
+            const g = groups[key];
+            if (g.count > 0 && Math.abs(amt - g.unit) > 0.005) g.mixed = true;
+            g.count++;
+            g.total += amt;
         } else {
             const desc = (it.description || '').trim() || 'Additional charge';
             chargeLines.push(`${desc} = ${_money(amt)}`);
         }
     });
     const itemLines = Object.values(groups)
-        .sort((a, b) => b.amount - a.amount)
+        .sort((a, b) => b.total - a.total)
         .map(g => {
             let label;
             if (g.dur) {
@@ -2306,7 +2411,12 @@ function copyInvoiceAsText(id) {
             } else {
                 label = `${g.count} visit${g.count === 1 ? '' : 's'}`;
             }
-            return `${label} @ $${g.amount.toFixed(2)} = $${(g.count * g.amount).toFixed(2)}`;
+            const total = (Math.round(g.total * 100) / 100).toFixed(2);
+            // If visits of the same length were priced slightly differently (e.g. one
+            // booked under an older rate), group them anyway and just show the total —
+            // don't split into two lines or print a misleading per-visit rate.
+            if (g.mixed) return `${label} = $${total}`;
+            return `${label} @ $${g.unit.toFixed(2)} = $${total}`;
         });
 
     const subtotal = inv.subtotal != null ? inv.subtotal : (inv.items || []).reduce((s, i) => s + (i.amount || 0), 0);
@@ -2743,30 +2853,30 @@ function renderIncomeBreakdown() {
     const taxableGross = totalGross - tipsGross;
     const salesTaxOwed = Math.round((taxableGross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE))) * 100) / 100;
     const tipsCell = tipsCount > 0
-        ? `<div class="income-summary-cell">
+        ? `<div class="income-summary-cell clickable" onclick="openIncomeReport()">
             <div class="label">Tips</div>
             <div class="value">$${tipsGross.toFixed(2)}</div>
             <div class="sub">${tipsCount} tip${tipsCount === 1 ? '' : 's'} · not sales-taxed</div>
         </div>`
         : '';
     body.innerHTML = `
-        <div class="income-summary-cell">
+        <div class="income-summary-cell clickable" onclick="openIncomeReport()">
             <div class="label">Gross</div>
             <div class="value">$${totalGross.toFixed(2)}</div>
             <div class="sub">${totalCount} payment${totalCount === 1 ? '' : 's'}</div>
         </div>
         ${tipsCell}
-        <div class="income-summary-cell fee">
+        <div class="income-summary-cell fee clickable" onclick="openIncomeReport()">
             <div class="label">KY Sales Tax</div>
             <div class="value">$${salesTaxOwed.toFixed(2)}</div>
             <div class="sub">6% incl. in prices · owed to state</div>
         </div>
-        <div class="income-summary-cell fee">
+        <div class="income-summary-cell fee clickable" onclick="openIncomeReport()">
             <div class="label">Fees</div>
             <div class="value">$${totalFee.toFixed(2)}</div>
             <div class="sub">${feePct.toFixed(2)}% of gross</div>
         </div>
-        <div class="income-summary-cell net">
+        <div class="income-summary-cell net clickable" onclick="openIncomeReport()">
             <div class="label">Net Deposited</div>
             <div class="value">$${totalNet.toFixed(2)}</div>
             <div class="sub">what hit your bank</div>
@@ -2816,6 +2926,223 @@ function renderIncomeBreakdown() {
             ${methodRows}
         </div>
     `);
+}
+
+/* ============================================================
+   INCOME REPORT — detailed, printable, editable drill-down
+   Same source data as the summary cards: paid invoices, direct-paid
+   visits, and per-client tips, filtered to the selected period.
+   ============================================================ */
+function _incomeInRange(dateStr, range) {
+    if (!dateStr) return false;
+    const today = todayYmd();
+    if (range === 'month') return dateStr.startsWith(today.slice(0, 7));
+    if (range === 'year')  return dateStr.startsWith(today.slice(0, 4));
+    return true;
+}
+const _INCOME_DUR = { '30min': '30 min visit', '60min': '1 hr visit', 'meet-greet': 'Meet & Greet' };
+function collectIncomeRows(range) {
+    range = range || _incomeRange;
+    const rows = [];
+    Store.getInvoices().forEach(inv => {
+        if (inv.status !== 'paid' || !_incomeInRange(inv.paidDate, range)) return;
+        const g = parseFloat(inv.total) || 0;
+        const f = inv.paymentFee != null ? (parseFloat(inv.paymentFee) || 0) : (inv.paymentMethod ? calcPaymentFee(inv.paymentMethod, g) : 0);
+        const n = inv.netAmount != null ? (parseFloat(inv.netAmount) || 0) : Math.round((g - f) * 100) / 100;
+        rows.push({ kind: 'invoice', invoiceId: inv.id, date: inv.paidDate || '', client: inv.clientName || '', desc: inv.invoiceNumber || 'Invoice', method: inv.paymentMethod || '', gross: g, fee: f, net: n, isTip: false });
+    });
+    Store.getVisits().forEach(v => {
+        if (!(v.paid && !v.invoiced && _incomeInRange(v.paidDate, range))) return;
+        const g = parseFloat(v.price) || 0;
+        const f = v.paymentFee != null ? (parseFloat(v.paymentFee) || 0) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
+        const n = v.netAmount != null ? (parseFloat(v.netAmount) || 0) : Math.round((g - f) * 100) / 100;
+        rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', client: v.clientName || '', desc: _INCOME_DUR[v.visitType] || 'Visit', method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: false });
+    });
+    Store.getClients().forEach(c => {
+        if (!Array.isArray(c.tips)) return;
+        c.tips.forEach(t => {
+            if (!_incomeInRange(t.date, range)) return;
+            const g = parseFloat(t.amount) || 0;
+            const f = t.paymentFee != null ? (parseFloat(t.paymentFee) || 0) : (t.paymentMethod ? calcPaymentFee(t.paymentMethod, g) : 0);
+            const n = t.netAmount != null ? (parseFloat(t.netAmount) || 0) : Math.round((g - f) * 100) / 100;
+            rows.push({ kind: 'tip', clientId: c.id, tipId: t.id, date: t.date || '', client: c.name || '', desc: 'Tip' + (t.note ? ' — ' + t.note : ''), method: t.paymentMethod || '', gross: g, fee: f, net: n, isTip: true });
+        });
+    });
+    rows.sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.client || '').localeCompare(b.client || ''));
+    return rows;
+}
+
+function _rowSalesTax(r) { return r.isTip ? 0 : Math.round(r.gross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE)) * 100) / 100; }
+
+let _incomeReportRows = [];
+let _incomeReportRange = 'month';
+let _editingIncomeRowIdx = null;
+let _incomeRowEditInvoiceId = null;
+
+function _incomeRangeLabel(range) {
+    if (range === 'month') return parseYmd(todayYmd()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    if (range === 'year') return todayYmd().slice(0, 4);
+    return 'All time';
+}
+
+function openIncomeReport(range) {
+    _incomeReportRange = range || _incomeRange || 'month';
+    const ov = document.getElementById('incomeReport');
+    if (!ov) return;
+    ov.style.display = 'block';
+    document.body.classList.add('modal-open');
+    _renderIncomeReport();
+}
+function closeIncomeReport() {
+    const ov = document.getElementById('incomeReport');
+    if (ov) ov.style.display = 'none';
+    document.body.classList.remove('modal-open');
+}
+function setIncomeReportRange(range) { _incomeReportRange = range; _renderIncomeReport(); }
+
+function _renderIncomeReport() {
+    const range = _incomeReportRange;
+    const rows = collectIncomeRows(range);
+    _incomeReportRows = rows;
+
+    let gross = 0, fee = 0, net = 0, tips = 0, tax = 0;
+    rows.forEach(r => { gross += r.gross; fee += r.fee; net += r.net; if (r.isTip) tips += r.gross; tax += _rowSalesTax(r); });
+    gross = Math.round(gross * 100) / 100; fee = Math.round(fee * 100) / 100; net = Math.round(net * 100) / 100;
+    tips = Math.round(tips * 100) / 100; tax = Math.round(tax * 100) / 100;
+    const taxable = Math.round((gross - tips) * 100) / 100;
+
+    const rangeTab = (r, lbl) => `<button type="button" class="income-range-tab ${range === r ? 'active' : ''}" onclick="setIncomeReportRange('${r}')">${lbl}</button>`;
+
+    const summary = `
+        <div class="ir-summary">
+            <div class="ir-sum"><span>Gross income</span><strong>$${gross.toFixed(2)}</strong></div>
+            <div class="ir-sum"><span>Tips (non-taxable)</span><strong>$${tips.toFixed(2)}</strong></div>
+            <div class="ir-sum"><span>Taxable sales</span><strong>$${taxable.toFixed(2)}</strong></div>
+            <div class="ir-sum"><span>KY sales tax (6% incl. in prices)</span><strong>$${tax.toFixed(2)}</strong></div>
+            <div class="ir-sum"><span>Processing fees</span><strong>$${fee.toFixed(2)}</strong></div>
+            <div class="ir-sum ir-sum-net"><span>Net deposited</span><strong>$${net.toFixed(2)}</strong></div>
+        </div>`;
+
+    const rowsHtml = rows.length === 0
+        ? `<tr><td colspan="9" class="ir-empty">No payments in this period.</td></tr>`
+        : rows.map((r, i) => `
+            <tr>
+                <td>${r.date ? formatDate(r.date) : '—'}</td>
+                <td>${escapeHtml(r.client || '—')}</td>
+                <td>${escapeHtml(r.desc || '')}${r.isTip ? ' <span class="ir-tag">tip</span>' : ''}</td>
+                <td>${escapeHtml(paymentMethodLabel(r.method))}</td>
+                <td class="ir-num">$${r.gross.toFixed(2)}</td>
+                <td class="ir-num">${r.isTip ? '—' : '$' + _rowSalesTax(r).toFixed(2)}</td>
+                <td class="ir-num">${r.fee > 0 ? '−$' + r.fee.toFixed(2) : '—'}</td>
+                <td class="ir-num">$${r.net.toFixed(2)}</td>
+                <td class="ir-edit-cell no-print"><button type="button" class="ir-edit-btn" onclick="openIncomeRowEditor(${i})">Edit</button></td>
+            </tr>`).join('');
+
+    const totalsRow = rows.length ? `
+            <tr class="ir-totals">
+                <td colspan="4">Totals — ${rows.length} payment${rows.length === 1 ? '' : 's'}</td>
+                <td class="ir-num">$${gross.toFixed(2)}</td>
+                <td class="ir-num">$${tax.toFixed(2)}</td>
+                <td class="ir-num">${fee > 0 ? '−$' + fee.toFixed(2) : '—'}</td>
+                <td class="ir-num">$${net.toFixed(2)}</td>
+                <td class="no-print"></td>
+            </tr>` : '';
+
+    document.getElementById('incomeReportBody').innerHTML = `
+        <div class="ir-head">
+            <div>
+                <div class="ir-biz">MyReliaCare — Income Report</div>
+                <div class="ir-period">${_incomeRangeLabel(range)} · generated ${formatDateLong(todayYmd())}</div>
+            </div>
+            <div class="income-range-tabs ir-range no-print">
+                ${rangeTab('month', 'This Month')}${rangeTab('year', 'This Year')}${rangeTab('all', 'All')}
+            </div>
+        </div>
+        ${summary}
+        <div class="ir-note no-print">Tap any row's Edit to correct an amount, fee, method, or date. An invoice's total is edited on the invoice itself.</div>
+        <div class="ir-table-wrap">
+            <table class="ir-table">
+                <thead><tr>
+                    <th>Date</th><th>Client</th><th>Description</th><th>Method</th>
+                    <th class="ir-num">Gross</th><th class="ir-num">KY Tax</th><th class="ir-num">Fee</th><th class="ir-num">Net</th><th class="no-print"></th>
+                </tr></thead>
+                <tbody>${rowsHtml}${totalsRow}</tbody>
+            </table>
+        </div>`;
+}
+
+function printIncomeReport() { window.print(); }
+
+function openIncomeRowEditor(idx) {
+    const r = _incomeReportRows[idx];
+    if (!r) return;
+    _editingIncomeRowIdx = idx;
+    document.getElementById('incomeRowEditTitle').textContent = `${r.desc}${r.client ? ' — ' + r.client : ''}`;
+    document.getElementById('incomeRowEditDate').value = r.date || '';
+    document.getElementById('incomeRowEditMethod').value = r.method || '';
+    const grossInput = document.getElementById('incomeRowEditGross');
+    grossInput.value = (r.gross || 0).toFixed(2);
+    document.getElementById('incomeRowEditFee').value = (r.fee || 0).toFixed(2);
+    const isInv = r.kind === 'invoice';
+    grossInput.disabled = isInv;
+    document.getElementById('incomeRowEditGrossLabel').textContent = isInv ? 'Invoice total' : (r.kind === 'tip' ? 'Tip amount' : 'Amount');
+    document.getElementById('incomeRowEditInvoiceLink').style.display = isInv ? 'block' : 'none';
+    _incomeRowEditInvoiceId = isInv ? r.invoiceId : null;
+    _updateIncomeRowNet();
+    openModal('incomeRowEditModal');
+}
+function _updateIncomeRowNet() {
+    const g = parseFloat(document.getElementById('incomeRowEditGross').value) || 0;
+    const f = parseFloat(document.getElementById('incomeRowEditFee').value) || 0;
+    document.getElementById('incomeRowEditNet').textContent = '$' + (Math.round((g - f) * 100) / 100).toFixed(2);
+}
+function incomeRowMethodChanged() {
+    const method = document.getElementById('incomeRowEditMethod').value;
+    const g = parseFloat(document.getElementById('incomeRowEditGross').value) || 0;
+    document.getElementById('incomeRowEditFee').value = calcPaymentFee(method, g).toFixed(2);
+    _updateIncomeRowNet();
+}
+function openIncomeRowInvoice() {
+    if (!_incomeRowEditInvoiceId) return;
+    closeModal('incomeRowEditModal');
+    closeIncomeReport();
+    if (typeof editInvoice === 'function') editInvoice(_incomeRowEditInvoiceId);
+}
+function saveIncomeRowEdit() {
+    const r = _incomeReportRows[_editingIncomeRowIdx];
+    if (!r) return;
+    const date = document.getElementById('incomeRowEditDate').value || r.date;
+    const method = document.getElementById('incomeRowEditMethod').value || '';
+    const gross = Math.round((parseFloat(document.getElementById('incomeRowEditGross').value) || 0) * 100) / 100;
+    const fee = Math.round((parseFloat(document.getElementById('incomeRowEditFee').value) || 0) * 100) / 100;
+    const net = Math.round((gross - fee) * 100) / 100;
+
+    if (r.kind === 'visit') {
+        const visits = Store.getVisits();
+        const v = visits.find(x => x.id === r.visitId);
+        if (!v) { showToast('Visit not found', 'error'); return; }
+        v.price = gross; v.paymentMethod = method; v.paymentFee = fee; v.netAmount = net; v.paidDate = date;
+        if (Store.saveVisits(visits) === false) { showToast('Save failed', 'error'); return; }
+    } else if (r.kind === 'tip') {
+        const clients = Store.getClients();
+        const c = clients.find(x => x.id === r.clientId);
+        const t = c && Array.isArray(c.tips) ? c.tips.find(x => x.id === r.tipId) : null;
+        if (!t) { showToast('Tip not found', 'error'); return; }
+        t.amount = gross; t.paymentMethod = method; t.paymentFee = fee; t.netAmount = net; t.date = date;
+        if (Store.saveClients(clients) === false) { showToast('Save failed', 'error'); return; }
+    } else if (r.kind === 'invoice') {
+        // Gross stays tied to the invoice's line items; only adjust payment attributes here.
+        const invoices = Store.getInvoices();
+        const inv = invoices.find(x => x.id === r.invoiceId);
+        if (!inv) { showToast('Invoice not found', 'error'); return; }
+        const g = parseFloat(inv.total) || 0;
+        inv.paymentMethod = method; inv.paymentFee = fee; inv.netAmount = Math.round((g - fee) * 100) / 100; inv.paidDate = date;
+        if (Store.saveInvoices(invoices) === false) { showToast('Save failed', 'error'); return; }
+    }
+    closeModal('incomeRowEditModal');
+    _renderIncomeReport();
+    if (typeof renderIncomeBreakdown === 'function') renderIncomeBreakdown();
+    showToast('Updated');
 }
 
 /* ============================================================

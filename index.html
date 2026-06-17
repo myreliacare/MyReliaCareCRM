@@ -117,17 +117,19 @@
             /* Drop the small status sub-line under the dashboard action buttons on mobile */
             .dash-btn-status { display: none; }
             .today-header-row .card-title {
-                font-size: 1.05em;
+                font-size: 0.92em;
                 flex: 0 1 auto;
                 min-width: 0;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
+            .today-header-row .day-nav { gap: 5px; }
+            .today-header-row .day-nav-btn { width: 26px; height: 26px; }
             .today-header-row .view-filter-pills { flex-shrink: 0; }
             .today-header-row .view-filter-pill {
-                padding: 4px 8px;
-                font-size: 0.76em;
+                padding: 3px 7px;
+                font-size: 0.72em;
             }
         }
 
@@ -468,7 +470,7 @@
 
         /* To-Do list */
         .todo-card-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
-        .today-header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        .today-header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: nowrap; }
         .day-nav { display: flex; align-items: center; gap: 8px; min-width: 0; }
         .day-nav .card-title { min-width: 0; white-space: nowrap; }
         .day-nav-btn {
@@ -495,7 +497,7 @@
         /* Mileage prompt banner — homepage nudge for days with completed visits but no mileage */
         .ui-icon { vertical-align: -2px; }
         .dash-actions { display: flex; gap: 10px; margin-bottom: 16px; }
-        .dash-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; cursor: pointer; font-family: inherit; color: var(--text); text-align: left; transition: border-color 0.12s, box-shadow 0.12s; }
+        .dash-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; cursor: pointer; font-family: inherit; color: var(--text); text-align: center; transition: border-color 0.12s, box-shadow 0.12s; }
         .dash-btn:hover { border-color: var(--accent); }
         .dash-btn.needs-log { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
         .dash-btn-title { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-family: 'Cormorant', serif; font-size: 1.12em; font-weight: 600; }
@@ -1100,6 +1102,9 @@
             transition: all 0.15s;
         }
         .schedule-item:hover { background: var(--bg-card-light); }
+        .schedule-go { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); font-size: 1.7em; line-height: 1; pointer-events: none; opacity: 0.65; }
+        .schedule-item:hover .schedule-go { color: var(--accent); opacity: 1; }
+        .schedule-item .schedule-inbox-row { padding-right: 26px; }
         .schedule-item.personal { border-left-color: var(--personal); }
         .schedule-item.completed { opacity: 0.55; }
         /* Inline complete/paid quick-actions on schedule + day-modal rows */
@@ -1289,6 +1294,7 @@
             color: var(--text);
             font-family: 'Cormorant', serif;
             font-size: 1.05em;
+            min-width: 0;
         }
         .form-group input:focus,
         .form-group select:focus,
@@ -1348,6 +1354,7 @@
             color: var(--text);
             font-family: 'Cormorant', serif;
             width: 100%;
+            min-width: 0;
         }
         .visit-remove {
             background: transparent;
@@ -1770,6 +1777,8 @@
         input[type="datetime-local"],
         input[type="month"],
         select { color-scheme: dark; }
+        input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"] { min-width: 0; text-align: left; }
+        @media (max-width: 768px) { input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"] { -webkit-appearance: none; appearance: none; width: 100%; } }
 
         select {
             appearance: none;
@@ -2278,7 +2287,7 @@
         <div class="action-bar">
             <button class="btn btn-primary" onclick="openScheduleModal()" data-mobile-label="+ Visit">+ Schedule Visit</button>
             <button class="btn btn-personal" onclick="openPersonalEventModal()" data-mobile-label="+ Event">+ Personal Event</button>
-            <button class="btn btn-ghost" onclick="openBackfill()" data-mobile-label="Backfill" title="Rapid entry mode for historical visits">Backfill</button>
+            <button class="btn btn-ghost" onclick="openBackfill()" data-mobile-label="+ Backfill" title="Rapid entry mode for historical visits">+ Backfill</button>
         </div>
 
         <!-- Daily Report — consolidated daily hub: today's schedule & pay, route/mileage,
@@ -5075,6 +5084,7 @@ function renderListItem(e, clientsById) {
     return `
         <div class="schedule-item ${e.status === 'completed' ? 'completed' : ''}" onclick="closeModal('dayModal'); openEventDetail('${e.id}', 'visit')">
             ${badge}
+            <span class="schedule-go" aria-hidden="true">›</span>
             <div class="schedule-time">${formatTime12(e.time)} · ${t.label}</div>
             <div class="schedule-title">${titleHtml}</div>
             ${inboxLine}
