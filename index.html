@@ -536,6 +536,9 @@
         .trc-trips .trc-route-btn { padding: 7px 11px; font-size: 0.82em; }
         .trc-trips-note { width: 100%; color: var(--text-faint); font-size: 0.74em; margin-top: 2px; }
         .trc-est-note { width: 100%; color: var(--success); font-size: 0.72em; margin-top: 3px; }
+        .trc-est-chip { width: 100%; text-align: left; margin-top: 4px; background: none; border: none; padding: 0; color: var(--text-faint); font-size: 0.72em; text-decoration: underline; cursor: pointer; }
+        .trc-logged-tag { width: 100%; display: flex; align-items: center; gap: 4px; color: var(--success); font-size: 0.72em; margin-top: 4px; }
+        .trc-logged-tag svg { width: 12px; height: 12px; }
         .trc-route-missing { color: var(--text-faint); font-size: 0.8em; }
         .trc-input-wrap { color: var(--text-dim); font-size: 0.85em; display: inline-flex; align-items: center; gap: 5px; }
         .trc-mi-input { width: 64px; padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: inherit; font-size: 0.9em; }
@@ -6032,11 +6035,12 @@ function renderTodayRouteCard() {
         }
         const isLogged = logged[driver] != null;
         const est = isLogged ? null : _bfDayMilesEstimate(today, visits);
-        const valAttr = est != null ? ` value="${est.toFixed(1)}"` : '';
-        const estNote = est != null ? `<span class="trc-est-note">auto-estimated — tap to edit</span>` : '';
-        const logCtl = isLogged
-            ? `<span class="trc-logged">${_svgIcon('check')} ${(+logged[driver]).toFixed(1)} mi logged</span>`
-            : `<span class="trc-input-wrap"><input type="number" min="0" step="0.1" class="trc-mi-input" data-trc-driver="${driver}"${valAttr} placeholder="0.0"> mi</span>${estNote}`;
+        const estChip = est != null
+            ? `<button type="button" class="trc-est-chip" onclick="this.closest('.trc-car-body').querySelector('input[data-trc-driver]').value='${est.toFixed(1)}';this.blur();">rough est ≈ ${est.toFixed(1)} mi · tap if no route handy</button>`
+            : '';
+        const loggedVal = isLogged ? (+logged[driver]).toFixed(1) : '';
+        const loggedTag = isLogged ? `<span class="trc-logged-tag">${_svgIcon('check')} logged · edit to fix</span>` : '';
+        const logCtl = `<span class="trc-input-wrap"><input type="number" min="0" step="0.1" class="trc-mi-input" data-trc-driver="${driver}" value="${loggedVal}" placeholder="0.0"> mi</span>${loggedTag}${estChip}`;
         return `
             <div class="trc-car ${isLogged ? 'logged' : ''}">
                 <div class="trc-car-head">
@@ -6060,6 +6064,12 @@ function renderTodayRouteCard() {
 
     const canRemind = typeof Notification !== 'undefined' && localStorage.getItem('myreliacare_mileage_remind') !== 'on';
 
+    // Capture any in-progress / edited input values BEFORE we overwrite the card. Window 'focus'
+    // (which fires when you return from a route link opened in Maps) and storage events both call
+    // refreshAll(), which would otherwise wipe what you just typed before you hit Save.
+    const carriedVals = {};
+    card.querySelectorAll('input[data-trc-driver]').forEach(inp => { carriedVals[inp.dataset.trcDriver] = inp.value; });
+
     card.className = 'today-route-card' + (eveningPending ? ' needs-log' : '');
     card.innerHTML = `
         <div class="trc-header">
@@ -6070,11 +6080,16 @@ function renderTodayRouteCard() {
             ${carRow('kasey', 'Kasey', kVisits)}
             ${carRow('charlie', 'Charlie', cVisits)}
         </div>
-        ${bothLogged ? '' : `<div class="trc-actions">
+        ${`<div class="trc-actions">
             <button class="btn btn-primary btn-sm" onclick="_saveTodayMileage()">Save today's miles</button>
             ${canRemind ? `<button class="btn btn-ghost btn-sm" onclick="_enableMileageReminder()">${_svgIcon('bell')} Nightly reminder</button>` : ''}
         </div>`}
     `;
+    // Restore the carried values so a refresh mid-entry never loses your typed/edited miles.
+    Object.keys(carriedVals).forEach(d => {
+        const inp = card.querySelector(`input[data-trc-driver="${d}"]`);
+        if (inp && carriedVals[d] !== '' && carriedVals[d] != null) inp.value = carriedVals[d];
+    });
     card.style.display = 'block';
 }
 
@@ -6384,13 +6399,11 @@ function _renderMileagePrompt() {
         };
         const kBtn = tripLinks(d.kPending, d.kVisits, 'Kasey');
         const cBtn = tripLinks(d.cPending, d.cVisits, 'Charlie');
-        const kEst = d.kPending ? _bfDayMilesEstimate(d.date, d.kVisits) : null;
-        const cEst = d.cPending ? _bfDayMilesEstimate(d.date, d.cVisits) : null;
         const kInput = d.kPending
-            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Kasey</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="kasey"${kEst != null ? ` value="${kEst.toFixed(1)}"` : ''} placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
+            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Kasey</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="kasey" placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
             : '';
         const cInput = d.cPending
-            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Charlie</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="charlie"${cEst != null ? ` value="${cEst.toFixed(1)}"` : ''} placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
+            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Charlie</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="charlie" placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
             : '';
         const totalVisits = (d.kPending ? d.kVisits.length : 0) + (d.cPending ? d.cVisits.length : 0);
         return `
