@@ -513,6 +513,15 @@
         .dr-pay-lbl { display: block; color: var(--text-faint); font-size: 0.75em; margin-top: 2px; }
         /* Inside the report the relocated cards shouldn't double their own chrome margin */
         #dailyReportModal .today-route-card, #dailyReportModal .unpaid-card { margin-bottom: 18px; }
+        .dr-inv-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .dr-inv-row:last-child { border-bottom: none; }
+        .dr-inv-main { min-width: 0; }
+        .dr-inv-client { font-weight: 600; color: var(--text); }
+        .dr-inv-meta { color: var(--text-faint); font-size: 0.85em; margin-top: 1px; }
+        .dr-inv-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: 0 0 auto; }
+        .dr-inv-amt { font-weight: 700; color: var(--text); }
+        .dr-inv-status { font-size: 0.68em; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 50px; border: 1px solid var(--border); color: var(--text-faint); }
+        .dr-inv-status.sent { color: var(--info); border-color: var(--info); }
         .today-route-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
         .today-route-card.needs-log { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
         .unpaid-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
@@ -1105,6 +1114,43 @@
         .schedule-go { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); font-size: 1.7em; line-height: 1; pointer-events: none; opacity: 0.65; }
         .schedule-item:hover .schedule-go { color: var(--accent); opacity: 1; }
         .schedule-item .schedule-inbox-row { padding-right: 26px; }
+
+        /* ---- Visit Tracker ---- */
+        .visit-tracker-banner { position: sticky; top: 0; z-index: 60; margin-bottom: 12px; }
+        .vtb-inner { display: flex; align-items: center; gap: 10px; background: var(--accent); color: #fff; border-radius: 12px; padding: 11px 14px; cursor: pointer; }
+        .vtb-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; animation: vtbPulse 1.4s ease-in-out infinite; flex: 0 0 auto; }
+        @keyframes vtbPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+        .vtb-text { flex: 1; font-weight: 600; font-size: 0.95em; }
+        .vtb-resume { font-weight: 700; white-space: nowrap; }
+        .tracker-cta { width: 100%; margin-bottom: 14px; }
+        .visit-tracker { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .visit-tracker-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+        .vt-bar-title { font-family: 'Cormorant Unicase', serif; font-size: 1.15em; font-weight: 600; color: var(--text); }
+        .visit-tracker-body { max-width: 620px; margin: 0 auto; padding: 18px; }
+        .vt-head { text-align: center; margin-bottom: 14px; }
+        .vt-client { font-family: 'Cormorant Unicase', serif; font-size: 1.4em; color: var(--accent); }
+        .vt-pets { color: var(--text-dim); font-size: 0.8em; }
+        .vt-when { color: var(--text-faint); font-size: 0.88em; margin-top: 2px; }
+        .vt-timer { display: flex; flex-direction: column; align-items: center; gap: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; margin-bottom: 20px; }
+        .vt-timer.live { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+        .vt-clock { font-size: 3.2em; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); line-height: 1; cursor: pointer; }
+        .vt-timer.live .vt-clock { color: var(--accent); }
+        .vt-timer-btn { border: none; border-radius: 50px; padding: 12px 44px; font-family: inherit; font-size: 1.05em; font-weight: 700; cursor: pointer; color: #fff; }
+        .vt-timer-btn.start { background: var(--success); }
+        .vt-timer-btn.stop { background: var(--warn); }
+        .vt-edit-time { background: none; border: none; color: var(--text-faint); font-family: inherit; font-size: 0.8em; text-decoration: underline; cursor: pointer; }
+        .vt-section-title { font-family: 'Cormorant Unicase', serif; font-size: 0.95em; letter-spacing: 0.5px; color: var(--text-dim); text-transform: uppercase; margin: 18px 0 9px; }
+        .vt-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .vt-chip { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-dim); border-radius: 50px; padding: 9px 15px; font-family: inherit; font-size: 0.95em; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.12s, color 0.12s, border-color 0.12s; }
+        .vt-chip.on { background: var(--success); border-color: var(--success); color: var(--bg-deep); font-weight: 600; }
+        .vt-walk-miles { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+        .vt-walk-miles label { color: var(--text-dim); font-size: 0.95em; }
+        .vt-miles-input { display: flex; align-items: center; gap: 6px; }
+        .vt-miles-input input { width: 90px; padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; text-align: right; min-width: 0; }
+        .vt-miles-input span { color: var(--text-faint); }
+        .vt-note { width: 100%; padding: 11px 13px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; resize: vertical; box-sizing: border-box; }
+        .vt-actions { display: flex; gap: 10px; margin-top: 22px; }
+        .vt-actions .btn { flex: 1; }
         .schedule-item.personal { border-left-color: var(--personal); }
         .schedule-item.completed { opacity: 0.55; }
         /* Inline complete/paid quick-actions on schedule + day-modal rows */
@@ -2292,6 +2338,7 @@
 
         <!-- Daily Report — consolidated daily hub: today's schedule & pay, route/mileage,
              unpaid completed visits, and outstanding notes. The cards live inside the modal. -->
+        <div id="visitTrackerBanner" class="visit-tracker-banner" style="display:none;"></div>
         <div class="dash-actions">
             <button id="dailyReportBtn" class="dash-btn" onclick="openDailyReport()">
                 <span class="dash-btn-title">
@@ -2635,6 +2682,31 @@
 </div>
 
 <!-- ========= EVENT DETAIL MODAL ========= -->
+<div id="visitTracker" class="visit-tracker" style="display:none;">
+    <div class="visit-tracker-bar">
+        <div class="vt-bar-title">Visit Tracker</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeVisitTracker()">✕ Close</button>
+    </div>
+    <div class="visit-tracker-body" id="visitTrackerBody"></div>
+</div>
+
+<div class="modal-overlay" id="visitSummaryModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Visit Summary</h2>
+            <button class="modal-close" onclick="closeModal('visitSummaryModal')">×</button>
+        </div>
+        <div class="modal-body modal-body-scrollable">
+            <p style="color: var(--text-faint); font-size: 0.85em; margin: 0 0 8px;">Edit anything below, then send. <span id="visitSummaryPhoneNote"></span></p>
+            <textarea id="visitSummaryText" class="vt-note" rows="12" style="width:100%;"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="copyVisitSummary()">Copy</button>
+            <button class="btn btn-primary" onclick="sendVisitSummarySMS()">Text client</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="detailModal">
     <div class="modal">
         <div class="modal-header">
@@ -2682,6 +2754,11 @@
 
             <!-- Route + mileage logging lives in its own "Log Mileage" modal now -->
             <div id="unpaidVisitsCard" class="unpaid-card" style="display: none;"></div>
+
+            <div class="dr-section">
+                <div class="dr-section-title">Open Invoices</div>
+                <div id="drInvoices"></div>
+            </div>
 
             <div class="dr-section">
                 <div class="dr-section-title">Outstanding Notes</div>
@@ -3982,6 +4059,12 @@ function openEventDetail(eventId, eventType) {
                     <span class="toggle-label">Paid</span>
                 </button>
             </div>
+            ${(() => {
+                const tkv = _getTracking(v);
+                if (tkv.endedAt) return `<button class="btn btn-primary tracker-cta" onclick="openVisitSummary('${v.id}')">Visit summary &amp; text client</button>`;
+                if (tkv.startedAt) return `<button class="btn btn-primary tracker-cta" onclick="openVisitTracker('${v.id}')">Resume visit (in progress)</button>`;
+                return `<button class="btn btn-primary tracker-cta" onclick="startVisitFromDetail('${v.id}')">Start Visit</button>`;
+            })()}
             <div class="event-callout">
                 <div class="event-callout-label">Address</div>
                 <div class="event-callout-value">${renderAddressWithMaps(displayAddress)}</div>
@@ -6252,6 +6335,37 @@ function _renderLogMileageEmpty() {
     empty.style.display = (cardVisible || bannerVisible) ? 'none' : 'block';
 }
 
+function _renderDailyReportInvoices() {
+    const wrap = document.getElementById('drInvoices');
+    if (!wrap) return;
+    const open = (Store.getInvoices() || []).filter(inv => inv.status === 'draft' || inv.status === 'sent');
+    if (open.length === 0) {
+        wrap.innerHTML = `<p class="empty-state">No open invoices.</p>`;
+        return;
+    }
+    const rows = open.map(inv => {
+        const first = (inv.items || []).map(it => it.date).filter(Boolean).sort()[0] || null;
+        const client = Store.getClients().find(c => c.id === inv.clientId);
+        return { inv, first, name: inv.clientName || (client && client.name) || 'Client' };
+    }).sort((a, b) => {
+        if (a.first && b.first) return a.first.localeCompare(b.first);
+        if (a.first) return -1;
+        if (b.first) return 1;
+        return 0;
+    });
+    wrap.innerHTML = rows.map(({ inv, first, name }) => `
+        <div class="dr-inv-row">
+            <div class="dr-inv-main">
+                <div class="dr-inv-client">${escapeHtml(name)}</div>
+                <div class="dr-inv-meta">${escapeHtml(inv.invoiceNumber || '')}${first ? ` · Begins ${formatDate(first)}` : ' · no visit dates'}</div>
+            </div>
+            <div class="dr-inv-right">
+                <div class="dr-inv-amt">$${(inv.total || 0).toFixed(2)}</div>
+                <span class="dr-inv-status ${inv.status}">${inv.status}</span>
+            </div>
+        </div>`).join('');
+}
+
 function _renderDailyReportSchedule() {
     const list = document.getElementById('drScheduleList');
     const paySummary = document.getElementById('drPaySummary');
@@ -6491,6 +6605,353 @@ function _saveMileagePromptInputs() {
     }
 }
 
+/* ============================================================
+   VISIT TRACKER — start/stop timer, tasks, security, note,
+   and one-tap text summary to the client.
+   Walk mileage here is the DOG-WALK distance for the client summary;
+   it is intentionally separate from the driving/tax mileage system.
+   ============================================================ */
+const TRACKER_TASKS = [
+    { key: 'fresh-water', label: 'Fresh water' },
+    { key: 'fed',         label: 'Fed' },
+    { key: 'treats',      label: 'Treats' },
+    { key: 'play',        label: 'Play & affection' },
+    { key: 'walk',        label: 'Walk' },
+    { key: 'meds',        label: 'Meds given' },
+    { key: 'mail',        label: 'Brought in mail' },
+    { key: 'package',     label: 'Brought in package' },
+    { key: 'poop',        label: 'Poop' },
+    { key: 'pee',         label: 'Pee' },
+    { key: 'litter',      label: 'Scooped litter box' }
+];
+const TRACKER_SECURITY = [
+    { key: 'front-door', label: 'Front door locked' },
+    { key: 'side-door',  label: 'Side door locked' },
+    { key: 'back-door',  label: 'Back door locked' },
+    { key: 'garage',     label: 'Garage closed' },
+    { key: 'crate',      label: 'Pup back in crate' }
+];
+let _trackerVisitId = null;
+let _trackerInterval = null;
+let _bannerInterval = null;
+let _summaryVisitId = null;
+
+function _getTracking(v) {
+    const tk = (v && v.tracking) || {};
+    return {
+        startedAt: tk.startedAt || null,
+        endedAt: tk.endedAt || null,
+        elapsedSec: tk.elapsedSec || 0,
+        tasks: tk.tasks || {},
+        walkMiles: tk.walkMiles != null ? tk.walkMiles : null,
+        security: tk.security || {},
+        note: tk.note || ''
+    };
+}
+function _trackerElapsedSec(tk) {
+    if (tk.startedAt && !tk.endedAt) return Math.floor((Date.now() - tk.startedAt) / 1000);
+    return tk.elapsedSec || 0;
+}
+function _fmtClock(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    const mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+function _fmtDur(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+    if (h > 0) return m > 0 ? `${h} hr ${m} min` : `${h} hr`;
+    return `${m} min`;
+}
+function _trackerShortDate(ymd) {
+    try { return parseYmd(ymd).toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' }).replace(',', ''); }
+    catch { return ymd || ''; }
+}
+function _clockFromMs(ms) {
+    return new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+function _saveTracking(id, patch) {
+    const visits = Store.getVisits();
+    const v = visits.find(x => x.id === id);
+    if (!v) return null;
+    v.tracking = Object.assign(_getTracking(v), patch);
+    if (Store.saveVisits(visits) === false) { showToast('Save failed', 'error'); return null; }
+    return v;
+}
+
+function startVisitFromDetail(id) { openVisitTracker(id); trackerStart(); }
+
+function openVisitTracker(id) {
+    const v = Store.getVisits().find(x => x.id === id);
+    if (!v) return;
+    _trackerVisitId = id;
+    if (!v.tracking) _saveTracking(id, {});
+    try { closeModal('detailModal'); } catch {}
+    const ov = document.getElementById('visitTracker');
+    if (!ov) return;
+    ov.style.display = 'block';
+    document.body.classList.add('modal-open');
+    _renderVisitTracker();
+    _startTrackerTick();
+}
+function closeVisitTracker() {
+    _trackerCaptureInputs();
+    _stopTrackerTick();
+    const ov = document.getElementById('visitTracker');
+    if (ov) ov.style.display = 'none';
+    document.body.classList.remove('modal-open');
+    _trackerVisitId = null;
+    refreshAll();
+}
+function _startTrackerTick() { _stopTrackerTick(); _trackerInterval = setInterval(_updateTrackerClock, 1000); }
+function _stopTrackerTick() { if (_trackerInterval) { clearInterval(_trackerInterval); _trackerInterval = null; } }
+function _updateTrackerClock() {
+    const v = Store.getVisits().find(x => x.id === _trackerVisitId);
+    if (!v) return;
+    const el = document.getElementById('trackerClock');
+    if (el) el.textContent = _fmtClock(_trackerElapsedSec(_getTracking(v)));
+}
+
+function _trackerCaptureInputs() {
+    if (!_trackerVisitId) return;
+    const noteEl = document.getElementById('trackerNote');
+    const milesEl = document.getElementById('trackerWalkMiles');
+    const patch = {};
+    if (noteEl) patch.note = noteEl.value;
+    if (milesEl) patch.walkMiles = milesEl.value === '' ? null : (parseFloat(milesEl.value) || 0);
+    if (Object.keys(patch).length) _saveTracking(_trackerVisitId, patch);
+}
+
+function trackerToggleTask(key) {
+    _trackerCaptureInputs();
+    const v = Store.getVisits().find(x => x.id === _trackerVisitId); if (!v) return;
+    const tk = _getTracking(v);
+    tk.tasks[key] = !tk.tasks[key];
+    _saveTracking(_trackerVisitId, { tasks: tk.tasks });
+    _renderVisitTracker();
+}
+function trackerToggleSecurity(key) {
+    _trackerCaptureInputs();
+    const v = Store.getVisits().find(x => x.id === _trackerVisitId); if (!v) return;
+    const tk = _getTracking(v);
+    tk.security[key] = !tk.security[key];
+    _saveTracking(_trackerVisitId, { security: tk.security });
+    _renderVisitTracker();
+}
+function trackerStart() {
+    const v = Store.getVisits().find(x => x.id === _trackerVisitId); if (!v) return;
+    const tk = _getTracking(v);
+    _saveTracking(_trackerVisitId, { startedAt: Date.now() - (tk.elapsedSec || 0) * 1000, endedAt: null });
+    _renderVisitTracker(); _startTrackerTick();
+}
+function trackerStop() {
+    const v = Store.getVisits().find(x => x.id === _trackerVisitId); if (!v) return;
+    const tk = _getTracking(v);
+    const sec = _trackerElapsedSec(tk);
+    _trackerCaptureInputs();
+    _saveTracking(_trackerVisitId, { endedAt: Date.now(), elapsedSec: sec, startedAt: tk.startedAt || (Date.now() - sec * 1000) });
+    _stopTrackerTick();
+    _renderVisitTracker();
+}
+function trackerEditTime() {
+    const v = Store.getVisits().find(x => x.id === _trackerVisitId); if (!v) return;
+    const tk = _getTracking(v);
+    const cur = Math.round(_trackerElapsedSec(tk) / 60);
+    const input = prompt('Visit length in minutes:', String(cur));
+    if (input == null) return;
+    const sec = Math.round(Math.max(0, parseFloat(input) || 0) * 60);
+    if (tk.startedAt && !tk.endedAt) {
+        _saveTracking(_trackerVisitId, { startedAt: Date.now() - sec * 1000, elapsedSec: sec });
+    } else {
+        _saveTracking(_trackerVisitId, { elapsedSec: sec, endedAt: tk.startedAt ? tk.startedAt + sec * 1000 : tk.endedAt });
+    }
+    _renderVisitTracker();
+}
+function trackerSaveProgress() { _trackerCaptureInputs(); showToast('Saved'); }
+function trackerFinish() {
+    const v = Store.getVisits().find(x => x.id === _trackerVisitId); if (!v) return;
+    const tk = _getTracking(v);
+    _trackerCaptureInputs();
+    if (tk.startedAt && !tk.endedAt) {
+        _saveTracking(_trackerVisitId, { endedAt: Date.now(), elapsedSec: _trackerElapsedSec(tk) });
+    }
+    const visits = Store.getVisits(); const vv = visits.find(x => x.id === _trackerVisitId);
+    if (vv) { vv.status = 'completed'; Store.saveVisits(visits); }
+    _stopTrackerTick();
+    const id = _trackerVisitId;
+    const ov = document.getElementById('visitTracker');
+    if (ov) ov.style.display = 'none';
+    _trackerVisitId = null;
+    openVisitSummary(id);
+}
+
+function _renderVisitTracker() {
+    const v = Store.getVisits().find(x => x.id === _trackerVisitId);
+    if (!v) return;
+    const tk = _getTracking(v);
+    const client = Store.getClients().find(c => c.id === v.clientId);
+    const pets = (client && client.pets && client.pets.length) ? client.pets.map(p => escapeHtml(p.name || '')).filter(Boolean).join(', ') : '';
+    const running = !!(tk.startedAt && !tk.endedAt);
+    const hasTime = running || tk.elapsedSec > 0 || tk.endedAt;
+    const elapsed = _trackerElapsedSec(tk);
+
+    const timerBtn = running
+        ? `<button class="vt-timer-btn stop" onclick="trackerStop()">Stop</button>`
+        : `<button class="vt-timer-btn start" onclick="trackerStart()">${tk.elapsedSec > 0 || tk.endedAt ? 'Resume' : 'Start'}</button>`;
+
+    const taskChips = TRACKER_TASKS.map(t => {
+        const on = !!tk.tasks[t.key];
+        return `<button type="button" class="vt-chip ${on ? 'on' : ''}" onclick="trackerToggleTask('${t.key}')">${escapeHtml(t.label)}</button>`;
+    }).join('');
+    const walkMilesRow = tk.tasks['walk']
+        ? `<div class="vt-walk-miles">
+               <label>Walk distance</label>
+               <div class="vt-miles-input"><input type="number" id="trackerWalkMiles" min="0" step="0.1" inputmode="decimal" value="${tk.walkMiles != null ? tk.walkMiles : ''}" placeholder="0.0" onchange="_trackerCaptureInputs()"><span>mi</span></div>
+           </div>`
+        : '';
+
+    const secChips = TRACKER_SECURITY.map(s => {
+        const on = !!tk.security[s.key];
+        return `<button type="button" class="vt-chip ${on ? 'on' : ''}" onclick="trackerToggleSecurity('${s.key}')">${escapeHtml(s.label)}</button>`;
+    }).join('');
+
+    document.getElementById('visitTrackerBody').innerHTML = `
+        <div class="vt-head">
+            <div class="vt-client">${escapeHtml(v.clientName || 'Client')}${pets ? ` <span class="vt-pets">— ${pets}</span>` : ''}</div>
+            <div class="vt-when">${_trackerShortDate(v.date)} · scheduled ${formatTime12(v.time)}</div>
+        </div>
+
+        <div class="vt-timer ${running ? 'live' : ''}">
+            <div class="vt-clock" id="trackerClock" onclick="trackerEditTime()" title="Tap to edit length">${_fmtClock(elapsed)}</div>
+            ${timerBtn}
+            <button type="button" class="vt-edit-time" onclick="trackerEditTime()">edit time</button>
+        </div>
+
+        <div class="vt-section-title">Tasks completed</div>
+        <div class="vt-chips">${taskChips}</div>
+        ${walkMilesRow}
+
+        <div class="vt-section-title">Security check</div>
+        <div class="vt-chips">${secChips}</div>
+
+        <div class="vt-section-title">Note for the client</div>
+        <textarea id="trackerNote" class="vt-note" rows="3" placeholder="Anything to share about today's visit..." onchange="_trackerCaptureInputs()">${escapeHtml(tk.note || '')}</textarea>
+
+        <div class="vt-actions">
+            <button class="btn btn-ghost" onclick="trackerSaveProgress()">Save</button>
+            <button class="btn btn-primary" onclick="trackerFinish()">Finish &amp; text client</button>
+        </div>
+    `;
+    _updateTrackerClock();
+}
+
+function _joinList(a) {
+    if (!a.length) return '';
+    if (a.length === 1) return a[0];
+    if (a.length === 2) return a[0] + ' and ' + a[1];
+    return a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1];
+}
+function _securitySentence(tk, petName) {
+    const doorLabels = { 'front-door': 'front', 'side-door': 'side', 'back-door': 'back' };
+    const doors = ['front-door', 'side-door', 'back-door'].filter(k => tk.security[k]).map(k => doorLabels[k]);
+    const parts = [];
+    if (doors.length) parts.push(_joinList(doors) + ' ' + (doors.length > 1 ? 'doors' : 'door') + ' locked');
+    if (tk.security['garage']) parts.push('garage closed');
+    if (tk.security['crate']) parts.push((petName || 'the pup') + ' back in the crate');
+    if (!parts.length) return '';
+    return 'before we left: ' + parts.join(', ');
+}
+function buildVisitSummary(id) {
+    const v = Store.getVisits().find(x => x.id === id);
+    if (!v) return '';
+    const tk = _getTracking(v);
+    const client = Store.getClients().find(c => c.id === v.clientId);
+    const firstName = ((v.clientName || (client && client.name) || 'there').trim().split(/\s+/)[0]) || 'there';
+    const petArr = (client && client.pets && client.pets.length) ? client.pets.map(p => p.name).filter(Boolean) : [];
+    const pets = _joinList(petArr);
+    const lines = [];
+    lines.push(`Hi ${firstName}! Here's how today went with ${pets || 'your pet'}.`);
+
+    let dt = parseYmd(v.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    if (tk.startedAt && tk.endedAt) dt += ` · ${_clockFromMs(tk.startedAt)} - ${_clockFromMs(tk.endedAt)}`;
+    else if (v.time) dt += ` · ${formatTime12(v.time)}`;
+    const dur = tk.elapsedSec || _trackerElapsedSec(tk);
+    if (dur > 0) dt += ` (${_fmtDur(dur)})`;
+    lines.push('');
+    lines.push(dt);
+
+    const doneTasks = TRACKER_TASKS.filter(t => tk.tasks[t.key]);
+    if (doneTasks.length) {
+        const items = doneTasks.map(t => (t.key === 'walk' && tk.walkMiles) ? `walk (${Math.round(tk.walkMiles * 100) / 100} mi)` : t.label.toLowerCase());
+        lines.push('');
+        lines.push('what we did: ' + items.join(', '));
+    }
+    const sec = _securitySentence(tk, petArr.length === 1 ? petArr[0] : '');
+    if (sec) { lines.push(''); lines.push(sec); }
+
+    if (tk.note && tk.note.trim()) { lines.push(''); lines.push(tk.note.trim()); }
+
+    lines.push('');
+    lines.push(`Thank you for trusting us with your home and ${petArr.length === 1 ? petArr[0] : 'your pets'}.`);
+    lines.push('');
+    lines.push('- Kasey & Charlie, MyReliaCare');
+    return lines.join('\n');
+}
+
+function openVisitSummary(id) {
+    _summaryVisitId = id;
+    document.getElementById('visitSummaryText').value = buildVisitSummary(id);
+    const v = Store.getVisits().find(x => x.id === id);
+    const client = v ? Store.getClients().find(c => c.id === v.clientId) : null;
+    const hasPhone = !!(client && client.phone && client.phone.trim());
+    const note = document.getElementById('visitSummaryPhoneNote');
+    if (note) note.textContent = hasPhone ? `Opens Messages to ${client.phone}` : 'No phone on file — opens a blank Messages draft (or use Copy).';
+    openModal('visitSummaryModal');
+    refreshAll();
+}
+function sendVisitSummarySMS() {
+    const v = Store.getVisits().find(x => x.id === _summaryVisitId);
+    const client = v ? Store.getClients().find(c => c.id === v.clientId) : null;
+    const phone = client && client.phone ? client.phone.replace(/[^0-9+]/g, '') : '';
+    const body = encodeURIComponent(document.getElementById('visitSummaryText').value);
+    window.location.href = (phone ? `sms:${phone}` : 'sms:') + `?&body=${body}`;
+}
+function copyVisitSummary() {
+    const ta = document.getElementById('visitSummaryText');
+    const text = ta.value;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('Copied')).catch(() => showToast('Copy failed', 'error'));
+    } else {
+        ta.removeAttribute('readonly'); ta.select();
+        try { document.execCommand('copy'); showToast('Copied'); } catch { showToast('Copy failed', 'error'); }
+    }
+}
+
+function renderVisitTrackerBanner() {
+    const host = document.getElementById('visitTrackerBanner');
+    if (!host) return;
+    const running = Store.getVisits().find(v => v.tracking && v.tracking.startedAt && !v.tracking.endedAt);
+    if (!running) {
+        host.style.display = 'none'; host.innerHTML = '';
+        if (_bannerInterval) { clearInterval(_bannerInterval); _bannerInterval = null; }
+        return;
+    }
+    host.style.display = 'block';
+    host.innerHTML = `<div class="vtb-inner" onclick="openVisitTracker('${running.id}')">
+        <span class="vtb-dot"></span>
+        <span class="vtb-text">Visit in progress · ${escapeHtml(running.clientName || 'Client')} · <span id="vtbClock">${_fmtClock(_trackerElapsedSec(_getTracking(running)))}</span></span>
+        <span class="vtb-resume">Resume ›</span>
+    </div>`;
+    if (!_bannerInterval) _bannerInterval = setInterval(_updateBannerClock, 1000);
+}
+function _updateBannerClock() {
+    const running = Store.getVisits().find(v => v.tracking && v.tracking.startedAt && !v.tracking.endedAt);
+    const el = document.getElementById('vtbClock');
+    if (!running || !el) { renderVisitTrackerBanner(); return; }
+    el.textContent = _fmtClock(_trackerElapsedSec(_getTracking(running)));
+}
+
 function refreshAll() {
     renderCalendar();
     renderToday();
@@ -6500,10 +6961,12 @@ function refreshAll() {
     renderUnpaidVisitsCard();
     _renderDailyReportSchedule();
     _renderDailyReportNotes();
+    _renderDailyReportInvoices();
     _renderDailyReportButton();
     _renderMileagePrompt();
     _renderLogMileageButton();
     _renderLogMileageEmpty();
+    renderVisitTrackerBanner();
 }
 
 /* ============================================================

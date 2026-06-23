@@ -1006,6 +1006,7 @@
 
         <div class="action-bar">
             <button class="btn btn-primary" onclick="openNewInvoiceModal()">+ New Invoice</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('invoicesSection').scrollIntoView({ behavior: 'smooth', block: 'start' })">Invoices &darr;</button>
         </div>
 
         <div class="card income-breakdown-card">
@@ -1046,7 +1047,7 @@
             <div id="mileageEntriesList"></div>
         </div>
 
-        <div class="card">
+        <div class="card" id="invoicesSection" style="scroll-margin-top: 80px;">
             <div class="card-title">
                 <span>Invoices</span>
             </div>
@@ -2458,7 +2459,10 @@ function copyInvoiceAsText(id) {
     if (discount && discount.percent > 0) {
         lines.push(`${discount.label} (${formatPercent(discount.percent)}%) = -$${discountAmount.toFixed(2)}`);
     }
-    if ((discount && discount.percent > 0) || taxRate > 0) {
+    const _displayedLines = itemLines.length + chargeLines.length;
+    // Subtotal only helps when there are multiple lines to sum AND it isn't already
+    // the same as the total — otherwise it just repeats the line above or the total.
+    if (_displayedLines > 1 && Math.abs(afterDiscount - total) > 0.005) {
         lines.push(`Subtotal = $${afterDiscount.toFixed(2)}`);
     }
     if (taxRate > 0) {
@@ -2692,11 +2696,13 @@ function renderInvoiceList() {
     }
     list.innerHTML = invoices.map(inv => {
         const sideText = inv.status === 'paid' && inv.paidDate ? `Paid ${formatDate(inv.paidDate)}` : '';
+        const firstVisit = (inv.items || []).map(it => it.date).filter(Boolean).sort()[0] || null;
+        const beginsText = firstVisit ? ` · Begins ${formatDate(firstVisit)}` : '';
         return `
             <div class="invoice-row" onclick="viewInvoice('${inv.id}')">
                 <div class="invoice-main">
                     <div class="invoice-client">${escapeHtml(invoiceClientDisplayName(inv))}</div>
-                    <div class="invoice-meta">${escapeHtml(inv.invoiceNumber)} · ${(inv.items || []).length} item${(inv.items || []).length === 1 ? '' : 's'} · Issued ${formatDate(inv.issueDate)}${sideText ? ' · ' + sideText : ''}</div>
+                    <div class="invoice-meta">${escapeHtml(inv.invoiceNumber)} · ${(inv.items || []).length} item${(inv.items || []).length === 1 ? '' : 's'}${beginsText} · Issued ${formatDate(inv.issueDate)}${sideText ? ' · ' + sideText : ''}</div>
                 </div>
                 <div class="invoice-amount">$${(inv.total || 0).toFixed(2)}</div>
                 <span class="status-badge ${inv.status}">${inv.status}</span>
