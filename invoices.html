@@ -206,6 +206,46 @@
         .income-summary-cell.clickable { cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
         .income-summary-cell.clickable:hover { transform: translateY(-2px); border-color: var(--accent); }
 
+        /* ---- Tax Prep ---- */
+        .tax-prep { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .tax-prep-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+        .tp-bar-title { font-family: 'Cormorant Unicase', serif; font-size: 1.15em; font-weight: 600; color: var(--text); }
+        .tax-prep-body { max-width: 760px; margin: 0 auto; padding: 18px; }
+        .tp-head { margin-bottom: 18px; }
+        .tp-title-row { display: flex; justify-content: space-between; align-items: baseline; }
+        .tp-biz { font-family: 'Cormorant Unicase', serif; font-size: 1.4em; color: var(--accent); }
+        .tp-pct { font-family: 'Cormorant Unicase', serif; font-size: 1.4em; color: var(--success); font-weight: 700; }
+        .tp-progress { height: 10px; background: var(--bg-input); border-radius: 50px; overflow: hidden; margin: 8px 0 6px; }
+        .tp-progress-fill { height: 100%; background: var(--success); border-radius: 50px; transition: width 0.3s; }
+        .tp-progress-label { color: var(--text-faint); font-size: 0.85em; }
+        .tp-stages { display: flex; flex-direction: column; gap: 12px; }
+        .tp-stage { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; }
+        .tp-stage.done { opacity: 0.72; }
+        .tp-stage.done .tp-stage-title { text-decoration: line-through; }
+        .tp-stage-head { display: flex; align-items: flex-start; gap: 10px; }
+        .tp-status { flex: 0 0 auto; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-faint); border-radius: 50px; padding: 4px 11px; font-family: inherit; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; white-space: nowrap; }
+        .tp-status.doing { color: var(--warn); border-color: var(--warn); }
+        .tp-status.done { background: var(--success); border-color: var(--success); color: var(--bg-deep); font-weight: 600; }
+        .tp-stage-titles { flex: 1; min-width: 0; }
+        .tp-stage-title { color: var(--text); font-weight: 600; cursor: pointer; }
+        .tp-stage-count { color: var(--text-faint); font-weight: 400; font-size: 0.85em; }
+        .tp-stage-desc { color: var(--text-faint); font-size: 0.85em; margin-top: 2px; line-height: 1.35; }
+        .tp-del { flex: 0 0 auto; background: none; border: none; color: var(--text-faint); font-size: 1em; cursor: pointer; padding: 2px 4px; }
+        .tp-months { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+        .tp-mchip { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-dim); border-radius: 7px; padding: 5px 9px; font-family: inherit; font-size: 0.78em; cursor: pointer; min-width: 0; }
+        .tp-mchip.done { background: var(--success); border-color: var(--success); color: var(--bg-deep); font-weight: 600; }
+        .tp-note { width: 100%; margin-top: 9px; padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Cormorant', serif; font-size: 0.98em; resize: vertical; box-sizing: border-box; min-width: 0; }
+        .tp-add-step { margin: 12px 0 0; }
+        .tp-section-title { font-family: 'Cormorant Unicase', serif; font-size: 1em; letter-spacing: 0.5px; color: var(--text-dim); text-transform: uppercase; margin: 24px 0 10px; }
+        .tp-session-add { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .tp-session-add input[type="date"] { flex: 0 0 auto; min-width: 0; }
+        .tp-session-add input[type="text"] { flex: 1; min-width: 120px; padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; }
+        .tp-session { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .tp-session-date { flex: 0 0 auto; color: var(--text-faint); font-size: 0.82em; width: 84px; }
+        .tp-session-text { flex: 1; color: var(--text); font-size: 0.95em; }
+        .tp-session-del { background: none; border: none; color: var(--text-faint); cursor: pointer; }
+        .tp-empty { color: var(--text-faint); font-style: italic; font-size: 0.9em; }
+
         /* ---- Income Report (full-screen drill-down) ---- */
         .income-report { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .income-report-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
@@ -1007,6 +1047,7 @@
         <div class="action-bar">
             <button class="btn btn-primary" onclick="openNewInvoiceModal()">+ New Invoice</button>
             <button class="btn btn-ghost" onclick="document.getElementById('invoicesSection').scrollIntoView({ behavior: 'smooth', block: 'start' })">Invoices &darr;</button>
+            <button class="btn btn-ghost" onclick="openTaxPrep()">Tax Prep</button>
         </div>
 
         <div class="card income-breakdown-card">
@@ -1185,6 +1226,14 @@
 </div>
 
 <!-- ========= LOG MILES MODAL ========= -->
+<div id="taxPrep" class="tax-prep" style="display:none;">
+    <div class="tax-prep-bar">
+        <div class="tp-bar-title">Tax Prep</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeTaxPrep()">✕ Close</button>
+    </div>
+    <div class="tax-prep-body" id="taxPrepBody"></div>
+</div>
+
 <div id="incomeReport" class="income-report" style="display:none;">
     <div class="income-report-bar no-print">
         <div class="ir-bar-title">Income Report</div>
@@ -3149,6 +3198,193 @@ function saveIncomeRowEdit() {
     _renderIncomeReport();
     if (typeof renderIncomeBreakdown === 'function') renderIncomeBreakdown();
     showToast('Updated');
+}
+
+/* ============================================================
+   TAX PREP — staged checklist + per-month grinds + session log.
+   Stored inside the synced global settings record (settings.taxPrep).
+   ============================================================ */
+function _taxPrepMonths() {
+    const months = [];
+    const now = parseYmd(todayYmd());
+    let y = 2024, m = 1;
+    const endY = now.getFullYear(), endM = now.getMonth() + 1;
+    while (y < endY || (y === endY && m <= endM)) {
+        months.push({ ym: `${y}-${String(m).padStart(2, '0')}`, done: false });
+        m++; if (m > 12) { m = 1; y++; }
+    }
+    return months;
+}
+function _taxPrepDefaults() {
+    return {
+        stages: [
+            { id: 'scope', title: 'Find last full filing, confirm years', desc: 'Pull your IRS transcripts at irs.gov. Note the last year filed fully and exactly which years still need to be assembled.', status: 'todo', note: '', months: null },
+            { id: 'docs', title: 'Request outside tax docs', desc: 'Fidelity disability (dates out + amounts), other Fidelity forms (1099-R / 1099-B / 1099-DIV), DoorDash 1099 + mileage report, bank and card statements. Request early so they arrive while you do data entry.', status: 'todo', note: '', months: null },
+            { id: 'doordash', title: 'DoorDash income & mileage', desc: 'Enter DoorDash 1099 income and the app mileage report, by year.', status: 'todo', note: '', months: null },
+            { id: 'wag', title: 'Add Wag visits to the calendar', desc: 'Enter all completed Wag visits.', status: 'todo', note: '', months: null },
+            { id: 'rover', title: 'Add Rover visits to the calendar', desc: 'The long one. Work one month per session and check it off below.', status: 'todo', note: '', months: _taxPrepMonths() },
+            { id: 'texts', title: 'Add text-handled visits', desc: 'Go through scheduling texts and visit summaries, add any visits booked that way. This closes the gap so every completed visit is in.', status: 'todo', note: '', months: _taxPrepMonths() },
+            { id: 'verify', title: 'Confirm every completed visit is entered', desc: 'Spot-check each month against payouts and records so nothing is missing.', status: 'todo', note: '', months: null },
+            { id: 'mileage', title: 'Add route mileage for each day', desc: 'The CRM builds each day from that day\'s visits, so do this after the visits are in. One month per session.', status: 'todo', note: '', months: _taxPrepMonths() },
+            { id: 'expenses', title: 'Gather expenses', desc: 'WiFi, software and app fees, supplies, phone percentage, etc. Pull from bank and card statements.', status: 'todo', note: '', months: null },
+            { id: 'assemble', title: 'Run reports & hand to a CPA', desc: 'Run the per-year Income Report and Tax Projection, then give the clean numbers to a CPA or EA to file.', status: 'todo', note: '', months: null }
+        ],
+        sessions: []
+    };
+}
+function _getTaxPrep() {
+    const arr = Store.getSettings() || [];
+    const g = arr.find(s => s.id === 'global');
+    return (g && g.taxPrep) ? g.taxPrep : null;
+}
+function _saveTaxPrep(tp) {
+    const arr = Store.getSettings() || [];
+    let g = arr.find(s => s.id === 'global');
+    if (!g) { g = { id: 'global' }; arr.push(g); }
+    g.taxPrep = tp;
+    Store.saveSettings(arr);
+}
+function _taxPrepProgress(tp) {
+    let total = 0, done = 0;
+    tp.stages.forEach(st => {
+        if (st.months && st.months.length) { total += st.months.length; done += st.months.filter(m => m.done).length; }
+        else { total += 1; if (st.status === 'done') done += 1; }
+    });
+    return { total, done, pct: total ? Math.round(done / total * 100) : 0 };
+}
+function _monthStageStatus(st) {
+    const d = st.months.filter(m => m.done).length;
+    if (d === 0) return 'todo';
+    if (d === st.months.length) return 'done';
+    return 'doing';
+}
+function _ymLabel(ym) {
+    const [y, m] = ym.split('-');
+    return new Date(+y, +m - 1, 1).toLocaleDateString('en-US', { month: 'short' }) + " '" + y.slice(2);
+}
+const _TP_STATUS_LABEL = { todo: 'To do', doing: 'In progress', done: 'Done' };
+
+function openTaxPrep() {
+    if (!_getTaxPrep()) _saveTaxPrep(_taxPrepDefaults());
+    const ov = document.getElementById('taxPrep');
+    if (!ov) return;
+    ov.style.display = 'block';
+    document.body.classList.add('modal-open');
+    _renderTaxPrep();
+}
+function closeTaxPrep() {
+    const ov = document.getElementById('taxPrep');
+    if (ov) ov.style.display = 'none';
+    document.body.classList.remove('modal-open');
+}
+function _renderTaxPrep() {
+    const tp = _getTaxPrep() || _taxPrepDefaults();
+    const prog = _taxPrepProgress(tp);
+
+    const stagesHtml = tp.stages.map(st => {
+        const isMonth = !!(st.months && st.months.length);
+        const status = isMonth ? _monthStageStatus(st) : (st.status || 'todo');
+        const statusEl = isMonth
+            ? `<span class="tp-status ${status}">${_TP_STATUS_LABEL[status]}</span>`
+            : `<button class="tp-status ${status}" onclick="taxPrepCycleStatus('${st.id}')">${_TP_STATUS_LABEL[status]}</button>`;
+        const count = isMonth ? ` <span class="tp-stage-count">${st.months.filter(m => m.done).length}/${st.months.length} mo</span>` : '';
+        const monthsHtml = isMonth
+            ? `<div class="tp-months">${st.months.map(m => `<button class="tp-mchip ${m.done ? 'done' : ''}" onclick="taxPrepToggleMonth('${st.id}','${m.ym}')">${_ymLabel(m.ym)}</button>`).join('')}</div>`
+            : '';
+        return `
+            <div class="tp-stage ${status}">
+                <div class="tp-stage-head">
+                    ${statusEl}
+                    <div class="tp-stage-titles">
+                        <div class="tp-stage-title" onclick="taxPrepRenameStage('${st.id}')">${escapeHtml(st.title)}${count}</div>
+                        <div class="tp-stage-desc">${escapeHtml(st.desc || '')}</div>
+                    </div>
+                    <button class="tp-del" onclick="taxPrepDeleteStage('${st.id}')" title="Remove step">✕</button>
+                </div>
+                ${monthsHtml}
+                <textarea class="tp-note" rows="2" placeholder="Where I stopped / notes..." onchange="taxPrepSaveNote('${st.id}', this.value)">${escapeHtml(st.note || '')}</textarea>
+            </div>`;
+    }).join('');
+
+    const sessions = (tp.sessions || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const sessionsHtml = sessions.length
+        ? sessions.map(s => `<div class="tp-session"><span class="tp-session-date">${formatDate(s.date)}</span><span class="tp-session-text">${escapeHtml(s.text)}</span><button class="tp-session-del" onclick="taxPrepDeleteSession('${s.id}')">✕</button></div>`).join('')
+        : `<p class="tp-empty">No sessions logged yet.</p>`;
+
+    document.getElementById('taxPrepBody').innerHTML = `
+        <div class="tp-head">
+            <div class="tp-title-row"><div class="tp-biz">Tax Prep</div><div class="tp-pct">${prog.pct}%</div></div>
+            <div class="tp-progress"><div class="tp-progress-fill" style="width:${prog.pct}%"></div></div>
+            <div class="tp-progress-label">${prog.done} of ${prog.total} steps done. One hour a day gets you there.</div>
+        </div>
+
+        <div class="tp-stages">${stagesHtml}</div>
+        <button class="btn btn-ghost btn-sm tp-add-step" onclick="taxPrepAddStage()">+ Add a step</button>
+
+        <div class="tp-section-title">Daily session log</div>
+        <div class="tp-session-add">
+            <input type="date" id="tpSessionDate" value="${todayYmd()}">
+            <input type="text" id="tpSessionText" placeholder="What did you work on?">
+            <button class="btn btn-primary btn-sm" onclick="taxPrepAddSession()">Log</button>
+        </div>
+        <div class="tp-sessions">${sessionsHtml}</div>
+    `;
+}
+function taxPrepCycleStatus(id) {
+    const tp = _getTaxPrep(); if (!tp) return;
+    const st = tp.stages.find(s => s.id === id); if (!st || (st.months && st.months.length)) return;
+    st.status = st.status === 'todo' ? 'doing' : st.status === 'doing' ? 'done' : 'todo';
+    _saveTaxPrep(tp); _renderTaxPrep();
+}
+function taxPrepToggleMonth(id, ym) {
+    const tp = _getTaxPrep(); if (!tp) return;
+    const st = tp.stages.find(s => s.id === id); if (!st || !st.months) return;
+    const m = st.months.find(x => x.ym === ym); if (!m) return;
+    m.done = !m.done;
+    _saveTaxPrep(tp); _renderTaxPrep();
+}
+function taxPrepSaveNote(id, val) {
+    const tp = _getTaxPrep(); if (!tp) return;
+    const st = tp.stages.find(s => s.id === id); if (!st) return;
+    st.note = val;
+    _saveTaxPrep(tp);
+}
+function taxPrepRenameStage(id) {
+    const tp = _getTaxPrep(); if (!tp) return;
+    const st = tp.stages.find(s => s.id === id); if (!st) return;
+    const t = prompt('Rename step:', st.title);
+    if (t == null) return;
+    st.title = t.trim() || st.title;
+    _saveTaxPrep(tp); _renderTaxPrep();
+}
+function taxPrepDeleteStage(id) {
+    const tp = _getTaxPrep(); if (!tp) return;
+    const st = tp.stages.find(s => s.id === id); if (!st) return;
+    if (!confirm('Remove "' + st.title + '"?')) return;
+    tp.stages = tp.stages.filter(s => s.id !== id);
+    _saveTaxPrep(tp); _renderTaxPrep();
+}
+function taxPrepAddStage() {
+    const tp = _getTaxPrep(); if (!tp) return;
+    const t = prompt('New step name:');
+    if (t == null || !t.trim()) return;
+    let monthly = confirm('Track this step month by month? OK = yes (per-month checkboxes), Cancel = no.');
+    tp.stages.push({ id: 'tp_' + Date.now(), title: t.trim(), desc: '', status: 'todo', note: '', months: monthly ? _taxPrepMonths() : null });
+    _saveTaxPrep(tp); _renderTaxPrep();
+}
+function taxPrepAddSession() {
+    const tp = _getTaxPrep(); if (!tp) return;
+    const date = document.getElementById('tpSessionDate').value || todayYmd();
+    const text = document.getElementById('tpSessionText').value.trim();
+    if (!text) { showToast('Add a quick note about the session', 'error'); return; }
+    if (!Array.isArray(tp.sessions)) tp.sessions = [];
+    tp.sessions.push({ id: 'tps_' + Date.now(), date, text });
+    _saveTaxPrep(tp); _renderTaxPrep();
+}
+function taxPrepDeleteSession(id) {
+    const tp = _getTaxPrep(); if (!tp) return;
+    tp.sessions = (tp.sessions || []).filter(s => s.id !== id);
+    _saveTaxPrep(tp); _renderTaxPrep();
 }
 
 /* ============================================================
