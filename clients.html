@@ -1678,10 +1678,7 @@ function renderClientCard(c) {
     const stats = getClientStats(c.id);
     const addressLine = [c.address, c.city, c.state, c.zip].filter(Boolean).join(', ');
     const badges = [];
-    // Tip-related badges
-    const tippedCount = stats.tippedCount || 0;
-    const totalVisitsCompleted = (Store.getVisits().filter(v => v.clientId === c.id && v.status === 'completed')).length;
-    if (totalVisitsCompleted >= 3 && tippedCount === 0) badges.push('<span class="badge muted">Non-tipper</span>');
+    // Tip-related badges (Non-tipper now shows only in the client detail view)
     if (stats.totalTips >= 100) badges.push('<span class="badge tip">Top Tipper</span>');
     const petNames = (c.pets && c.pets.length) ? c.pets.map(p => p.name).filter(Boolean).join(', ') : '';
     const isExpanded = _expandedClients.has(c.id);
@@ -2638,9 +2635,11 @@ function viewClient(clientId) {
     }
     // Tips section
     const tipEntries = Array.isArray(c.tips) ? c.tips.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')) : [];
+    const _completedCount = visits.filter(v => v.status === 'completed').length;
+    const _isNonTipper = _completedCount >= 3 && (stats.tippedCount || 0) === 0;
     html += `
         <div class="detail-section">
-            <h3>Tips — $${stats.totalTips.toFixed(0)} total${stats.tippedCount > 0 ? ` · ${stats.tippedCount} entries` : ''}
+            <h3>Tips — $${stats.totalTips.toFixed(0)} total${stats.tippedCount > 0 ? ` · ${stats.tippedCount} entries` : ''}${_isNonTipper ? ' <span class="badge muted">Non-tipper</span>' : ''}
                 <button class="btn btn-ghost btn-sm" style="float: right; margin-top: -4px;" onclick="openClientTipModal('${c.id}')">+ Add Tip</button>
             </h3>
             ${tipEntries.length === 0

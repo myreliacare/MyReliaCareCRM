@@ -615,8 +615,8 @@
 
         .todo-list { display: flex; flex-direction: column; gap: 6px; }
         .todo-item {
-            display: grid;
-            grid-template-columns: auto 1fr auto auto auto auto;
+            display: flex;
+            flex-wrap: nowrap;
             align-items: center;
             gap: 10px;
             padding: 10px 12px;
@@ -625,6 +625,9 @@
             border-radius: 8px;
             transition: all 0.15s;
         }
+        /* The text flexes; every other child (chip, badges, buttons) holds its size
+           and stays on the row, so a client tag never bumps the × to a new line. */
+        .todo-item > *:not(.todo-text) { flex: 0 0 auto; }
         .todo-item.done { opacity: 0.55; }
         .todo-item.done .todo-text { text-decoration: line-through; color: var(--text-faint); }
         .todo-item.overdue { border-color: rgba(168, 90, 102, 0.55); }
@@ -642,7 +645,7 @@
         }
         .todo-check:hover { border-color: var(--accent); }
         .todo-item.done .todo-check { background: var(--success); border-color: var(--success); color: white; }
-        .todo-text { color: var(--text); font-size: 1em; word-break: break-word; line-height: 1.4; cursor: pointer; }
+        .todo-text { flex: 1 1 auto; min-width: 0; color: var(--text); font-size: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; cursor: pointer; }
         .todo-text:hover { color: var(--accent); }
         .todo-prio-badge { font-size: 0.7em; font-weight: 700; letter-spacing: 1px; padding: 3px 7px; border-radius: 4px; text-transform: uppercase; white-space: nowrap; }
         .todo-prio-badge.high { background: var(--danger); color: white; }
@@ -715,12 +718,9 @@
         .item-section-label { font-size: 0.74em; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-faint); padding: 12px 4px 4px 4px; }
         .item-section-label:first-child { padding-top: 4px; }
 
-        /* Reminder + Note items use flex (variable child set) instead of grid */
-        .todo-item.item-reminder, .todo-item.item-note {
-            display: flex; flex-wrap: wrap; align-items: center;
-        }
+        /* Reminder + Note items share the same single-row flex as tasks (no wrap). */
         .todo-item.item-reminder .todo-text,
-        .todo-item.item-note .todo-text { flex: 1 1 140px; min-width: 0; }
+        .todo-item.item-note .todo-text { flex: 1 1 auto; min-width: 0; }
 
         /* Type tag (small label at left of reminder/note rows) */
         .item-type-tag { font-size: 0.66em; font-weight: 700; letter-spacing: 1.4px; padding: 3px 7px; border-radius: 4px; flex: 0 0 auto; }
@@ -767,11 +767,10 @@
         }
 
         @media (max-width: 700px) {
-            .todo-item { grid-template-columns: auto 1fr auto auto auto; gap: 8px; padding: 10px; }
-            .todo-item .todo-due { grid-column: 2 / -1; grid-row: 2; font-size: 0.78em; margin-top: 2px; }
-            .todo-item .todo-prio-badge { grid-row: 1; grid-column: 3; font-size: 0.62em; padding: 2px 5px; }
-            .todo-item .todo-edit-btn { grid-row: 1; grid-column: 4; padding: 2px 4px; }
-            .todo-item .todo-del-btn { grid-row: 1; grid-column: 5; padding: 2px 4px; }
+            .todo-item { gap: 8px; padding: 10px; }
+            .todo-item .todo-due { font-size: 0.78em; }
+            .todo-item .todo-prio-badge { font-size: 0.62em; padding: 2px 5px; }
+            .todo-item .todo-edit-btn, .todo-item .todo-del-btn { padding: 2px 4px; }
             .todo-add-meta { gap: 6px; }
             .todo-add-meta input[type="date"] { flex: 1; min-width: 0; }
 
@@ -5894,7 +5893,7 @@ function _renderTaskItem(t, today, source) {
     return `
         <div class="todo-item item-task ${doneClass} ${overdueClass} ${editingClass}">
             <div class="todo-check" onclick="toggleTodoDone('${t.id}')" title="${t.done ? 'Mark not done' : 'Mark done'}">${checkSvg}</div>
-            <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
+            <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="${safeText}">${safeText}</div>
             ${clientChip}
             <span class="todo-prio-badge ${t.priority}">${prioLabel}</span>
             <span class="todo-due ${dueClass}">${dueLabel}</span>
@@ -5948,7 +5947,7 @@ function _renderReminderItem(t, today, source) {
     return `
         <div class="todo-item item-reminder ${doneClass} ${editingClass}">
             <span class="item-type-tag reminder">REMIND</span>
-            <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
+            <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="${safeText}">${safeText}</div>
             ${clientChip}
             ${recurLabel}
             <span class="todo-due">${dateLabel}</span>
@@ -5975,7 +5974,7 @@ function _renderNoteItem(t, today, source) {
     return `
         <div class="todo-item item-note ${doneClass} ${editingClass}">
             <span class="item-type-tag note">NOTE</span>
-            <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="Click to edit">${safeText}</div>
+            <div class="todo-text" onclick="startEditTodo('${t.id}', '${source}')" title="${safeText}">${safeText}</div>
             ${clientChip}
             ${actions}
         </div>
@@ -6528,11 +6527,9 @@ function _renderMileagePrompt() {
     const dayHtml = shown.map(d => {
         const tripLinks = (pending, visits, lbl) => {
             if (!pending || visits.length === 0) return '';
-            const trips = _bfBuildDayTrips(d.date, visits);
-            if (trips.length === 0) return '';
-            const mk = (url, text) => `<a href="${url}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 8px; text-decoration: none; font-size: 0.78em;">${text}</a>`;
-            if (trips.length === 1) return mk(trips[0].url, `${lbl} route →`);
-            return trips.map((t, i) => mk(t.url, `${lbl} trip ${i + 1} →`)).join(' ');
+            const route = _bfBuildFullDayRoute(d.date, visits);
+            if (!route) return '';
+            return `<a href="${route.google}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 8px; text-decoration: none; font-size: 0.78em;">${lbl} route →</a>`;
         };
         const kBtn = tripLinks(d.kPending, d.kVisits, 'Kasey');
         const cBtn = tripLinks(d.cPending, d.cVisits, 'Charlie');
@@ -6867,6 +6864,14 @@ function _securitySentence(tk, petName) {
     if (!parts.length) return '';
     return 'before we left: ' + parts.join(', ');
 }
+function _capFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+// Time range that drops the redundant am/pm when both ends share it: "4:05 - 4:35 PM"
+function _clockRange(a, b) {
+    const fmt = ms => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const sa = fmt(a), sb = fmt(b);
+    return (sa.slice(-2) === sb.slice(-2)) ? (sa.slice(0, -3) + ' - ' + sb) : (sa + ' - ' + sb);
+}
+
 function buildVisitSummary(id) {
     const v = Store.getVisits().find(x => x.id === id);
     if (!v) return '';
@@ -6874,34 +6879,32 @@ function buildVisitSummary(id) {
     const client = Store.getClients().find(c => c.id === v.clientId);
     const firstName = ((v.clientName || (client && client.name) || 'there').trim().split(/\s+/)[0]) || 'there';
     const petArr = (client && client.pets && client.pets.length) ? client.pets.map(p => p.name).filter(Boolean) : [];
-    const pets = _joinList(petArr);
-    const lines = [];
-    lines.push(`Hi ${firstName}! Here's how today went with ${pets || 'your pet'}.`);
+    const pets = _joinList(petArr) || 'your pet';
 
-    let dt = parseYmd(v.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-    if (tk.startedAt && tk.endedAt) dt += ` · ${_clockFromMs(tk.startedAt)} - ${_clockFromMs(tk.endedAt)}`;
-    else if (v.time) dt += ` · ${formatTime12(v.time)}`;
-    const dur = tk.elapsedSec || _trackerElapsedSec(tk);
-    if (dur > 0) dt += ` (${_fmtDur(dur)})`;
-    lines.push('');
-    lines.push(dt);
+    // Abbreviated date + time, e.g. "Mon, Jun 23 · 4:05 - 4:35 PM"
+    let when = parseYmd(v.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    if (tk.startedAt && tk.endedAt) when += ` · ${_clockRange(tk.startedAt, tk.endedAt)}`;
+    else if (v.time) when += ` · ${formatTime12(v.time)}`;
 
     const doneTasks = TRACKER_TASKS.filter(t => tk.tasks[t.key]);
-    if (doneTasks.length) {
-        const items = doneTasks.map(t => (t.key === 'walk' && tk.walkMiles) ? `walk (${Math.round(tk.walkMiles * 100) / 100} mi)` : t.label.toLowerCase());
-        lines.push('');
-        lines.push('what we did: ' + items.join(', '));
+    const items = doneTasks.map(t => (t.key === 'walk' && tk.walkMiles)
+        ? `a ${Math.round(tk.walkMiles * 100) / 100} mi walk`
+        : t.label.toLowerCase());
+
+    const sentences = [`Just wrapped up with ${pets} (${when}).`];
+    if (items.length) sentences.push(_capFirst(_joinList(items)) + '.');
+    if (tk.note && tk.note.trim()) {
+        let n = tk.note.trim();
+        if (!/[.!?]$/.test(n)) n += '.';
+        sentences.push(n);
     }
     const sec = _securitySentence(tk, petArr.length === 1 ? petArr[0] : '');
-    if (sec) { lines.push(''); lines.push(sec); }
-
-    if (tk.note && tk.note.trim()) { lines.push(''); lines.push(tk.note.trim()); }
-
-    lines.push('');
-    lines.push(`Thank you for trusting us with your home and ${petArr.length === 1 ? petArr[0] : 'your pets'}.`);
-    lines.push('');
-    lines.push('- Kasey & Charlie, MyReliaCare');
-    return lines.join('\n');
+    if (sec) {
+        let s = _capFirst(sec.trim());
+        if (!/[.!?]$/.test(s)) s += '.';
+        sentences.push(s);
+    }
+    return sentences.join(' ') + '\n\n— Kasey & Charlie, MyReliaCare';
 }
 
 function openVisitSummary(id) {

@@ -1046,8 +1046,15 @@
 
         <div class="action-bar">
             <button class="btn btn-primary" onclick="openNewInvoiceModal()">+ New Invoice</button>
-            <button class="btn btn-ghost" onclick="document.getElementById('invoicesSection').scrollIntoView({ behavior: 'smooth', block: 'start' })">Invoices &darr;</button>
             <button class="btn btn-ghost" onclick="openTaxPrep()">Tax Prep</button>
+        </div>
+
+        <div class="card" id="invoicesSection">
+            <div class="card-title">
+                <span>Invoices</span>
+            </div>
+            <div class="filter-tabs" id="filterTabs"></div>
+            <div id="invoiceList" class="invoice-list"></div>
         </div>
 
         <div class="card income-breakdown-card">
@@ -1086,14 +1093,6 @@
             </div>
             <div class="income-breakdown-body" id="mileageSummaryBody"></div>
             <div id="mileageEntriesList"></div>
-        </div>
-
-        <div class="card" id="invoicesSection" style="scroll-margin-top: 80px;">
-            <div class="card-title">
-                <span>Invoices</span>
-            </div>
-            <div class="filter-tabs" id="filterTabs"></div>
-            <div id="invoiceList" class="invoice-list"></div>
         </div>
     </div>
 </div>
@@ -2538,7 +2537,7 @@ function copyInvoiceAsText(id) {
         lines.push(closing);
     }
     lines.push(``);
-    lines.push(`– Kasey & Charlie, MyReliaCare`);
+    lines.push(`— Kasey & Charlie, MyReliaCare`);
 
     const text = lines.join('\n');
 
