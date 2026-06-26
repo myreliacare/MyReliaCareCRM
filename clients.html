@@ -1452,13 +1452,37 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+function normalizeAddressForMaps(raw) {
+    if (!raw) return '';
+    // Collapse whitespace/newlines, fix spacing around commas, strip leading/trailing/double commas
+    let s = String(raw).replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').trim();
+    s = s.replace(/^,+|,+$/g, '').replace(/,\s*,/g, ',').trim();
+    // If a 5-digit zip is stranded mid-string, move it to the end.
+    const zipMatch = s.match(/\b(\d{5})(?:-\d{4})?\b/);
+    if (zipMatch) {
+        const zip = zipMatch[0];
+        const idx = s.lastIndexOf(zip);
+        const isAtEnd = idx + zip.length >= s.length - 2;
+        if (!isAtEnd) {
+            s = (s.slice(0, idx) + s.slice(idx + zip.length))
+                .replace(/\s+/g, ' ')
+                .replace(/\s*,\s*/g, ', ')
+                .replace(/,\s*,/g, ',')
+                .replace(/^,+|,+$/g, '')
+                .trim();
+            s = s + ' ' + zip;
+        }
+    }
+    return s;
+}
 window.openInMaps = function(address) {
     if (!address) return;
-    const encoded = encodeURIComponent(address);
+    const encoded = encodeURIComponent(normalizeAddressForMaps(address));
     // Waze URL — opens Waze app on mobile via universal link, falls back to waze.com
     const wazeUrl = `https://waze.com/ul?q=${encoded}&navigate=yes`;
-    // Apple Maps URL — opens Apple Maps app on iOS, web view elsewhere
-    const appleUrl = `https://maps.apple.com/?address=${encoded}&q=${encoded}`;
+    // Apple Maps — use the forgiving ?q= search (a strict ?address= fails on slightly-off
+    // formatting like a stray comma); ?q= lets Maps fuzzy-match the address.
+    const appleUrl = `https://maps.apple.com/?q=${encoded}`;
 
     let el = document.getElementById('mapsChooserOverlay');
     if (el) el.remove();

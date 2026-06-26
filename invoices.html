@@ -1437,7 +1437,7 @@ function _isDefaultClosing(note) {
     return t.startsWith(DEFAULT_CLOSING_PREFIX) || t.startsWith(OLD_DEFAULT_CLOSING_PREFIX);
 }
 
-let currentFilter = 'all';
+let currentFilter = 'draft';
 let editingInvoiceId = null;
 
 /* ============================================================
@@ -2744,14 +2744,12 @@ function renderInvoiceList() {
         return;
     }
     list.innerHTML = invoices.map(inv => {
-        const sideText = inv.status === 'paid' && inv.paidDate ? `Paid ${formatDate(inv.paidDate)}` : '';
         const firstVisit = (inv.items || []).map(it => it.date).filter(Boolean).sort()[0] || null;
-        const beginsText = firstVisit ? ` · Begins ${formatDate(firstVisit)}` : '';
         return `
             <div class="invoice-row" onclick="viewInvoice('${inv.id}')">
                 <div class="invoice-main">
                     <div class="invoice-client">${escapeHtml(invoiceClientDisplayName(inv))}</div>
-                    <div class="invoice-meta">${escapeHtml(inv.invoiceNumber)} · ${(inv.items || []).length} item${(inv.items || []).length === 1 ? '' : 's'}${beginsText} · Issued ${formatDate(inv.issueDate)}${sideText ? ' · ' + sideText : ''}</div>
+                    <div class="invoice-meta">${firstVisit ? `Begins ${formatDate(firstVisit)}` : 'No visit dates'}</div>
                 </div>
                 <div class="invoice-amount">$${(inv.total || 0).toFixed(2)}</div>
                 <span class="status-badge ${inv.status}">${inv.status}</span>
@@ -3223,7 +3221,7 @@ function _taxPrepDefaults() {
             { id: 'doordash', title: 'DoorDash income & mileage', desc: 'Enter DoorDash 1099 income and the app mileage report, by year.', status: 'todo', note: '', months: null },
             { id: 'wag', title: 'Add Wag visits to the calendar', desc: 'Enter all completed Wag visits.', status: 'todo', note: '', months: null },
             { id: 'rover', title: 'Add Rover visits to the calendar', desc: 'The long one. Work one month per session and check it off below.', status: 'todo', note: '', months: _taxPrepMonths() },
-            { id: 'texts', title: 'Add text-handled visits', desc: 'Go through scheduling texts and visit summaries, add any visits booked that way. This closes the gap so every completed visit is in.', status: 'todo', note: '', months: _taxPrepMonths() },
+            { id: 'texts', title: 'Add text-handled visits', desc: 'Go through scheduling texts and visit summaries, add any visits booked that way. This closes the gap so every completed visit is in. Tracked per client.', status: 'todo', note: '', months: null, byClient: true, clientsDone: [] },
             { id: 'verify', title: 'Confirm every completed visit is entered', desc: 'Spot-check each month against payouts and records so nothing is missing.', status: 'todo', note: '', months: null },
             { id: 'mileage', title: 'Add route mileage for each day', desc: 'The CRM builds each day from that day\'s visits, so do this after the visits are in. One month per session.', status: 'todo', note: '', months: _taxPrepMonths() },
             { id: 'expenses', title: 'Gather expenses', desc: 'WiFi, software and app fees, supplies, phone percentage, etc. Pull from bank and card statements.', status: 'todo', note: '', months: null },
@@ -3248,9 +3246,27 @@ function _taxPrepProgress(tp) {
     let total = 0, done = 0;
     tp.stages.forEach(st => {
         if (st.months && st.months.length) { total += st.months.length; done += st.months.filter(m => m.done).length; }
+        else if (st.byClient) {
+            const cls = Store.getClients() || [];
+            const set = new Set(st.clientsDone || []);
+            total += cls.length; done += cls.filter(c => set.has(c.id)).length;
+        }
         else { total += 1; if (st.status === 'done') done += 1; }
     });
     return { total, done, pct: total ? Math.round(done / total * 100) : 0 };
+}
+function _clientStageStatus(st) {
+    const cls = Store.getClients() || [];
+    const set = new Set(st.clientsDone || []);
+    const d = cls.filter(c => set.has(c.id)).length;
+    if (cls.length === 0 || d === 0) return 'todo';
+    return d === cls.length ? 'done' : 'doing';
+}
+function _migrateTaxPrep(tp) {
+    let changed = false;
+    const texts = tp.stages && tp.stages.find(s => s.id === 'texts');
+    if (texts && texts.months) { texts.months = null; texts.byClient = true; texts.clientsDone = texts.clientsDone || []; changed = true; }
+    return changed;
 }
 function _monthStageStatus(st) {
     const d = st.months.filter(m => m.done).length;
@@ -3266,6 +3282,8 @@ const _TP_STATUS_LABEL = { todo: 'To do', doing: 'In progress', done: 'Done' };
 
 function openTaxPrep() {
     if (!_getTaxPrep()) _saveTaxPrep(_taxPrepDefaults());
+    const tp0 = _getTaxPrep();
+    if (tp0 && _migrateTaxPrep(tp0)) _saveTaxPrep(tp0);
     const ov = document.getElementById('taxPrep');
     if (!ov) return;
     ov.style.display = 'block';
@@ -3283,14 +3301,28 @@ function _renderTaxPrep() {
 
     const stagesHtml = tp.stages.map(st => {
         const isMonth = !!(st.months && st.months.length);
-        const status = isMonth ? _monthStageStatus(st) : (st.status || 'todo');
-        const statusEl = isMonth
+        const isClient = !!st.byClient;
+        const derived = isMonth || isClient;
+        let status, count, gridHtml;
+        if (isMonth) {
+            status = _monthStageStatus(st);
+            count = ` <span class="tp-stage-count">${st.months.filter(m => m.done).length}/${st.months.length} mo</span>`;
+            gridHtml = `<div class="tp-months">${st.months.map(m => `<button class="tp-mchip ${m.done ? 'done' : ''}" onclick="taxPrepToggleMonth('${st.id}','${m.ym}')">${_ymLabel(m.ym)}</button>`).join('')}</div>`;
+        } else if (isClient) {
+            const cls = (Store.getClients() || []).slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            const set = new Set(st.clientsDone || []);
+            const d = cls.filter(c => set.has(c.id)).length;
+            status = _clientStageStatus(st);
+            count = ` <span class="tp-stage-count">${d}/${cls.length} clients</span>`;
+            gridHtml = `<div class="tp-months">${cls.length ? cls.map(c => `<button class="tp-mchip ${set.has(c.id) ? 'done' : ''}" onclick="taxPrepToggleClient('${st.id}','${c.id}')">${escapeHtml(c.name || 'Client')}</button>`).join('') : '<span class="tp-empty">No clients yet.</span>'}</div>`;
+        } else {
+            status = st.status || 'todo';
+            count = '';
+            gridHtml = '';
+        }
+        const statusEl = derived
             ? `<span class="tp-status ${status}">${_TP_STATUS_LABEL[status]}</span>`
             : `<button class="tp-status ${status}" onclick="taxPrepCycleStatus('${st.id}')">${_TP_STATUS_LABEL[status]}</button>`;
-        const count = isMonth ? ` <span class="tp-stage-count">${st.months.filter(m => m.done).length}/${st.months.length} mo</span>` : '';
-        const monthsHtml = isMonth
-            ? `<div class="tp-months">${st.months.map(m => `<button class="tp-mchip ${m.done ? 'done' : ''}" onclick="taxPrepToggleMonth('${st.id}','${m.ym}')">${_ymLabel(m.ym)}</button>`).join('')}</div>`
-            : '';
         return `
             <div class="tp-stage ${status}">
                 <div class="tp-stage-head">
@@ -3301,7 +3333,7 @@ function _renderTaxPrep() {
                     </div>
                     <button class="tp-del" onclick="taxPrepDeleteStage('${st.id}')" title="Remove step">✕</button>
                 </div>
-                ${monthsHtml}
+                ${gridHtml}
                 <textarea class="tp-note" rows="2" placeholder="Where I stopped / notes..." onchange="taxPrepSaveNote('${st.id}', this.value)">${escapeHtml(st.note || '')}</textarea>
             </div>`;
     }).join('');
@@ -3341,6 +3373,14 @@ function taxPrepToggleMonth(id, ym) {
     const st = tp.stages.find(s => s.id === id); if (!st || !st.months) return;
     const m = st.months.find(x => x.ym === ym); if (!m) return;
     m.done = !m.done;
+    _saveTaxPrep(tp); _renderTaxPrep();
+}
+function taxPrepToggleClient(id, clientId) {
+    const tp = _getTaxPrep(); if (!tp) return;
+    const st = tp.stages.find(s => s.id === id); if (!st || !st.byClient) return;
+    st.clientsDone = st.clientsDone || [];
+    const i = st.clientsDone.indexOf(clientId);
+    if (i >= 0) st.clientsDone.splice(i, 1); else st.clientsDone.push(clientId);
     _saveTaxPrep(tp); _renderTaxPrep();
 }
 function taxPrepSaveNote(id, val) {

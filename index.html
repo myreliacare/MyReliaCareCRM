@@ -554,6 +554,9 @@
         .trc-trips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
         .trc-trips .trc-route-btn { padding: 7px 11px; font-size: 0.82em; }
         .trc-trips-note { width: 100%; color: var(--text-faint); font-size: 0.74em; margin-top: 2px; }
+        .trc-route-line { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .trc-route-hint { color: var(--text-faint); font-size: 0.72em; }
+        .trc-route-alt { color: var(--accent); font-size: 0.82em; text-decoration: underline; white-space: nowrap; }
         .trc-est-note { width: 100%; color: var(--success); font-size: 0.72em; margin-top: 3px; }
         .trc-est-chip { width: 100%; text-align: left; margin-top: 4px; background: none; border: none; padding: 0; color: var(--text-faint); font-size: 0.72em; text-decoration: underline; cursor: pointer; }
         .trc-logged-tag { width: 100%; display: flex; align-items: center; gap: 4px; color: var(--success); font-size: 0.72em; margin-top: 4px; }
@@ -6121,18 +6124,20 @@ function renderTodayRouteCard() {
 
     const carRow = (driver, label, visits) => {
         if (visits.length === 0) return '';
-        const trips = hasHome ? _bfBuildDayTrips(today, visits) : [];
+        const route = hasHome ? _bfBuildFullDayRoute(today, visits) : null;
         let routeBtns;
         if (!hasHome) {
             routeBtns = `<a onclick="openBackfill()" style="cursor:pointer" class="trc-route-missing">Set home address for route →</a>`;
-        } else if (trips.length === 0) {
+        } else if (!route) {
             routeBtns = `<span class="trc-route-missing">No mappable addresses</span>`;
-        } else if (trips.length === 1) {
-            routeBtns = `<a href="${trips[0].url}" target="_blank" rel="noopener" class="trc-route-btn">${_svgIcon('route')} ${label}'s route</a>`;
         } else {
-            routeBtns = `<div class="trc-trips">`
-                + trips.map((t, i) => `<a href="${t.url}" target="_blank" rel="noopener" class="trc-route-btn">${_svgIcon('route')} Trip ${i + 1}${t.startTime ? ' · ' + formatTime12(t.startTime) : ''}</a>`).join('')
-                + `<span class="trc-trips-note">${trips.length} trips (you drove home between)</span></div>`;
+            const hint = route.trimmed
+                ? `<span class="trc-route-hint">first 9 stops (Maps link limit)</span>`
+                : (route.droppedHomes ? `<span class="trc-route-hint">home hops omitted to fit the 9-stop limit</span>` : '');
+            routeBtns = `<span class="trc-route-line">`
+                + `<a href="${route.google}" target="_blank" rel="noopener" class="trc-route-btn">${_svgIcon('route')} ${label}'s full route</a>`
+                + hint
+                + `</span>`;
         }
         const isLogged = logged[driver] != null;
         const est = isLogged ? null : _bfDayMilesEstimate(today, visits);
@@ -7745,7 +7750,7 @@ function _visitCountsForDriver(visit, driver) {
  * stored coords are wrong. Returns null if home address or all client
  * addresses are missing.
  */
-const BF_HOME_RETURN_GAP_MIN = 45; // a gap >= this (min) between visits implies a drive home → new trip
+const BF_HOME_RETURN_GAP_MIN = 60; // a gap >= this (min, = 1 hour) between visits implies a drive home
 
 // Straight-line distance × 1.3 road factor (mi), matching the per-client estimate
 // the client form uses. Returns null if either point is missing.
@@ -7898,10 +7903,70 @@ function _bfBuildDayTrips(date, visitsOverride) {
     return trips;
 }
 
-// Legacy single-link helper (used by the backfill workspace). Returns the first trip.
+// One combined route for the whole day. Visits within an hour of each other stay
+// back-to-back; an hour+ gap drops "home" into the route (you drove home and back out).
+function _bfBuildFullDayRoute(date, visitsOverride) {
+    const home = _bfGetHomeSetting();
+    const homeAddr = home && home.homeAddress ? home.homeAddress : null;
+    const homeCoords = home && home.homeCoords && typeof home.homeCoords.lat === 'number' ? home.homeCoords : null;
+    if (!homeAddr && !homeCoords) return null;
+    // Prefer street addresses: Google parses partial/typo'd rural addresses better
+    // than our stored Geocodio coords, which can land in the wrong spot. Fall back
+    // to lat,lng only when a client has no address on file.
+    const homeLoc = homeAddr ? normalizeAddressForMaps(homeAddr) : (homeCoords ? `${homeCoords.lat},${homeCoords.lng}` : null);
+
+    const clientsById = {};
+    (Store.getClients() || []).forEach(c => { clientsById[c.id] = c; });
+    const locFor = (c) => {
+        if (!c) return null;
+        const parts = [c.address, c.city, c.state, c.zip].map(x => (x || '').trim()).filter(Boolean);
+        if (parts.length) return normalizeAddressForMaps(parts.join(', '));
+        if (c.coords && typeof c.coords.lat === 'number' && typeof c.coords.lng === 'number') return `${c.coords.lat},${c.coords.lng}`;
+        return null;
+    };
+
+    const groups = _bfDayTripGroups(date, visitsOverride); // split on the 1-hour gap
+    const groupLocs = [];
+    for (const group of groups) {
+        const stops = [];
+        for (const v of group) {
+            const loc = locFor(clientsById[v.clientId]);
+            if (loc && stops[stops.length - 1] !== loc) stops.push(loc);
+        }
+        if (stops.length) groupLocs.push(stops);
+    }
+    if (groupLocs.length === 0) return null;
+
+    // Google Maps links honor up to 9 waypoints (and only 3 in a mobile browser).
+    // Candidate A drops "home" in on the hour+ gaps; if that blows the cap, fall back
+    // to all stops without the home hops so the route still loads with every client.
+    const withHomes = [];
+    groupLocs.forEach((stops, i) => { if (i > 0) withHomes.push(homeLoc); withHomes.push(...stops); });
+    const stopsOnly = groupLocs.flat();
+
+    let waypoints, droppedHomes = false, trimmed = false;
+    if (withHomes.length <= 9) {
+        waypoints = withHomes;
+    } else if (stopsOnly.length <= 9) {
+        waypoints = stopsOnly; droppedHomes = true;
+    } else {
+        waypoints = stopsOnly.slice(0, 9); droppedHomes = true; trimmed = true;
+    }
+
+    const gParams = new URLSearchParams({ api: '1', origin: homeLoc, destination: homeLoc, waypoints: waypoints.join('|'), travelmode: 'driving' });
+    return {
+        google: 'https://www.google.com/maps/dir/?' + gParams.toString(),
+        count: stopsOnly.length,
+        shown: waypoints.filter(w => w !== homeLoc).length,
+        droppedHomes,
+        trimmed
+    };
+}
+
+// Used by the backfill workspace day list — now the full-day combined route.
 function _bfBuildDayMapsUrl(date, visitsOverride) {
-    const trips = _bfBuildDayTrips(date, visitsOverride);
-    return trips.length ? trips[0].url : null;
+    const r = _bfBuildFullDayRoute(date, visitsOverride);
+    return r ? r.google : null;
 }
 
 function _bfRenderMileage() {
