@@ -146,7 +146,7 @@
             cursor: pointer;
             font-family: monospace;
         }
-        .menu-toggle:hover { background: var(--bg-input); }
+        @media (hover: hover) and (pointer: fine) { .menu-toggle:hover { background: var(--bg-input); } }
         .menu-backdrop {
             display: none;
             position: fixed;
@@ -266,7 +266,7 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        .password-btn:hover { background: var(--accent-dark); }
+        @media (hover: hover) and (pointer: fine) { .password-btn:hover { background: var(--accent-dark); } }
         .password-error {
             color: var(--danger);
             margin-top: 12px;
@@ -347,7 +347,7 @@
             font-size: 1.05em;
             white-space: nowrap;
         }
-        .nav a:hover { background: var(--bg-input); color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .nav a:hover { background: var(--bg-input); color: var(--text); } }
         .nav a.active {
             background: var(--accent);
             color: white;
@@ -363,7 +363,7 @@
             font-size: 0.9em;
             white-space: nowrap;
         }
-        .logout-btn:hover { color: var(--danger); border-color: var(--danger); }
+        @media (hover: hover) and (pointer: fine) { .logout-btn:hover { color: var(--danger); border-color: var(--danger); } }
 
         /* === STATS ROW === */
         .stats-row {
@@ -448,25 +448,25 @@
             gap: 8px;
         }
         .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-dark); }
+        @media (hover: hover) and (pointer: fine) { .btn-primary:hover { background: var(--accent-dark); } }
         .btn-secondary {
             background: transparent;
             color: var(--accent);
             border: 1px solid var(--accent);
         }
-        .btn-secondary:hover { background: var(--accent); color: white; }
+        @media (hover: hover) and (pointer: fine) { .btn-secondary:hover { background: var(--accent); color: white; } }
         .btn-personal {
             background: transparent;
             color: var(--personal);
             border: 1px solid var(--personal);
         }
-        .btn-personal:hover { background: var(--personal); color: white; }
+        @media (hover: hover) and (pointer: fine) { .btn-personal:hover { background: var(--personal); color: white; } }
         .btn-note {
             background: transparent;
             color: var(--warn);
             border: 1px solid var(--warn);
         }
-        .btn-note:hover { background: var(--warn); color: var(--bg-deep); }
+        @media (hover: hover) and (pointer: fine) { .btn-note:hover { background: var(--warn); color: var(--bg-deep); } }
 
         /* To-Do list */
         .todo-card-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -480,25 +480,25 @@
             color: var(--text-dim); font-size: 1.25em; line-height: 1; cursor: pointer;
             transition: background 0.12s, color 0.12s, border-color 0.12s;
         }
-        .day-nav-btn:hover { background: var(--accent); color: var(--bg-card); border-color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .day-nav-btn:hover { background: var(--accent); color: var(--bg-card); border-color: var(--accent); } }
         .day-today-btn {
             display: inline-flex; align-items: center;
             padding: 4px 10px; background: transparent; border: 1px solid var(--accent);
             border-radius: 8px; color: var(--accent-light); font-family: inherit;
             font-size: 0.8em; cursor: pointer; flex-shrink: 0; transition: background 0.12s, color 0.12s;
         }
-        .day-today-btn:hover { background: var(--accent); color: var(--bg-card); }
+        @media (hover: hover) and (pointer: fine) { .day-today-btn:hover { background: var(--accent); color: var(--bg-card); } }
         .view-filter-pills { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
         .view-filter-pill { padding: 5px 11px; background: transparent; border: none; color: var(--text-faint); font-family: inherit; font-size: 0.82em; cursor: pointer; transition: background 0.12s, color 0.12s; }
         .view-filter-pill + .view-filter-pill { border-left: 1px solid var(--border); }
-        .view-filter-pill:hover { color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .view-filter-pill:hover { color: var(--text); } }
         .view-filter-pill.active { background: var(--accent); color: var(--bg-card); font-weight: 600; }
 
         /* Mileage prompt banner — homepage nudge for days with completed visits but no mileage */
         .ui-icon { vertical-align: -2px; }
         .dash-actions { display: flex; gap: 10px; margin-bottom: 16px; }
         .dash-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; cursor: pointer; font-family: inherit; color: var(--text); text-align: center; transition: border-color 0.12s, box-shadow 0.12s; }
-        .dash-btn:hover { border-color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .dash-btn:hover { border-color: var(--accent); } }
         .dash-btn.needs-log { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
         .dash-btn-title { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-family: 'Cormorant', serif; font-size: 1.12em; font-weight: 600; }
         .dash-btn-status { color: var(--text-faint); font-size: 0.78em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -550,7 +550,7 @@
         .trc-car-count { color: var(--text-faint); font-size: 0.8em; }
         .trc-car-body { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .trc-route-btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 13px; background: var(--accent); color: var(--bg-card); border-radius: 7px; text-decoration: none; font-size: 0.86em; font-weight: 600; transition: background 0.12s; }
-        .trc-route-btn:hover { background: var(--accent-light); }
+        @media (hover: hover) and (pointer: fine) { .trc-route-btn:hover { background: var(--accent-light); } }
         .trc-trips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
         .trc-trips .trc-route-btn { padding: 7px 11px; font-size: 0.82em; }
         .trc-trips-note { width: 100%; color: var(--text-faint); font-size: 0.74em; margin-top: 2px; }
@@ -578,7 +578,7 @@
         .mpb-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
         .mpb-title { color: var(--accent); font-weight: 600; font-size: 1.02em; }
         .mpb-dismiss { background: transparent; border: none; color: var(--text-faint); cursor: pointer; font-family: inherit; font-size: 0.82em; text-decoration: underline; padding: 0; }
-        .mpb-dismiss:hover { color: var(--text-dim); }
+        @media (hover: hover) and (pointer: fine) { .mpb-dismiss:hover { color: var(--text-dim); } }
         .mpb-day { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px dashed var(--border); }
         .mpb-day:first-of-type { border-top: none; padding-top: 4px; }
         .mpb-day-label { color: var(--text); font-weight: 500; }
@@ -601,14 +601,14 @@
         .todo-priority-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
         .todo-prio-btn { background: var(--bg); color: var(--text-faint); border: none; padding: 7px 12px; cursor: pointer; font-family: inherit; font-size: 0.85em; font-weight: 600; letter-spacing: 1px; border-right: 1px solid var(--border); transition: all 0.1s; }
         .todo-prio-btn:last-child { border-right: none; }
-        .todo-prio-btn:hover { background: var(--bg-input); }
+        @media (hover: hover) and (pointer: fine) { .todo-prio-btn:hover { background: var(--bg-input); } }
         .todo-prio-btn.high.active { background: var(--danger); color: white; }
         .todo-prio-btn.med.active { background: var(--accent); color: white; }
         .todo-prio-btn.low.active { background: var(--text-faint); color: var(--bg-deep); }
 
         .todo-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
         .todo-tab { background: transparent; border: none; color: var(--text-faint); padding: 9px 14px; cursor: pointer; font-family: inherit; font-size: 0.92em; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.1s; }
-        .todo-tab:hover { color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .todo-tab:hover { color: var(--text); } }
         .todo-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
         .todo-tab-count { color: var(--text-faint); font-size: 0.82em; margin-left: 4px; }
         .todo-tab.active .todo-tab-count { color: var(--accent); }
@@ -643,10 +643,10 @@
             color: transparent;
             transition: all 0.15s;
         }
-        .todo-check:hover { border-color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .todo-check:hover { border-color: var(--accent); } }
         .todo-item.done .todo-check { background: var(--success); border-color: var(--success); color: white; }
         .todo-text { flex: 1 1 auto; min-width: 0; color: var(--text); font-size: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; cursor: pointer; }
-        .todo-text:hover { color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .todo-text:hover { color: var(--accent); } }
         .todo-prio-badge { font-size: 0.7em; font-weight: 700; letter-spacing: 1px; padding: 3px 7px; border-radius: 4px; text-transform: uppercase; white-space: nowrap; }
         .todo-prio-badge.high { background: var(--danger); color: white; }
         .todo-prio-badge.med { background: rgba(181, 145, 151, 0.18); color: var(--accent); }
@@ -655,18 +655,18 @@
         .todo-due.today { color: var(--accent); font-weight: 600; }
         .todo-due.overdue { color: var(--danger); font-weight: 600; }
         .todo-edit-btn, .todo-del-btn { background: transparent; border: none; color: var(--text-faint); cursor: pointer; padding: 4px 6px; line-height: 1; font-size: 0.95em; border-radius: 4px; }
-        .todo-edit-btn:hover { color: var(--accent); background: var(--bg); }
-        .todo-del-btn:hover { color: var(--danger); background: var(--bg); }
+        @media (hover: hover) and (pointer: fine) { .todo-edit-btn:hover { color: var(--accent); background: var(--bg); } }
+        @media (hover: hover) and (pointer: fine) { .todo-del-btn:hover { color: var(--danger); background: var(--bg); } }
         .todo-empty { text-align: center; padding: 20px; color: var(--text-faint); font-style: italic; font-size: 0.95em; }
         .todo-more-link { display: block; text-align: center; padding: 8px; color: var(--text-faint); font-size: 0.88em; cursor: pointer; background: none; border: none; width: 100%; font-family: inherit; margin-top: 4px; }
-        .todo-more-link:hover { color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .todo-more-link:hover { color: var(--accent); } }
 
         /* ===== INBOX TYPED-ITEM EXTENSIONS ===== */
         /* Type picker row in the add form */
         .item-type-toggle { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
         .item-type-btn { background: var(--bg); color: var(--text-faint); border: none; border-right: 1px solid var(--border); padding: 7px 14px; cursor: pointer; font-family: inherit; font-size: 0.88em; font-weight: 600; transition: all 0.1s; }
         .item-type-btn:last-child { border-right: none; }
-        .item-type-btn:hover { background: var(--bg-input); color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .item-type-btn:hover { background: var(--bg-input); color: var(--text); } }
         .item-type-btn.active { background: var(--accent); color: white; }
         /* Pin-to-home toggle in note form */
         .item-pin-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 0.88em; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
@@ -693,7 +693,7 @@
             flex: 0 0 auto;
             transition: all 0.12s;
         }
-        .item-client-chip:hover { background: rgba(123, 162, 196, 0.25); border-color: rgba(123, 162, 196, 0.6); }
+        @media (hover: hover) and (pointer: fine) { .item-client-chip:hover { background: rgba(123, 162, 196, 0.25); border-color: rgba(123, 162, 196, 0.6); } }
 
         /* Inline FYI row on today's schedule when a client has tagged inbox items */
         .schedule-inbox-row {
@@ -730,8 +730,8 @@
 
         /* Reminder action buttons (got it / snooze) */
         .item-reminder-action { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 4px 9px; cursor: pointer; font-family: inherit; font-size: 0.78em; font-weight: 600; flex: 0 0 auto; transition: all 0.1s; }
-        .item-reminder-action:hover { background: var(--accent); color: white; border-color: var(--accent); }
-        .item-reminder-action.gotit:hover { background: var(--success, #6c9); border-color: var(--success, #6c9); }
+        @media (hover: hover) and (pointer: fine) { .item-reminder-action:hover { background: var(--accent); color: white; border-color: var(--accent); } }
+        @media (hover: hover) and (pointer: fine) { .item-reminder-action.gotit:hover { background: var(--success, #6c9); border-color: var(--success, #6c9); } }
 
         /* Pin button on notes */
         .todo-item.item-note.pinned { border-color: rgba(196, 167, 123, 0.4); }
@@ -755,7 +755,7 @@
             padding: 8px 12px; text-align: left; border-radius: 4px;
             font-family: inherit; font-size: 0.92em;
         }
-        .snooze-popup button:hover { background: var(--bg-input); color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .snooze-popup button:hover { background: var(--bg-input); color: var(--accent); } }
         .snooze-popup-date {
             display: flex; align-items: center; gap: 8px;
             padding: 8px 12px; color: var(--text-dim); font-size: 0.88em;
@@ -837,13 +837,13 @@
             color: var(--danger);
             border: 1px solid var(--danger);
         }
-        .btn-danger:hover { background: var(--danger); color: white; }
+        @media (hover: hover) and (pointer: fine) { .btn-danger:hover { background: var(--danger); color: white; } }
         .btn-ghost {
             background: var(--bg-input);
             color: var(--text-dim);
             border: 1px solid var(--border);
         }
-        .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .btn-ghost:hover { color: var(--text); border-color: var(--accent); } }
         .btn-sm { padding: 6px 14px; font-size: 0.95em; }
 
         /* === CALENDAR === */
@@ -869,7 +869,7 @@
             font-family: 'Cormorant', serif;
             font-size: 1em;
         }
-        .calendar-nav button:hover { border-color: var(--accent); color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .calendar-nav button:hover { border-color: var(--accent); color: var(--accent); } }
         .calendar-month {
             color: var(--accent);
             font-size: 1.5em;
@@ -880,7 +880,7 @@
         }
         .view-toggle { display: flex; gap: 0; background: var(--bg-input); border-radius: 6px; padding: 3px; border: 1px solid var(--border); }
         .view-btn { background: transparent; border: none; color: var(--text-faint); padding: 5px 14px; border-radius: 4px; font-family: 'Cormorant', serif; font-size: 0.95em; cursor: pointer; transition: all 0.15s; }
-        .view-btn:hover { color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .view-btn:hover { color: var(--text); } }
         .view-btn.active { background: var(--accent); color: white; }
 
         /* Month view (Google-style) */
@@ -915,9 +915,9 @@
             gap: 2px;
             position: relative;
         }
-        .calendar-day:hover { background: var(--bg-card-light); }
+        @media (hover: hover) and (pointer: fine) { .calendar-day:hover { background: var(--bg-card-light); } }
         .calendar-day.empty { background: var(--bg-card); cursor: default; }
-        .calendar-day.empty:hover { background: var(--bg-card); }
+        @media (hover: hover) and (pointer: fine) { .calendar-day.empty:hover { background: var(--bg-card); } }
         .calendar-day.other-month { opacity: 0.45; }
         .day-num {
             font-size: 0.85em;
@@ -960,7 +960,7 @@
             font-weight: 600;
             cursor: pointer;
         }
-        .event-more:hover { text-decoration: underline; }
+        @media (hover: hover) and (pointer: fine) { .event-more:hover { text-decoration: underline; } }
 
         /* Week view */
         .week-header-row, .week-allday-row, .week-body-row {
@@ -1046,7 +1046,7 @@
             color: white;
             background: var(--visit-30min);
         }
-        .week-event:hover { filter: brightness(1.1); z-index: 3; }
+        @media (hover: hover) and (pointer: fine) { .week-event:hover { filter: brightness(1.1); z-index: 3; } }
         .week-event.meet-greet { background: var(--visit-meetgreet); }
         .week-event.min30 { background: var(--visit-30min); }
         .week-event.min60 { background: var(--visit-60min); color: #2A2220; }
@@ -1112,9 +1112,9 @@
             cursor: pointer;
             transition: all 0.15s;
         }
-        .schedule-item:hover { background: var(--bg-card-light); }
+        @media (hover: hover) and (pointer: fine) { .schedule-item:hover { background: var(--bg-card-light); } }
         .schedule-go { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); font-size: 1.7em; line-height: 1; pointer-events: none; opacity: 0.65; }
-        .schedule-item:hover .schedule-go { color: var(--accent); opacity: 1; }
+        @media (hover: hover) and (pointer: fine) { .schedule-item:hover .schedule-go { color: var(--accent); opacity: 1; } }
         .schedule-item .schedule-inbox-row { padding-right: 26px; }
 
         /* ---- Visit Tracker ---- */
@@ -1126,9 +1126,9 @@
         .vtb-resume { font-weight: 700; white-space: nowrap; }
         .tracker-cta { width: 100%; margin-bottom: 14px; }
         .visit-tracker { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .visit-tracker-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+        .visit-tracker-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: calc(12px + env(safe-area-inset-top)) 18px 12px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
         .vt-bar-title { font-family: 'Cormorant Unicase', serif; font-size: 1.15em; font-weight: 600; color: var(--text); }
-        .visit-tracker-body { max-width: 620px; margin: 0 auto; padding: 18px; }
+        .visit-tracker-body { max-width: 560px; margin: 0 auto; padding: 26px 22px calc(80px + env(safe-area-inset-bottom)); }
         .vt-head { text-align: center; margin-bottom: 14px; }
         .vt-client { font-family: 'Cormorant Unicase', serif; font-size: 1.4em; color: var(--accent); }
         .vt-pets { color: var(--text-dim); font-size: 0.8em; }
@@ -1167,7 +1167,7 @@
             -webkit-tap-highlight-color: transparent;
         }
         .row-qbtn svg { display: block; }
-        .row-qbtn:hover { border-color: var(--accent); color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .row-qbtn:hover { border-color: var(--accent); color: var(--text); } }
         .row-qbtn.on { background: var(--success); border-color: var(--success); color: var(--bg-card); }
         .row-qbtn.paid.on { background: var(--accent); border-color: var(--accent); color: var(--bg-card); }
         .row-qbtn .qbtn-mark { width: 15px; text-align: center; }
@@ -1221,7 +1221,7 @@
             text-decoration: none;
             transition: all 0.15s;
         }
-        .map-link:hover { background: var(--accent); color: white; }
+        @media (hover: hover) and (pointer: fine) { .map-link:hover { background: var(--accent); color: white; } }
         .map-link:active { transform: scale(0.97); }
         @media (max-width: 700px) {
             .map-links { gap: 6px; }
@@ -1264,7 +1264,7 @@
         .modal.modal-sm { max-width: 440px; }
         .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .pay-method-btn { padding: 14px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-align: left; font-family: inherit; font-size: 1em; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: all 0.15s; }
-        .pay-method-btn:hover { border-color: var(--accent); background: var(--bg-card); }
+        @media (hover: hover) and (pointer: fine) { .pay-method-btn:hover { border-color: var(--accent); background: var(--bg-card); } }
         .pay-method-btn.selected { border-color: var(--accent); background: rgba(181, 145, 151, 0.12); box-shadow: 0 0 0 1px var(--accent) inset; }
         .pay-method-btn.selected .pmb-label { color: var(--accent); }
         .pay-method-btn.pay-method-btn-wide { grid-column: 1 / -1; }
@@ -1310,7 +1310,7 @@
             padding: 0 8px;
             line-height: 1;
         }
-        .modal-close:hover { color: var(--danger); }
+        @media (hover: hover) and (pointer: fine) { .modal-close:hover { color: var(--danger); } }
         .modal-body { padding: 24px 28px; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
         .modal-footer {
             padding: 20px 28px;
@@ -1413,7 +1413,7 @@
             padding: 4px 8px;
             line-height: 1;
         }
-        .visit-remove:hover { color: var(--danger); }
+        @media (hover: hover) and (pointer: fine) { .visit-remove:hover { color: var(--danger); } }
         .visit-add-buttons {
             display: flex;
             gap: 8px;
@@ -1539,7 +1539,7 @@
             line-height: 1;
         }
         .autocomplete-input.has-selection ~ .autocomplete-clear { display: block; }
-        .autocomplete-clear:hover { color: var(--danger); }
+        @media (hover: hover) and (pointer: fine) { .autocomplete-clear:hover { color: var(--danger); } }
         .autocomplete-dropdown {
             position: absolute;
             top: calc(100% + 4px);
@@ -1563,11 +1563,11 @@
             font-size: 1em;
         }
         .autocomplete-item:last-child { border-bottom: none; }
-        .autocomplete-item:hover,
+        @media (hover: hover) and (pointer: fine) { .autocomplete-item:hover,
         .autocomplete-item.highlighted {
             background: var(--accent);
             color: white;
-        }
+        } }
         .autocomplete-item.add-new {
             color: var(--accent-light);
             font-style: italic;
@@ -1577,11 +1577,11 @@
             font-style: normal;
             font-weight: 700;
         }
-        .autocomplete-item.add-new:hover {
+        @media (hover: hover) and (pointer: fine) { .autocomplete-item.add-new:hover {
             background: var(--accent);
             color: white;
-        }
-        .autocomplete-item.add-new:hover strong { color: white; }
+        } }
+        @media (hover: hover) and (pointer: fine) { .autocomplete-item.add-new:hover strong { color: white; } }
         .autocomplete-empty {
             padding: 12px 14px;
             color: var(--text-faint);
@@ -1658,7 +1658,7 @@
             font-size: 0.9em;
             cursor: pointer;
         }
-        .window-hint button:hover { background: var(--accent-dark); }
+        @media (hover: hover) and (pointer: fine) { .window-hint button:hover { background: var(--accent-dark); } }
 
         /* === PLAN DAY VIEW === */
         .plan-day-stop {
@@ -1695,7 +1695,7 @@
         .plan-day-window-miss { color: var(--warn); font-size: 0.85em; margin-top: 2px; }
         .plan-day-gap { text-align: center; color: var(--text-faint); font-size: 0.85em; padding: 4px 0; font-style: italic; }
         .plan-day-link { color: var(--accent); text-decoration: none; font-size: 0.9em; }
-        .plan-day-link:hover { color: var(--accent-light); text-decoration: underline; }
+        @media (hover: hover) and (pointer: fine) { .plan-day-link:hover { color: var(--accent-light); text-decoration: underline; } }
         .plan-day-map-links { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; align-items: flex-end; }
         .plan-day-summary { background: var(--bg-card-light); padding: 12px 16px; border-radius: 8px; margin-bottom: 14px; color: var(--text-dim); font-size: 0.95em; }
 
@@ -1854,26 +1854,26 @@
             opacity: 0.85;
             transition: opacity 0.15s;
         }
-        input[type="date"]::-webkit-calendar-picker-indicator:hover,
-        input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+        @media (hover: hover) and (pointer: fine) { input[type="date"]::-webkit-calendar-picker-indicator:hover,
+        input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; } }
 
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--bg-deep); }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { ::-webkit-scrollbar-thumb:hover { background: var(--accent); } }
 
         /* ============================================================
            BACKFILL WORKSPACE
            ============================================================ */
         .backfill-workspace { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; padding: 24px 20px; -webkit-overflow-scrolling: touch; }
-        .backfill-inner { max-width: 1400px; margin: 0 auto; }
+        .backfill-inner { max-width: 760px; margin: 0 auto; }
         .backfill-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
         .backfill-title { font-family: 'Cormorant Unicase', serif; font-size: 1.5em; color: var(--accent); margin: 0; }
         /* Mode tabs */
         .bf-mode-tabs { display: flex; gap: 4px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 3px; margin-bottom: 14px; }
         .bf-mode-tab { flex: 1; background: transparent; border: none; color: var(--text-faint); font-family: 'Cormorant', serif; font-size: 0.92em; font-weight: 500; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background 0.12s, color 0.12s; }
         .bf-mode-tab.active { background: var(--accent); color: white; font-weight: 600; }
-        .bf-mode-tab:not(.active):hover { color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .bf-mode-tab:not(.active):hover { color: var(--text); } }
         .backfill-grid { display: block; margin-bottom: 16px; }
         .bf-mode-panel { display: none; }
         .bf-mode-panel.active { display: block; }
@@ -1890,7 +1890,7 @@
         .bf-checkbox input { width: auto; }
         .bf-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .bf-dow-day { padding: 8px 0; border: 1px solid var(--border); border-radius: 6px; text-align: center; cursor: pointer; background: var(--bg-input); color: var(--text-dim); font-size: 0.9em; user-select: none; transition: all 0.1s; }
-        .bf-dow-day:hover { border-color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .bf-dow-day:hover { border-color: var(--accent); } }
         .bf-dow-day.active { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
         .bf-preview { padding: 10px 12px; background: var(--bg); border-radius: 8px; margin: 10px 0; font-size: 0.9em; color: var(--text-dim); border-left: 3px solid var(--accent); }
         .bf-preview.empty { color: var(--text-faint); border-left-color: var(--text-faint); font-style: italic; }
@@ -1898,7 +1898,7 @@
         .bf-session-row { display: grid; grid-template-columns: 90px 1fr 90px 70px 70px 36px; gap: 8px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 0.9em; }
         .bf-session-row:last-child { border-bottom: none; }
         .bf-session-row .bf-undo { background: transparent; border: 1px solid var(--border); color: var(--warn); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.95em; line-height: 1; }
-        .bf-session-row .bf-undo:hover { background: var(--warn); color: white; border-color: var(--warn); }
+        @media (hover: hover) and (pointer: fine) { .bf-session-row .bf-undo:hover { background: var(--warn); color: white; border-color: var(--warn); } }
         .bf-session-empty { padding: 20px; text-align: center; color: var(--text-faint); font-style: italic; }
         .bf-session-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
         .bf-session-header .card-title { margin: 0; }
@@ -1952,7 +1952,7 @@
             .bf-session-row .bf-paid { display: none; }
         }
         @media (max-width: 700px) {
-            .backfill-workspace { padding: max(16px, env(safe-area-inset-top, 16px)) 8px 80px 8px; }
+            .backfill-workspace { padding: max(16px, env(safe-area-inset-top, 16px)) 16px calc(80px + env(safe-area-inset-bottom)) 16px; }
             .backfill-title { font-size: 1.2em; }
             .backfill-header { margin-bottom: 12px; padding-bottom: 10px; }
             .bf-field-row { grid-template-columns: 1fr; }
@@ -2181,6 +2181,14 @@
             .calendar-day.mobile-compact.empty .event-count { display: none; }
         }
 
+        /* Top chrome (refresh / account pill / search) scrolls away with the page on
+           mobile instead of staying fixed and bleeding over the content beneath it. */
+        @media (max-width: 700px) {
+            #signedInIndicator, #globalRefreshBtn, #globalSearchBtn, #indicatorMenu {
+                position: absolute !important;
+            }
+        }
+
         /* === Mobile bottom tab bar (replaces drawer menu) === */
         .bottom-tabs { display: none; }
         @media (max-width: 700px) {
@@ -2254,7 +2262,7 @@
             font-weight: 500;
             transition: all 0.15s;
         }
-        .status-toggle:hover { border-color: var(--accent); color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .status-toggle:hover { border-color: var(--accent); color: var(--text); } }
         .status-toggle.checked {
             background: rgba(201, 166, 107, 0.15);
             border-color: var(--success);
@@ -6534,10 +6542,10 @@ function _renderMileagePrompt() {
         const kBtn = tripLinks(d.kPending, d.kVisits, 'Kasey');
         const cBtn = tripLinks(d.cPending, d.cVisits, 'Charlie');
         const kInput = d.kPending
-            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Kasey</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="kasey" placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
+            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Kasey</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="kasey" placeholder="0.0" value="${_mpbEdits[`${d.date}|kasey`] ?? ''}" oninput="_mpbEditInput('${d.date}','kasey',this.value)"><span class="mpb-driver-label">mi</span></div>`
             : '';
         const cInput = d.cPending
-            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Charlie</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="charlie" placeholder="0.0"><span class="mpb-driver-label">mi</span></div>`
+            ? `<div class="mpb-driver-row"><span class="mpb-driver-label">Charlie</span><input type="number" min="0" step="0.1" class="mpb-mi-input" data-mpb-date="${d.date}" data-mpb-driver="charlie" placeholder="0.0" value="${_mpbEdits[`${d.date}|charlie`] ?? ''}" oninput="_mpbEditInput('${d.date}','charlie',this.value)"><span class="mpb-driver-label">mi</span></div>`
             : '';
         const totalVisits = (d.kPending ? d.kVisits.length : 0) + (d.cPending ? d.cVisits.length : 0);
         return `
@@ -6572,16 +6580,28 @@ function _dismissMileagePrompt() {
     if (banner) banner.style.display = 'none';
 }
 
+// Unsaved catch-up mileage inputs, keyed `date|driver`. Backing them in memory means
+// a background re-render (e.g. geocoding finishing) can no longer wipe what you typed.
+let _mpbEdits = {};
+function _mpbEditInput(date, driver, value) {
+    const key = `${date}|${driver}`;
+    if (value === '' || value == null) delete _mpbEdits[key];
+    else _mpbEdits[key] = value;
+}
+
 function _saveMileagePromptInputs() {
-    const inputs = document.querySelectorAll('#mileagePromptBanner input[data-mpb-date]');
-    if (inputs.length === 0) { showToast('Nothing to save', 'error'); return; }
+    // Pull whatever is currently in the visible inputs into state first (covers a value
+    // typed but not yet committed via oninput), then save from state so a stray
+    // re-render between typing and tapping Save can't drop the entry.
+    document.querySelectorAll('#mileagePromptBanner input[data-mpb-date]').forEach(inp => {
+        _mpbEditInput(inp.dataset.mpbDate, inp.dataset.mpbDriver, inp.value);
+    });
     const toSave = [];
-    inputs.forEach(inp => {
-        const raw = inp.value;
-        if (raw === '' || raw == null) return;
-        const miles = parseFloat(raw);
+    Object.keys(_mpbEdits).forEach(key => {
+        const miles = parseFloat(_mpbEdits[key]);
         if (isNaN(miles) || miles <= 0) return;
-        toSave.push({ date: inp.dataset.mpbDate, driver: inp.dataset.mpbDriver, miles });
+        const [date, driver] = key.split('|');
+        toSave.push({ date, driver, miles });
     });
     if (toSave.length === 0) { showToast('Enter miles for at least one entry', 'error'); return; }
 
@@ -6600,6 +6620,7 @@ function _saveMileagePromptInputs() {
     const merged = Object.values(byKey);
     const ok = Store.saveMileage(merged);
     if (ok !== false) {
+        toSave.forEach(s => { delete _mpbEdits[`${s.date}|${s.driver}`]; });
         showToast(`Saved ${toSave.length} mileage entr${toSave.length === 1 ? 'y' : 'ies'}`);
         refreshAll();
     } else {

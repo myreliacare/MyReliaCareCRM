@@ -41,7 +41,7 @@
         .password-input { width: 100%; padding: 12px 16px; font-size: 1.1em; font-family: 'Cormorant', serif; background: var(--bg-input); color: var(--text); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; }
         .password-input:focus { outline: none; border-color: var(--accent); }
         .password-btn { width: 100%; padding: 12px 20px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 1.1em; font-family: 'Cormorant', serif; font-weight: 600; cursor: pointer; }
-        .password-btn:hover { background: var(--accent-dark); }
+        @media (hover: hover) and (pointer: fine) { .password-btn:hover { background: var(--accent-dark); } }
         .password-error { color: var(--danger); margin-top: 12px; display: none; }
 
         #mainContent { display: none; }
@@ -58,14 +58,14 @@
         .header-title .tagline { font-size: 0.95em; color: var(--text-dim); font-style: italic; margin-top: 2px; }
         .nav { display: flex; gap: 14px; flex-wrap: nowrap; align-items: center; }
         .nav a { padding: 8px 18px; color: var(--text-dim); text-decoration: none; border-radius: 8px; font-size: 1.05em; white-space: nowrap; }
-        .nav a:hover { background: var(--bg-input); color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .nav a:hover { background: var(--bg-input); color: var(--text); } }
         .nav a.active { background: var(--accent); color: white; }
         .logout-btn { background: transparent; color: var(--text-faint); border: 1px solid var(--border); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-family: 'Cormorant', serif; font-size: 0.9em; white-space: nowrap; }
-        .logout-btn:hover { color: var(--danger); border-color: var(--danger); }
+        @media (hover: hover) and (pointer: fine) { .logout-btn:hover { color: var(--danger); border-color: var(--danger); } }
 
         /* Stats */
         .stat-card.clickable { cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
-        .stat-card.clickable:hover { transform: translateY(-2px); border-color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .stat-card.clickable:hover { transform: translateY(-2px); border-color: var(--accent); } }
         .stat-card.warn { border-left-color: var(--warn); }
         .stat-card.danger { border-left-color: var(--danger); }
 
@@ -85,17 +85,17 @@
         /* Buttons */
         .btn { padding: 10px 20px; font-family: 'Cormorant', serif; font-size: 1.05em; font-weight: 600; border-radius: 8px; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
         .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-dark); }
+        @media (hover: hover) and (pointer: fine) { .btn-primary:hover { background: var(--accent-dark); } }
         .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { filter: brightness(1.1); }
+        @media (hover: hover) and (pointer: fine) { .btn-success:hover { filter: brightness(1.1); } }
         .btn-warn { background: var(--warn); color: var(--bg-deep); }
-        .btn-warn:hover { filter: brightness(1.1); }
+        @media (hover: hover) and (pointer: fine) { .btn-warn:hover { filter: brightness(1.1); } }
         .btn-secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-        .btn-secondary:hover { background: var(--accent); color: white; }
+        @media (hover: hover) and (pointer: fine) { .btn-secondary:hover { background: var(--accent); color: white; } }
         .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
-        .btn-danger:hover { background: var(--danger); color: white; }
+        @media (hover: hover) and (pointer: fine) { .btn-danger:hover { background: var(--danger); color: white; } }
         .btn-ghost { background: var(--bg-input); color: var(--text-dim); border: 1px solid var(--border); }
-        .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .btn-ghost:hover { color: var(--text); border-color: var(--accent); } }
         .btn-sm { padding: 6px 14px; font-size: 0.95em; }
 
         /* Action bar */
@@ -115,14 +115,14 @@
         /* Filter tabs */
         .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
         .filter-tab { padding: 8px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; color: var(--text-dim); font-family: 'Cormorant', serif; font-size: 1em; transition: all 0.15s; }
-        .filter-tab:hover { color: var(--text); }
+        @media (hover: hover) and (pointer: fine) { .filter-tab:hover { color: var(--text); } }
         .filter-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
         .filter-tab .count { font-size: 0.85em; opacity: 0.8; margin-left: 4px; }
 
         /* Invoice list */
         .invoice-list { display: flex; flex-direction: column; gap: 10px; }
         .invoice-row { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center; cursor: pointer; transition: all 0.15s; }
-        .invoice-row:hover { border-color: var(--accent); background: var(--bg-card-light); }
+        @media (hover: hover) and (pointer: fine) { .invoice-row:hover { border-color: var(--accent); background: var(--bg-card-light); } }
         @media (max-width: 700px) {
             .invoice-row {
                 grid-template-columns: 1fr auto;
@@ -183,7 +183,7 @@
         .modal.modal-sm { max-width: 440px; }
         .pay-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .pay-method-btn { padding: 14px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-align: left; font-family: inherit; font-size: 1em; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: all 0.15s; }
-        .pay-method-btn:hover { border-color: var(--accent); background: var(--bg-card); }
+        @media (hover: hover) and (pointer: fine) { .pay-method-btn:hover { border-color: var(--accent); background: var(--bg-card); } }
         .pay-method-btn.selected { border-color: var(--accent); background: rgba(181, 145, 151, 0.12); box-shadow: 0 0 0 1px var(--accent) inset; }
         .pay-method-btn.selected .pmb-label { color: var(--accent); }
         .pay-method-btn.pay-method-btn-wide { grid-column: 1 / -1; }
@@ -204,13 +204,13 @@
         .income-summary-cell.net .value { color: var(--success); }
         .income-summary-cell .sub { color: var(--text-faint); font-size: 0.8em; margin-top: 2px; }
         .income-summary-cell.clickable { cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
-        .income-summary-cell.clickable:hover { transform: translateY(-2px); border-color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .income-summary-cell.clickable:hover { transform: translateY(-2px); border-color: var(--accent); } }
 
         /* ---- Tax Prep ---- */
         .tax-prep { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .tax-prep-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+        .tax-prep-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: calc(12px + env(safe-area-inset-top)) 18px 12px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
         .tp-bar-title { font-family: 'Cormorant Unicase', serif; font-size: 1.15em; font-weight: 600; color: var(--text); }
-        .tax-prep-body { max-width: 760px; margin: 0 auto; padding: 18px; }
+        .tax-prep-body { max-width: 640px; margin: 0 auto; padding: 26px 22px calc(80px + env(safe-area-inset-bottom)); }
         .tp-head { margin-bottom: 18px; }
         .tp-title-row { display: flex; justify-content: space-between; align-items: baseline; }
         .tp-biz { font-family: 'Cormorant Unicase', serif; font-size: 1.4em; color: var(--accent); }
@@ -248,10 +248,10 @@
 
         /* ---- Income Report (full-screen drill-down) ---- */
         .income-report { position: fixed; inset: 0; background: var(--bg-deep); z-index: 9500; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .income-report-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+        .income-report-bar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: calc(12px + env(safe-area-inset-top)) 20px 12px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
         .ir-bar-title { font-family: 'Cormorant Unicase', serif; font-size: 1.15em; font-weight: 600; color: var(--text); }
         .ir-bar-actions { display: flex; gap: 8px; }
-        .income-report-body { max-width: 920px; margin: 0 auto; padding: 20px; }
+        .income-report-body { max-width: 780px; margin: 0 auto; padding: 26px 22px calc(80px + env(safe-area-inset-bottom)); }
         .ir-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
         .ir-biz { font-family: 'Cormorant Unicase', serif; font-size: 1.3em; font-weight: 600; color: var(--accent); }
         .ir-period { color: var(--text-faint); font-size: 0.9em; margin-top: 2px; }
@@ -270,7 +270,7 @@
         .ir-tag { background: var(--success); color: var(--bg-deep); border-radius: 4px; padding: 1px 5px; font-size: 0.72em; }
         .ir-empty { text-align: center; color: var(--text-faint); padding: 24px; }
         .ir-edit-btn { background: transparent; border: 1px solid var(--border); color: var(--accent); border-radius: 6px; padding: 3px 10px; font-family: inherit; font-size: 0.85em; cursor: pointer; }
-        .ir-edit-btn:hover { border-color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .ir-edit-btn:hover { border-color: var(--accent); } }
         .ir-net-line { color: var(--text-faint); font-size: 0.9em; margin-top: 4px; }
         .ir-net-line strong { color: var(--success); }
 
@@ -404,6 +404,15 @@
         .tax-projection-card .income-breakdown-title,
         .tax-projection-card #taxSettingsPanel,
         .tax-projection-card #taxProjectionBody { max-width: 720px; margin-left: auto; margin-right: auto; }
+        /* Set-aside summary: this month (hero) + year to date */
+        .tax-setaside-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+        .tsa-cell { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+        .tsa-cell.tsa-primary { border-color: var(--accent); background: rgba(181, 145, 151, 0.10); }
+        .tsa-label { color: var(--text-faint); font-size: 0.76em; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .tsa-value { color: var(--accent-light); font-size: 1.7em; font-weight: 700; font-family: 'Cormorant Unicase', serif; line-height: 1; }
+        .tsa-cell.tsa-primary .tsa-value { color: var(--accent); }
+        .tsa-sub { color: var(--text-faint); font-size: 0.8em; margin-top: 5px; line-height: 1.3; }
+        @media (max-width: 700px) { .tax-setaside-summary { grid-template-columns: 1fr; gap: 10px; } }
         /* Tax projection sections — each wrapped in a single outlined card.
          * No more stacked borders (section-label's bottom + table's top doubled up). */
         .tax-section {
@@ -487,7 +496,7 @@
         .tax-caveat strong { color: var(--text); font-style: normal; }
         .tax-caveat-toggle { margin-top: 10px; text-align: right; }
         .tax-caveat-btn { background: transparent; border: none; color: var(--text-faint); font-size: 0.78em; font-family: inherit; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-style: italic; }
-        .tax-caveat-btn:hover { color: var(--text-dim); background: var(--bg); }
+        @media (hover: hover) and (pointer: fine) { .tax-caveat-btn:hover { color: var(--text-dim); background: var(--bg); } }
         .tax-settings-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-top: 12px; margin-bottom: 4px; }
         .tax-settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .tax-settings-field { display: flex; flex-direction: column; gap: 4px; }
@@ -531,10 +540,10 @@
         .bfm-maps-btn { padding: 4px 10px !important; text-decoration: none; font-size: 0.78em !important; white-space: nowrap; display: inline-block; }
         .bfm-row-actions { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
         .bfm-row-clear { background: none; border: none; color: var(--text-faint); font-size: 0.78em; cursor: pointer; padding: 4px 0 0 0; font-family: inherit; }
-        .bfm-row-clear:hover { color: var(--danger); }
+        @media (hover: hover) and (pointer: fine) { .bfm-row-clear:hover { color: var(--danger); } }
         .backfill-day-row input.user-edited { border-color: var(--accent); }
         .backfill-day-bd-toggle { background: none; border: none; color: var(--text-faint); font-size: 0.78em; cursor: pointer; padding: 4px 0 0 0; font-family: inherit; }
-        .backfill-day-bd-toggle:hover { color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .backfill-day-bd-toggle:hover { color: var(--accent); } }
         .backfill-day-bd { grid-column: 1 / -1; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85em; color: var(--text-dim); margin-top: 6px; }
         .bfm-route-block { margin-bottom: 10px; }
         .bfm-route-block:last-child { margin-bottom: 0; }
@@ -590,7 +599,7 @@
         .modal-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
         .modal-header h2 { color: var(--accent); font-size: 1.5em; }
         .modal-close { background: transparent; border: none; color: var(--text-faint); font-size: 1.6em; cursor: pointer; padding: 0 8px; line-height: 1; }
-        .modal-close:hover { color: var(--danger); }
+        @media (hover: hover) and (pointer: fine) { .modal-close:hover { color: var(--danger); } }
         .modal-body { padding: 24px 28px; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
         .modal-footer { padding: 20px 28px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 
@@ -622,7 +631,7 @@
             font-size: 1.4em; line-height: 1; cursor: pointer; padding: 4px 8px;
             border-radius: 4px; font-family: system-ui, sans-serif;
         }
-        .inv-client-clear:hover { color: var(--accent); background: var(--bg-input); }
+        @media (hover: hover) and (pointer: fine) { .inv-client-clear:hover { color: var(--accent); background: var(--bg-input); } }
         .visit-picker-header {
             display: flex; align-items: center; justify-content: space-between;
             gap: 12px; flex-wrap: wrap; margin-bottom: 10px;
@@ -657,10 +666,10 @@
             cursor: pointer; transition: background 0.12s, border-color 0.12s;
             font-size: 0.93em;
         }
-        .visit-picker-row:hover {
+        @media (hover: hover) and (pointer: fine) { .visit-picker-row:hover {
             background: rgba(181, 145, 151, 0.08);
             border-color: rgba(181, 145, 151, 0.3);
-        }
+        } }
         .visit-picker-row.checked {
             background: rgba(181, 145, 151, 0.15);
             border-color: var(--accent);
@@ -708,7 +717,7 @@
             cursor: pointer; font-family: inherit; font-size: inherit;
             padding: 0; margin-left: 4px;
         }
-        .btn-link:hover { text-decoration: underline; }
+        @media (hover: hover) and (pointer: fine) { .btn-link:hover { text-decoration: underline; } }
         @media (max-width: 700px) {
             .visit-picker-row {
                 grid-template-columns: auto 1fr auto;
@@ -738,7 +747,7 @@
         }
         .line-item input, .line-item select { padding: 6px 10px; font-size: 0.95em; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: 'Cormorant', serif; width: 100%; min-width: 0; }
         .item-remove { background: transparent; color: var(--text-faint); border: none; cursor: pointer; font-size: 1.3em; padding: 4px 8px; line-height: 1; }
-        .item-remove:hover { color: var(--danger); }
+        @media (hover: hover) and (pointer: fine) { .item-remove:hover { color: var(--danger); } }
         .totals-row { display: flex; justify-content: flex-end; align-items: center; gap: 14px; padding: 14px 8px 4px; border-top: 1px solid var(--border); margin-top: 8px; }
         .totals-row .label { color: var(--text-faint); font-size: 1em; }
         .totals-row .amount { color: var(--accent); font-size: 1.6em; font-weight: 700; font-family: 'Cormorant Unicase', serif; }
@@ -798,13 +807,13 @@
             filter: invert(0.7) sepia(0.3) saturate(1.5) hue-rotate(310deg);
             cursor: pointer; opacity: 0.85; transition: opacity 0.15s;
         }
-        input[type="date"]::-webkit-calendar-picker-indicator:hover,
-        input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+        @media (hover: hover) and (pointer: fine) { input[type="date"]::-webkit-calendar-picker-indicator:hover,
+        input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; } }
 
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--bg-deep); }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+        @media (hover: hover) and (pointer: fine) { ::-webkit-scrollbar-thumb:hover { background: var(--accent); } }
     
         /* === MOBILE / HAMBURGER (appended at end so it wins the CSS cascade) === */
         html, body { -webkit-tap-highlight-color: transparent; }
@@ -820,7 +829,7 @@
             body.modal-open { position: fixed; left: 0; right: 0; width: 100%; }
         }
         .menu-toggle { display: none; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 1.4em; line-height: 1; cursor: pointer; font-family: monospace; }
-        .menu-toggle:hover { background: var(--bg-input); }
+        @media (hover: hover) and (pointer: fine) { .menu-toggle:hover { background: var(--bg-input); } }
         .menu-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 8998; }
         .menu-backdrop.show { display: block; }
         @media (min-width: 701px) { .menu-close { display: none; } }
@@ -856,6 +865,19 @@
             pre, code { white-space: pre-wrap; word-break: break-word; }
             /* Long words/URLs in client notes / addresses */
             .client-card, .schedule-item, .invoice-row, .modal-body { word-wrap: break-word; overflow-wrap: break-word; }
+        }
+
+        /* Mobile: four filters on one line + more compact invoice cards */
+        @media (max-width: 700px) {
+            .filter-tabs { gap: 5px; margin-bottom: 12px; flex-wrap: nowrap; }
+            .filter-tab { flex: 1 1 0; min-width: 0; padding: 7px 2px; font-size: 0.8em; text-align: center; white-space: nowrap; border-radius: 7px; }
+            .filter-tab .count { margin-left: 3px; }
+            .invoice-list { gap: 8px; }
+            .invoice-row { padding: 10px 13px; }
+            .invoice-client { font-size: 1.0em; }
+            .invoice-meta { font-size: 0.8em; margin-top: 1px; }
+            .invoice-amount { font-size: 1.05em; }
+            .status-badge { font-size: 0.68em; padding: 2px 8px; }
         }
     
         /* === Modal content NEVER scrolls horizontally === */
@@ -953,6 +975,14 @@
             .modal-body input[type="datetime-local"] {
                 min-height: 38px !important;
                 line-height: 1.2 !important;
+            }
+        }
+
+        /* Top chrome (refresh / account pill / search) scrolls away with the page on
+           mobile instead of staying fixed and bleeding over the content beneath it. */
+        @media (max-width: 700px) {
+            #signedInIndicator, #globalRefreshBtn, #globalSearchBtn, #indicatorMenu {
+                position: absolute !important;
             }
         }
 
@@ -4401,6 +4431,17 @@ function renderTaxProjection() {
     const setAside = Math.round((salesTaxOwed + seTax + federalTax + kyIncomeTax) * 100) / 100;
     const effectiveRate = gross > 0 ? (setAside / gross * 100) : 0;
 
+    // ─── This month's set-aside: blended effective rate applied to this month's collected income ──
+    const monthPrefix = todayYmd().slice(0, 7);  // 'YYYY-MM'
+    const inMonth = (d) => d && d.startsWith(monthPrefix);
+    let monthGross = 0;
+    Store.getInvoices().filter(i => i.status === 'paid' && inMonth(i.paidDate)).forEach(inv => { monthGross += parseFloat(inv.total) || 0; });
+    Store.getVisits().filter(v => v.paid && !v.invoiced && inMonth(v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
+    monthGross = Math.round(monthGross * 100) / 100;
+    const monthSetAside = Math.round(monthGross * (effectiveRate / 100) * 100) / 100;
+    const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthName = MONTH_NAMES[parseInt(monthPrefix.slice(5, 7), 10) - 1];
+
     const body = document.getElementById('taxProjectionBody');
     if (gross === 0 && otherSe === 0 && otherTaxable === 0) {
         body.innerHTML = `<div class="income-empty">No paid income for ${thisY} yet.</div>`;
@@ -4412,6 +4453,19 @@ function renderTaxProjection() {
     const filingLabel = filingLabels[settings.filingStatus];
 
     body.innerHTML = `
+        <div class="tax-setaside-summary">
+            <div class="tsa-cell tsa-primary">
+                <div class="tsa-label">Set aside from ${monthName}'s income</div>
+                <div class="tsa-value">${fmt(monthSetAside)}</div>
+                <div class="tsa-sub">${monthGross > 0 ? `${effectiveRate.toFixed(1)}% of ${fmt(monthGross)} collected this month` : 'Nothing collected this month yet'}</div>
+            </div>
+            <div class="tsa-cell">
+                <div class="tsa-label">Year to date (${thisY})</div>
+                <div class="tsa-value">${fmt(setAside)}</div>
+                <div class="tsa-sub">${effectiveRate.toFixed(1)}% of ${fmt(gross)} collected</div>
+            </div>
+        </div>
+
         <div class="tax-section">
             <div class="tax-section-label">Net Business Income (MyReliaCare)</div>
             <div class="tax-table">
