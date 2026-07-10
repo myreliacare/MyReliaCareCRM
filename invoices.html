@@ -2875,8 +2875,9 @@ function renderIncomeBreakdown() {
 
     // Collect paid invoices in range
     const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(i.paidDate));
-    // Collect direct-paid visits (not linked to any invoice) in range — avoid double-counting
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && inRange(v.paidDate));
+    // Collect direct-paid visits (not on any paid invoice) in range — avoid double-counting
+    const _paidInvVisits = _paidInvoiceVisitIds();
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !_paidInvVisits.has(v.id) && inRange(v.paidDate));
 
     // Aggregate by method
     const byMethod = {}; // method -> { gross, fee, net, count }
@@ -3023,22 +3024,61 @@ function _incomeInRange(dateStr, range) {
     return true;
 }
 const _INCOME_DUR = { '30min': '30 min visit', '60min': '1 hr visit', 'meet-greet': 'Meet & Greet' };
+// Visit IDs that sit on a PAID invoice. Those visits are already represented by the
+// invoice's total, so they must never ALSO be counted as a direct paid visit. This is
+// what stops a visit being double-counted when it was marked paid on its own and then
+// also landed on an invoice that was marked paid.
+function _paidInvoiceVisitIds() {
+    const set = new Set();
+    Store.getInvoices().forEach(inv => {
+        if (inv.status === 'paid' && Array.isArray(inv.items)) {
+            inv.items.forEach(it => { if (it.visitId) set.add(it.visitId); });
+        }
+    });
+    return set;
+}
+
+// One-time historical cleanup. Any visit sitting on a PAID invoice must carry the
+// invoiced flag so it is never treated as separate direct income and never offered
+// again in the invoice builder. Income totals already exclude these live (see the
+// guards in collectIncomeRows / renderIncomeBreakdown / renderTaxProjection), so this
+// only reconciles the stored records to match — it never changes a displayed total.
+// Runs cheaply on load and writes only when it actually finds something to fix.
+function reconcileInvoicedFlags() {
+    try {
+        const onPaidInvoice = _paidInvoiceVisitIds();
+        if (onPaidInvoice.size === 0) return 0;
+        const visits = Store.getVisits();
+        let fixed = 0;
+        visits.forEach(v => {
+            if (onPaidInvoice.has(v.id) && !v.invoiced) { v.invoiced = true; fixed++; }
+        });
+        if (fixed > 0) Store.saveVisits(visits);
+        return fixed;
+    } catch (e) { console.warn('[reconcileInvoicedFlags]', e); return 0; }
+}
+
 function collectIncomeRows(range) {
     range = range || _incomeRange;
     const rows = [];
+    const paidInvVisits = _paidInvoiceVisitIds();
     Store.getInvoices().forEach(inv => {
         if (inv.status !== 'paid' || !_incomeInRange(inv.paidDate, range)) return;
         const g = parseFloat(inv.total) || 0;
         const f = inv.paymentFee != null ? (parseFloat(inv.paymentFee) || 0) : (inv.paymentMethod ? calcPaymentFee(inv.paymentMethod, g) : 0);
         const n = inv.netAmount != null ? (parseFloat(inv.netAmount) || 0) : Math.round((g - f) * 100) / 100;
-        rows.push({ kind: 'invoice', invoiceId: inv.id, date: inv.paidDate || '', client: inv.clientName || '', desc: inv.invoiceNumber || 'Invoice', method: inv.paymentMethod || '', gross: g, fee: f, net: n, isTip: false });
+        // Service date = earliest visit/item date on the invoice (what the payment was for)
+        const itemDates = Array.isArray(inv.items) ? inv.items.map(it => it.date).filter(Boolean).sort() : [];
+        const svc = itemDates[0] || inv.issueDate || inv.paidDate || '';
+        rows.push({ kind: 'invoice', invoiceId: inv.id, date: inv.paidDate || '', svcDate: svc, client: inv.clientName || '', desc: inv.invoiceNumber || 'Invoice', method: inv.paymentMethod || '', gross: g, fee: f, net: n, isTip: false });
     });
     Store.getVisits().forEach(v => {
-        if (!(v.paid && !v.invoiced && _incomeInRange(v.paidDate, range))) return;
+        // Skip visits already on a paid invoice (counted there) so nothing is doubled up
+        if (!(v.paid && !v.invoiced && !paidInvVisits.has(v.id) && _incomeInRange(v.paidDate, range))) return;
         const g = parseFloat(v.price) || 0;
         const f = v.paymentFee != null ? (parseFloat(v.paymentFee) || 0) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
         const n = v.netAmount != null ? (parseFloat(v.netAmount) || 0) : Math.round((g - f) * 100) / 100;
-        rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', client: v.clientName || '', desc: _INCOME_DUR[v.visitType] || 'Visit', method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: false });
+        rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', svcDate: v.date || v.paidDate || '', client: v.clientName || '', desc: _INCOME_DUR[v.visitType] || 'Visit', method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: false });
     });
     Store.getClients().forEach(c => {
         if (!Array.isArray(c.tips)) return;
@@ -3047,10 +3087,12 @@ function collectIncomeRows(range) {
             const g = parseFloat(t.amount) || 0;
             const f = t.paymentFee != null ? (parseFloat(t.paymentFee) || 0) : (t.paymentMethod ? calcPaymentFee(t.paymentMethod, g) : 0);
             const n = t.netAmount != null ? (parseFloat(t.netAmount) || 0) : Math.round((g - f) * 100) / 100;
-            rows.push({ kind: 'tip', clientId: c.id, tipId: t.id, date: t.date || '', client: c.name || '', desc: 'Tip' + (t.note ? ' — ' + t.note : ''), method: t.paymentMethod || '', gross: g, fee: f, net: n, isTip: true });
+            rows.push({ kind: 'tip', clientId: c.id, tipId: t.id, date: t.date || '', svcDate: t.date || '', client: c.name || '', desc: 'Tip' + (t.note ? ' — ' + t.note : ''), method: t.paymentMethod || '', gross: g, fee: f, net: n, isTip: true });
         });
     });
-    rows.sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.client || '').localeCompare(b.client || ''));
+    // Sort by service date, then client, then description — puts repeats for the same
+    // client/day next to each other so an accidental duplicate is easy to eyeball.
+    rows.sort((a, b) => (a.svcDate || '').localeCompare(b.svcDate || '') || (a.client || '').localeCompare(b.client || '') || (a.desc || '').localeCompare(b.desc || ''));
     return rows;
 }
 
@@ -3109,7 +3151,7 @@ function _renderIncomeReport() {
         ? `<tr><td colspan="9" class="ir-empty">No payments in this period.</td></tr>`
         : rows.map((r, i) => `
             <tr>
-                <td>${r.date ? formatDate(r.date) : '—'}</td>
+                <td>${r.svcDate ? formatDate(r.svcDate) : (r.date ? formatDate(r.date) : '—')}</td>
                 <td>${escapeHtml(r.client || '—')}</td>
                 <td>${escapeHtml(r.desc || '')}${r.isTip ? ' <span class="ir-tag">tip</span>' : ''}</td>
                 <td>${escapeHtml(paymentMethodLabel(r.method))}</td>
@@ -3141,11 +3183,11 @@ function _renderIncomeReport() {
             </div>
         </div>
         ${summary}
-        <div class="ir-note no-print">Tap any row's Edit to correct an amount, fee, method, or date. An invoice's total is edited on the invoice itself.</div>
+        <div class="ir-note no-print">Date shown is the visit/service date so you can match each line to what was paid for. The period above is filtered by when payment was received. Tap any row's Edit to fix an amount, fee, method, or paid date; an invoice's total is edited on the invoice itself.</div>
         <div class="ir-table-wrap">
             <table class="ir-table">
                 <thead><tr>
-                    <th>Date</th><th>Client</th><th>Description</th><th>Method</th>
+                    <th>Visit date</th><th>Client</th><th>Description</th><th>Method</th>
                     <th class="ir-num">Gross</th><th class="ir-num">KY Tax</th><th class="ir-num">Fee</th><th class="ir-num">Net</th><th class="no-print"></th>
                 </tr></thead>
                 <tbody>${rowsHtml}${totalsRow}</tbody>
@@ -4355,8 +4397,9 @@ function renderTaxProjection() {
     if (taxYearNoteEl) taxYearNoteEl.textContent = '';
 
     // ─── Gross collected ──────────────────────────────────────
+    const _paidInvVisits = _paidInvoiceVisitIds();
     const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(i.paidDate));
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && inRange(v.paidDate));
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !_paidInvVisits.has(v.id) && inRange(v.paidDate));
     let gross = 0;
     let totalFees = 0;
     paidInvoices.forEach(inv => {
@@ -4436,7 +4479,7 @@ function renderTaxProjection() {
     const inMonth = (d) => d && d.startsWith(monthPrefix);
     let monthGross = 0;
     Store.getInvoices().filter(i => i.status === 'paid' && inMonth(i.paidDate)).forEach(inv => { monthGross += parseFloat(inv.total) || 0; });
-    Store.getVisits().filter(v => v.paid && !v.invoiced && inMonth(v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
+    Store.getVisits().filter(v => v.paid && !v.invoiced && !_paidInvVisits.has(v.id) && inMonth(v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
     monthGross = Math.round(monthGross * 100) / 100;
     const monthSetAside = Math.round(monthGross * (effectiveRate / 100) * 100) / 100;
     const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -4589,7 +4632,11 @@ function refreshAll() {
 
 function init() {
     renderLogo();
+    const _fixedInvoiced = reconcileInvoicedFlags();
     refreshAll();
+    if (_fixedInvoiced > 0) {
+        setTimeout(() => showToast(`Updated ${_fixedInvoiced} past visit${_fixedInvoiced === 1 ? '' : 's'} linked to paid invoices — no longer double-counted`), 500);
+    }
 
     // Handle ?openInvoice=invoiceId — opens that invoice's detail view (from global search)
     try {
