@@ -196,6 +196,8 @@
         .income-range-tabs { display: inline-flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
         .income-range-tab { background: transparent; border: none; padding: 6px 12px; color: var(--text-faint); font-family: inherit; font-size: 0.9em; cursor: pointer; border-radius: 6px; transition: all 0.15s; }
         .income-range-tab.active { background: var(--bg-card); color: var(--accent); }
+        .income-range-tab.irt-nav { padding: 6px 9px; font-size: 1.15em; line-height: 1; font-weight: 600; }
+        .income-range-tab.irt-nav-dim { opacity: 0.3; }
         .income-breakdown-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-top: 14px; }
         .income-summary-cell { background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border); }
         .income-summary-cell .label { color: var(--text-faint); font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
@@ -1091,7 +1093,9 @@
             <div class="card-title income-breakdown-title">
                 <span>Income Breakdown</span>
                 <div class="income-range-tabs" id="incomeRangeTabs">
-                    <button class="income-range-tab active" data-range="month" onclick="setIncomeRange('month')">This Month</button>
+                    <button class="income-range-tab irt-nav" onclick="stepIncomeMonth(-1)" aria-label="Previous month">&lsaquo;</button>
+                    <button class="income-range-tab active" data-range="month" id="incomeMonthTab" onclick="setIncomeRange('month')">This Month</button>
+                    <button class="income-range-tab irt-nav" onclick="stepIncomeMonth(1)" aria-label="Next month">&rsaquo;</button>
                     <button class="income-range-tab" data-range="year" onclick="setIncomeRange('year')">This Year</button>
                     <button class="income-range-tab" data-range="all" onclick="setIncomeRange('all')">All Time</button>
                 </div>
@@ -2854,11 +2858,46 @@ function viewInvoice(id) {
    REFRESH + INIT
    ============================================================ */
 let _incomeRange = 'month';
+let _incomeMonth = todayYmd().slice(0, 7); // specific month shown when _incomeRange === 'month'
+
+// Shift a 'YYYY-MM' string by n months
+function _shiftMonth(ym, delta) {
+    let [y, m] = ym.split('-').map(Number);
+    m += delta;
+    while (m < 1) { m += 12; y--; }
+    while (m > 12) { m -= 12; y++; }
+    return `${y}-${String(m).padStart(2, '0')}`;
+}
+// 'YYYY-MM' -> 'June 2026'
+function _monthLabel(ym) {
+    const [y, m] = ym.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+function _syncIncomeRangeUI() {
+    const box = document.getElementById('incomeRangeTabs');
+    if (!box) return;
+    box.querySelectorAll('.income-range-tab[data-range]').forEach(b => {
+        b.classList.toggle('active', b.dataset.range === _incomeRange);
+    });
+    const cur = todayYmd().slice(0, 7);
+    const monthTab = document.getElementById('incomeMonthTab');
+    if (monthTab) monthTab.textContent = (_incomeRange === 'month' && _incomeMonth !== cur) ? _monthLabel(_incomeMonth) : 'This Month';
+    // Arrows only make sense while browsing months
+    box.querySelectorAll('.irt-nav').forEach(b => b.classList.toggle('irt-nav-dim', _incomeRange !== 'month'));
+}
 function setIncomeRange(range) {
     _incomeRange = range;
-    document.querySelectorAll('#incomeRangeTabs .income-range-tab').forEach(b => {
-        b.classList.toggle('active', b.dataset.range === range);
-    });
+    if (range === 'month') _incomeMonth = todayYmd().slice(0, 7);
+    _syncIncomeRangeUI();
+    renderIncomeBreakdown();
+}
+function stepIncomeMonth(delta) {
+    const cur = todayYmd().slice(0, 7);
+    if (_incomeRange !== 'month') { _incomeRange = 'month'; _incomeMonth = cur; }
+    const next = _shiftMonth(_incomeMonth, delta);
+    if (next > cur) return; // never step into the future
+    _incomeMonth = next;
+    _syncIncomeRangeUI();
     renderIncomeBreakdown();
 }
 
@@ -2868,7 +2907,7 @@ function renderIncomeBreakdown() {
     const thisY = today.slice(0, 4);
     const inRange = (dateStr) => {
         if (!dateStr) return false;
-        if (_incomeRange === 'month') return dateStr.startsWith(thisYM);
+        if (_incomeRange === 'month') return dateStr.startsWith(_incomeMonth);
         if (_incomeRange === 'year') return dateStr.startsWith(thisY);
         return true; // all time
     };
@@ -3019,7 +3058,7 @@ function renderIncomeBreakdown() {
 function _incomeInRange(dateStr, range) {
     if (!dateStr) return false;
     const today = todayYmd();
-    if (range === 'month') return dateStr.startsWith(today.slice(0, 7));
+    if (range === 'month') return dateStr.startsWith(_incomeReportMonth || today.slice(0, 7));
     if (range === 'year')  return dateStr.startsWith(today.slice(0, 4));
     return true;
 }
@@ -3100,17 +3139,20 @@ function _rowSalesTax(r) { return r.isTip ? 0 : Math.round(r.gross * (TAX_CONSTA
 
 let _incomeReportRows = [];
 let _incomeReportRange = 'month';
+let _incomeReportMonth = todayYmd().slice(0, 7); // specific month when _incomeReportRange === 'month'
 let _editingIncomeRowIdx = null;
 let _incomeRowEditInvoiceId = null;
 
 function _incomeRangeLabel(range) {
-    if (range === 'month') return parseYmd(todayYmd()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    if (range === 'month') return _monthLabel(_incomeReportMonth || todayYmd().slice(0, 7));
     if (range === 'year') return todayYmd().slice(0, 4);
     return 'All time';
 }
 
 function openIncomeReport(range) {
     _incomeReportRange = range || _incomeRange || 'month';
+    // Open on the same month the breakdown card is currently showing
+    if (_incomeReportRange === 'month') _incomeReportMonth = _incomeMonth || todayYmd().slice(0, 7);
     const ov = document.getElementById('incomeReport');
     if (!ov) return;
     ov.style.display = 'block';
@@ -3122,7 +3164,19 @@ function closeIncomeReport() {
     if (ov) ov.style.display = 'none';
     document.body.classList.remove('modal-open');
 }
-function setIncomeReportRange(range) { _incomeReportRange = range; _renderIncomeReport(); }
+function setIncomeReportRange(range) {
+    _incomeReportRange = range;
+    if (range === 'month') _incomeReportMonth = todayYmd().slice(0, 7);
+    _renderIncomeReport();
+}
+function stepIncomeReportMonth(delta) {
+    const cur = todayYmd().slice(0, 7);
+    if (_incomeReportRange !== 'month') { _incomeReportRange = 'month'; _incomeReportMonth = cur; }
+    const next = _shiftMonth(_incomeReportMonth, delta);
+    if (next > cur) return; // never step into the future
+    _incomeReportMonth = next;
+    _renderIncomeReport();
+}
 
 function _renderIncomeReport() {
     const range = _incomeReportRange;
@@ -3136,6 +3190,11 @@ function _renderIncomeReport() {
     const taxable = Math.round((gross - tips) * 100) / 100;
 
     const rangeTab = (r, lbl) => `<button type="button" class="income-range-tab ${range === r ? 'active' : ''}" onclick="setIncomeReportRange('${r}')">${lbl}</button>`;
+    const cur = todayYmd().slice(0, 7);
+    const monthLbl = (range === 'month' && _incomeReportMonth !== cur) ? _monthLabel(_incomeReportMonth) : 'This Month';
+    const monthTab = `<button type="button" class="income-range-tab irt-nav ${range !== 'month' ? 'irt-nav-dim' : ''}" onclick="stepIncomeReportMonth(-1)" aria-label="Previous month">&lsaquo;</button>`
+        + `<button type="button" class="income-range-tab ${range === 'month' ? 'active' : ''}" onclick="setIncomeReportRange('month')">${monthLbl}</button>`
+        + `<button type="button" class="income-range-tab irt-nav ${range !== 'month' ? 'irt-nav-dim' : ''}" onclick="stepIncomeReportMonth(1)" aria-label="Next month">&rsaquo;</button>`;
 
     const summary = `
         <div class="ir-summary">
@@ -3179,7 +3238,7 @@ function _renderIncomeReport() {
                 <div class="ir-period">${_incomeRangeLabel(range)} · generated ${formatDateLong(todayYmd())}</div>
             </div>
             <div class="income-range-tabs ir-range no-print">
-                ${rangeTab('month', 'This Month')}${rangeTab('year', 'This Year')}${rangeTab('all', 'All')}
+                ${monthTab}${rangeTab('year', 'This Year')}${rangeTab('all', 'All')}
             </div>
         </div>
         ${summary}
