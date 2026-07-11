@@ -80,6 +80,41 @@
 
         /* Cards */
         .card { background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; }
+        /* ===== Redesigned Finances page ===== */
+        .fin-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+        .fin-title { font-family: 'Cormorant Unicase', serif; font-size: 1.7em; font-weight: 600; color: var(--accent); letter-spacing: 0.5px; }
+        .fin-snapshot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+        .fin-tile { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; }
+        .fin-tile-label { color: var(--text-faint); font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; }
+        .fin-tile-value { font-family: 'Cormorant Unicase', serif; font-size: 1.5em; font-weight: 700; margin-top: 3px; line-height: 1; font-variant-numeric: tabular-nums; }
+        .fin-tile-value.net { color: var(--info, #ABBFA0); }
+        .fin-tile-value.gold { color: var(--success); }
+        .fin-tile-value.terra { color: var(--warn); }
+        .fin-tile-sub { color: var(--text-faint); font-size: 0.78em; margin-top: 4px; }
+        .fin-accordion { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+        .fin-sec { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .fin-sec.open { border-color: var(--border-strong, #4A3F3B); }
+        .fin-sec-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 16px; background: transparent; border: none; cursor: pointer; text-align: left; color: var(--text); font-family: inherit; }
+        .fin-sec-title { font-family: 'Cormorant', serif; font-size: 1.25em; color: var(--text); display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+        .fin-sec-sum { font-size: 0.62em; color: var(--text-faint); font-family: inherit; letter-spacing: 0.3px; }
+        .fin-sec-chev { color: var(--text-faint); font-size: 1.5em; line-height: 1; transition: transform 0.18s ease; flex-shrink: 0; }
+        .fin-sec.open .fin-sec-chev { transform: rotate(90deg); }
+        .fin-sec-body { display: none; padding: 0 16px 16px; }
+        .fin-sec.open .fin-sec-body { display: block; }
+        .fin-detail-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+        .fin-mileage-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .fin-bottom-actions { margin-top: 4px; }
+        @media (min-width: 900px) {
+            .fin-header, .fin-snapshot, .fin-accordion, .fin-bottom-actions { max-width: 880px; margin-left: auto; margin-right: auto; }
+            .fin-header { margin-bottom: 16px; }
+        }
+        @media (max-width: 560px) {
+            .fin-tile-value { font-size: 1.25em; }
+            .fin-tile { padding: 11px 10px; }
+            .fin-snapshot { gap: 7px; }
+            .fin-tile-label { font-size: 0.66em; letter-spacing: 0.5px; }
+        }
+        #invoicesSection .empty-state { padding: 34px 16px; }
         .card-title { color: var(--accent); font-size: 1.4em; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
         /* Buttons */
@@ -326,6 +361,28 @@
         .imr-cell.imr-fee { color: var(--warn); font-size: 0.92em; }
         .imr-cell.imr-net { color: var(--success); font-weight: 500; }
         .income-method-row.imr-header .imr-cell { color: var(--text-faint); font-weight: 600; }
+        /* Reconcile against platform statements */
+        .recon-table { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border); }
+        .recon-row { display: grid; grid-template-columns: 1.3fr 1fr 1.1fr 1fr; gap: 10px; align-items: center; padding: 9px 12px; font-size: 0.93em; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--border); }
+        .recon-row:last-child { border-bottom: none; }
+        .recon-row.recon-header { color: var(--text-faint); font-size: 0.74em; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+        .recon-row.recon-total { border-top: 1px solid var(--border); border-bottom: none; font-weight: 600; margin-top: 2px; }
+        .recon-method { display: flex; align-items: center; gap: 9px; color: var(--text); font-weight: 500; }
+        .recon-crm { text-align: right; color: var(--text-dim); }
+        .recon-row.recon-header .recon-crm { color: var(--text-faint); }
+        .recon-input-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+        .recon-dollar { color: var(--text-faint); font-size: 0.9em; }
+        .recon-input { width: 82px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; color: var(--text); font-size: 0.95em; text-align: right; font-variant-numeric: tabular-nums; }
+        .recon-input:focus { outline: none; border-color: var(--accent); }
+        .recon-diff { text-align: right; font-weight: 600; }
+        .recon-diff.recon-ok { color: var(--success); }
+        .recon-diff.recon-off { color: var(--warn); }
+        .recon-diff.recon-empty { color: var(--text-faint); font-weight: 400; }
+        .recon-note { color: var(--text-faint); font-size: 0.8em; margin-top: 10px; line-height: 1.4; }
+        @media (max-width: 700px) {
+            .recon-row { grid-template-columns: 1.05fr 0.85fr 1fr 0.85fr; gap: 5px; font-size: 0.82em; padding: 8px 3px; }
+            .recon-input { width: 58px; padding: 5px 5px; font-size: 0.88em; }
+        }
         @media (max-width: 700px) {
             /* Make the by-method table horizontally scrollable so all 5 columns
              * (Method, Count, Gross, Fees, Net) stay visible at full size.
@@ -1076,57 +1133,86 @@
         </div>
         <div class="menu-backdrop" id="menuBackdrop" onclick="toggleMobileMenu()"></div>
 
-        <div class="action-bar">
+        <div class="fin-header">
+            <span class="fin-title">Finances</span>
+            <div class="income-range-tabs" id="incomeRangeTabs">
+                <button class="income-range-tab irt-nav" onclick="stepIncomeMonth(-1)" aria-label="Previous month">&lsaquo;</button>
+                <button class="income-range-tab active" data-range="month" id="incomeMonthTab" onclick="setIncomeRange('month')">This Month</button>
+                <button class="income-range-tab irt-nav" onclick="stepIncomeMonth(1)" aria-label="Next month">&rsaquo;</button>
+                <button class="income-range-tab" data-range="year" onclick="setIncomeRange('year')">This Year</button>
+                <button class="income-range-tab" data-range="all" onclick="setIncomeRange('all')">All Time</button>
+            </div>
+        </div>
+
+        <div class="fin-snapshot" id="finSnapshot"></div>
+
+        <div class="fin-accordion">
+            <section class="fin-sec" data-sec="invoices">
+                <button class="fin-sec-head" type="button" onclick="toggleFinSec('invoices')">
+                    <span class="fin-sec-title">Invoices <span class="fin-sec-sum" id="sumInvoices"></span></span>
+                    <span class="fin-sec-chev">&rsaquo;</span>
+                </button>
+                <div class="fin-sec-body">
+                    <div class="filter-tabs" id="filterTabs"></div>
+                    <div id="invoiceList" class="invoice-list"></div>
+                </div>
+            </section>
+
+            <section class="fin-sec" data-sec="income">
+                <button class="fin-sec-head" type="button" onclick="toggleFinSec('income')">
+                    <span class="fin-sec-title">Income <span class="fin-sec-sum" id="sumIncome"></span></span>
+                    <span class="fin-sec-chev">&rsaquo;</span>
+                </button>
+                <div class="fin-sec-body">
+                    <div class="income-breakdown-body" id="incomeBreakdownBody"></div>
+                    <div class="fin-detail-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="openIncomeReport()">Full report &#8599;</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="fin-sec" data-sec="taxes">
+                <button class="fin-sec-head" type="button" onclick="toggleFinSec('taxes')">
+                    <span class="fin-sec-title">Taxes <span class="fin-sec-sum" id="sumTaxes"></span></span>
+                    <span class="fin-sec-chev">&rsaquo;</span>
+                </button>
+                <div class="fin-sec-body">
+                    <div class="fin-detail-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="toggleTaxSettings()" id="taxSettingsToggle">Tax Settings ▾</button>
+                        <span class="mileage-rate-note" id="taxYearNote"></span>
+                    </div>
+                    <div id="taxSettingsPanel" class="tax-settings-panel" style="display: none;"></div>
+                    <div id="taxProjectionBody"></div>
+                </div>
+            </section>
+
+            <section class="fin-sec" data-sec="mileage">
+                <button class="fin-sec-head" type="button" onclick="toggleFinSec('mileage')">
+                    <span class="fin-sec-title">Mileage <span class="fin-sec-sum" id="sumMileage"></span></span>
+                    <span class="fin-sec-chev">&rsaquo;</span>
+                </button>
+                <div class="fin-sec-body">
+                    <div class="fin-mileage-controls">
+                        <div class="income-range-tabs" id="mileageRangeTabs">
+                            <button class="income-range-tab active" data-range="month" onclick="setMileageRange('month')">This Month</button>
+                            <button class="income-range-tab" data-range="year" onclick="setMileageRange('year')">This Year</button>
+                            <button class="income-range-tab" data-range="all" onclick="setMileageRange('all')">All Time</button>
+                        </div>
+                        <span class="mileage-rate-note" id="mileageRateNote"></span>
+                    </div>
+                    <div class="mileage-actions">
+                        <button class="btn btn-primary btn-sm" onclick="openLogMilesModal()">+ Log Miles</button>
+                        <button class="btn btn-ghost btn-sm" onclick="openBackfillMilesModal()">Backfill past days</button>
+                    </div>
+                    <div class="income-breakdown-body" id="mileageSummaryBody"></div>
+                    <div id="mileageEntriesList"></div>
+                </div>
+            </section>
+        </div>
+
+        <div class="action-bar fin-bottom-actions">
             <button class="btn btn-primary" onclick="openNewInvoiceModal()">+ New Invoice</button>
             <button class="btn btn-ghost" onclick="openTaxPrep()">Tax Prep</button>
-        </div>
-
-        <div class="card" id="invoicesSection">
-            <div class="card-title">
-                <span>Invoices</span>
-            </div>
-            <div class="filter-tabs" id="filterTabs"></div>
-            <div id="invoiceList" class="invoice-list"></div>
-        </div>
-
-        <div class="card income-breakdown-card">
-            <div class="card-title income-breakdown-title">
-                <span>Income Breakdown</span>
-                <div class="income-range-tabs" id="incomeRangeTabs">
-                    <button class="income-range-tab irt-nav" onclick="stepIncomeMonth(-1)" aria-label="Previous month">&lsaquo;</button>
-                    <button class="income-range-tab active" data-range="month" id="incomeMonthTab" onclick="setIncomeRange('month')">This Month</button>
-                    <button class="income-range-tab irt-nav" onclick="stepIncomeMonth(1)" aria-label="Next month">&rsaquo;</button>
-                    <button class="income-range-tab" data-range="year" onclick="setIncomeRange('year')">This Year</button>
-                    <button class="income-range-tab" data-range="all" onclick="setIncomeRange('all')">All Time</button>
-                </div>
-            </div>
-            <div class="income-breakdown-body" id="incomeBreakdownBody"></div>
-        </div>
-
-        <div class="card tax-projection-card">
-            <div class="card-title income-breakdown-title">
-                <span>Tax Projection <span class="mileage-rate-note" id="taxYearNote"></span></span>
-                <button class="btn btn-ghost btn-sm" onclick="toggleTaxSettings()" id="taxSettingsToggle">Tax Settings ▾</button>
-            </div>
-            <div id="taxSettingsPanel" class="tax-settings-panel" style="display: none;"></div>
-            <div id="taxProjectionBody"></div>
-        </div>
-
-        <div class="card mileage-card">
-            <div class="card-title income-breakdown-title">
-                <span>Mileage <span class="mileage-rate-note" id="mileageRateNote"></span></span>
-                <div class="income-range-tabs" id="mileageRangeTabs">
-                    <button class="income-range-tab active" data-range="month" onclick="setMileageRange('month')">This Month</button>
-                    <button class="income-range-tab" data-range="year" onclick="setMileageRange('year')">This Year</button>
-                    <button class="income-range-tab" data-range="all" onclick="setMileageRange('all')">All Time</button>
-                </div>
-            </div>
-            <div class="mileage-actions">
-                <button class="btn btn-primary btn-sm" onclick="openLogMilesModal()">+ Log Miles</button>
-                <button class="btn btn-ghost btn-sm" onclick="openBackfillMilesModal()">Backfill past days</button>
-            </div>
-            <div class="income-breakdown-body" id="mileageSummaryBody"></div>
-            <div id="mileageEntriesList"></div>
         </div>
     </div>
 </div>
@@ -2901,6 +2987,97 @@ function stepIncomeMonth(delta) {
     renderIncomeBreakdown();
 }
 
+// ── Reconcile CRM income against what each platform statement says ──
+const RECON_METHODS = ['rover', 'venmo', 'stripe', 'cashapp'];
+let _reconcileEdits = {}; // buffer of unsaved inputs, keyed `YYYY-MM|method`, survives re-render
+
+function _getReconcile(ym) {
+    const arr = Store.getSettings() || [];
+    const g = arr.find(s => s.id === 'global');
+    return (g && g.reconcile && g.reconcile[ym]) || {};
+}
+function _reconcileInput(ym, method, value) {
+    _reconcileEdits[`${ym}|${method}`] = value; // buffer so a background re-render can't wipe it
+    _updateReconcileTotals();
+}
+function _reconcileSave(ym, method, value) {
+    const arr = Store.getSettings() || [];
+    let g = arr.find(s => s.id === 'global');
+    if (!g) { g = { id: 'global' }; arr.push(g); }
+    if (!g.reconcile) g.reconcile = {};
+    if (!g.reconcile[ym]) g.reconcile[ym] = {};
+    const num = parseFloat(value);
+    if (value === '' || isNaN(num)) delete g.reconcile[ym][method];
+    else g.reconcile[ym][method] = Math.round(num * 100) / 100;
+    if (Object.keys(g.reconcile[ym]).length === 0) delete g.reconcile[ym];
+    Store.saveSettings(arr);
+    delete _reconcileEdits[`${ym}|${method}`];
+}
+function _reconcileSectionHTML(ym, byMethod, methodColor) {
+    const stored = _getReconcile(ym);
+    const rows = RECON_METHODS.map(k => {
+        const crm = (byMethod[k] && byMethod[k].gross) || 0;
+        const buf = _reconcileEdits[`${ym}|${k}`];
+        const rep = (buf !== undefined) ? buf : (stored[k] != null ? stored[k] : '');
+        return `
+            <div class="recon-row">
+                <div class="recon-method"><span class="imr-dot" style="background:${methodColor[k] || 'var(--accent)'};"></span>${paymentMethodLabel(k)}</div>
+                <div class="recon-crm" data-recon-crm="${k}">$${crm.toFixed(2)}</div>
+                <div class="recon-input-wrap"><span class="recon-dollar">$</span><input type="number" step="0.01" inputmode="decimal" class="recon-input" data-recon-method="${k}" value="${rep}" placeholder="0.00" oninput="_reconcileInput('${ym}','${k}',this.value)" onchange="_reconcileSave('${ym}','${k}',this.value)"></div>
+                <div class="recon-diff recon-empty" data-recon-diff="${k}">—</div>
+            </div>`;
+    }).join('');
+    return `
+        <div class="recon-table" style="grid-column: 1 / -1;">
+            <div class="imr-title">Compare to platform statements · ${_monthLabel(ym)}</div>
+            <div class="recon-row recon-header">
+                <div>Method</div><div class="recon-crm">In CRM</div><div class="recon-crm">They report</div><div class="recon-diff">Diff</div>
+            </div>
+            ${rows}
+            <div class="recon-row recon-total">
+                <div>Total</div><div class="recon-crm" id="reconCrmTotal">$0.00</div><div class="recon-crm" id="reconRepTotal">—</div><div class="recon-diff recon-empty" id="reconDiffTotal">—</div>
+            </div>
+            <div class="recon-note">Enter what each app says you earned this month. Green means it lines up with the CRM; amber flags a gap worth a look. Compared against gross, before processing fees.</div>
+        </div>`;
+}
+function _fmtDiff(d) {
+    const sign = d > 0 ? '+' : (d < 0 ? '\u2212' : '');
+    return sign + '$' + Math.abs(d).toFixed(2);
+}
+function _updateReconcileTotals() {
+    const table = document.querySelector('.recon-table');
+    if (!table) return;
+    let crmTotal = 0, repTotal = 0, anyRep = false;
+    table.querySelectorAll('.recon-input').forEach(inp => {
+        const k = inp.dataset.reconMethod;
+        const crmCell = table.querySelector(`[data-recon-crm="${k}"]`);
+        const crm = parseFloat((crmCell ? crmCell.textContent : '').replace(/[$,]/g, '')) || 0;
+        const diffCell = table.querySelector(`[data-recon-diff="${k}"]`);
+        crmTotal += crm;
+        const raw = inp.value;
+        const rep = parseFloat(raw);
+        if (raw !== '' && !isNaN(rep)) {
+            anyRep = true; repTotal += rep;
+            const d = Math.round((rep - crm) * 100) / 100;
+            diffCell.textContent = _fmtDiff(d);
+            diffCell.className = 'recon-diff ' + (Math.abs(d) <= 0.5 ? 'recon-ok' : 'recon-off');
+        } else {
+            diffCell.textContent = '\u2014';
+            diffCell.className = 'recon-diff recon-empty';
+        }
+    });
+    const ct = document.getElementById('reconCrmTotal'); if (ct) ct.textContent = '$' + crmTotal.toFixed(2);
+    const rt = document.getElementById('reconRepTotal'); if (rt) rt.textContent = anyRep ? '$' + repTotal.toFixed(2) : '\u2014';
+    const dt = document.getElementById('reconDiffTotal');
+    if (dt) {
+        if (anyRep) {
+            const d = Math.round((repTotal - crmTotal) * 100) / 100;
+            dt.textContent = _fmtDiff(d);
+            dt.className = 'recon-diff ' + (Math.abs(d) <= 0.5 ? 'recon-ok' : 'recon-off');
+        } else { dt.textContent = '\u2014'; dt.className = 'recon-diff recon-empty'; }
+    }
+}
+
 function renderIncomeBreakdown() {
     const today = todayYmd();
     const thisYM = today.slice(0, 7);
@@ -2912,11 +3089,11 @@ function renderIncomeBreakdown() {
         return true; // all time
     };
 
-    // Collect paid invoices in range
-    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(i.paidDate));
-    // Collect direct-paid visits (not on any paid invoice) in range — avoid double-counting
+    // Collect paid invoices whose SERVICE date (earliest visit on the invoice) falls in range
+    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(_invoiceServiceDate(i)));
+    // Collect direct-paid visits (not on any paid invoice) by VISIT date — avoid double-counting
     const _paidInvVisits = _paidInvoiceVisitIds();
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !_paidInvVisits.has(v.id) && inRange(v.paidDate));
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));
 
     // Aggregate by method
     const byMethod = {}; // method -> { gross, fee, net, count }
@@ -2963,6 +3140,8 @@ function renderIncomeBreakdown() {
     Object.values(byMethod).forEach(m => {
         totalGross += m.gross; totalFee += m.fee; totalNet += m.net; totalCount += m.count;
     });
+    _lastIncomeTotals = { gross: totalGross, net: totalNet, fee: totalFee, tips: tipsGross, count: totalCount };
+    _lastByMethod = byMethod;
 
     const body = document.getElementById('incomeBreakdownBody');
     if (totalCount === 0) {
@@ -3048,6 +3227,12 @@ function renderIncomeBreakdown() {
             ${methodRows}
         </div>
     `);
+
+    // Platform reconciliation — only meaningful for a single month
+    if (_incomeRange === 'month') {
+        body.insertAdjacentHTML('beforeend', _reconcileSectionHTML(_incomeMonth, byMethod, methodColor));
+        _updateReconcileTotals();
+    }
 }
 
 /* ============================================================
@@ -3077,6 +3262,15 @@ function _paidInvoiceVisitIds() {
     return set;
 }
 
+// The date a payment is attributed to for period reporting: the visit/service date,
+// NOT when it was marked paid. For an invoice that's the earliest visit on it. This
+// keeps a visit entered late (e.g. an April visit added in June) in the month the work
+// actually happened instead of the month it was recorded.
+function _invoiceServiceDate(inv) {
+    const dates = Array.isArray(inv.items) ? inv.items.map(it => it.date).filter(Boolean).sort() : [];
+    return dates[0] || inv.issueDate || inv.paidDate || '';
+}
+
 // One-time historical cleanup. Any visit sitting on a PAID invoice must carry the
 // invoiced flag so it is never treated as separate direct income and never offered
 // again in the invoice builder. Income totals already exclude these live (see the
@@ -3102,18 +3296,18 @@ function collectIncomeRows(range) {
     const rows = [];
     const paidInvVisits = _paidInvoiceVisitIds();
     Store.getInvoices().forEach(inv => {
-        if (inv.status !== 'paid' || !_incomeInRange(inv.paidDate, range)) return;
+        if (inv.status !== 'paid') return;
+        // Service date = earliest visit/item date on the invoice (what the payment was for)
+        const svc = _invoiceServiceDate(inv);
+        if (!_incomeInRange(svc, range)) return;
         const g = parseFloat(inv.total) || 0;
         const f = inv.paymentFee != null ? (parseFloat(inv.paymentFee) || 0) : (inv.paymentMethod ? calcPaymentFee(inv.paymentMethod, g) : 0);
         const n = inv.netAmount != null ? (parseFloat(inv.netAmount) || 0) : Math.round((g - f) * 100) / 100;
-        // Service date = earliest visit/item date on the invoice (what the payment was for)
-        const itemDates = Array.isArray(inv.items) ? inv.items.map(it => it.date).filter(Boolean).sort() : [];
-        const svc = itemDates[0] || inv.issueDate || inv.paidDate || '';
         rows.push({ kind: 'invoice', invoiceId: inv.id, date: inv.paidDate || '', svcDate: svc, client: inv.clientName || '', desc: inv.invoiceNumber || 'Invoice', method: inv.paymentMethod || '', gross: g, fee: f, net: n, isTip: false });
     });
     Store.getVisits().forEach(v => {
-        // Skip visits already on a paid invoice (counted there) so nothing is doubled up
-        if (!(v.paid && !v.invoiced && !paidInvVisits.has(v.id) && _incomeInRange(v.paidDate, range))) return;
+        // Attribute by VISIT date (not paid date); skip visits already on a paid invoice
+        if (!(v.paid && !v.invoiced && !paidInvVisits.has(v.id) && _incomeInRange(v.date || v.paidDate, range))) return;
         const g = parseFloat(v.price) || 0;
         const f = v.paymentFee != null ? (parseFloat(v.paymentFee) || 0) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
         const n = v.netAmount != null ? (parseFloat(v.netAmount) || 0) : Math.round((g - f) * 100) / 100;
@@ -3242,7 +3436,7 @@ function _renderIncomeReport() {
             </div>
         </div>
         ${summary}
-        <div class="ir-note no-print">Date shown is the visit/service date so you can match each line to what was paid for. The period above is filtered by when payment was received. Tap any row's Edit to fix an amount, fee, method, or paid date; an invoice's total is edited on the invoice itself.</div>
+        <div class="ir-note no-print">Each payment is filed under its visit date, so a visit entered late still lands in the month it actually happened (not when you marked it paid). Tap any row's Edit to fix an amount, fee, method, or paid date; an invoice's total is edited on the invoice itself.</div>
         <div class="ir-table-wrap">
             <table class="ir-table">
                 <thead><tr>
@@ -3590,6 +3784,7 @@ function renderMileage() {
     // Summary
     const totalMiles = records.reduce((s, r) => s + (parseFloat(r.miles) || 0), 0);
     const deduction = calcMileageDeduction(records);
+    _lastMileageSummary = { miles: totalMiles, deduction };
     const kaseyMiles = records.filter(r => r.driver === 'kasey').reduce((s, r) => s + (parseFloat(r.miles) || 0), 0);
     const charlieMiles = records.filter(r => r.driver === 'charlie').reduce((s, r) => s + (parseFloat(r.miles) || 0), 0);
 
@@ -4543,6 +4738,7 @@ function renderTaxProjection() {
     const monthSetAside = Math.round(monthGross * (effectiveRate / 100) * 100) / 100;
     const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const monthName = MONTH_NAMES[parseInt(monthPrefix.slice(5, 7), 10) - 1];
+    _lastTaxSummary = { monthSetAside, ytdSetAside: setAside, effectiveRate, monthName };
 
     const body = document.getElementById('taxProjectionBody');
     if (gross === 0 && otherSe === 0 && otherTaxable === 0) {
@@ -4680,6 +4876,70 @@ function renderTaxProjection() {
     `;
 }
 
+// ── Redesigned Finances chrome: snapshot tiles + collapsible section summaries ──
+let _lastIncomeTotals = { gross: 0, net: 0, fee: 0, tips: 0, count: 0 };
+let _lastByMethod = {};
+let _lastTaxSummary = { monthSetAside: 0, ytdSetAside: 0, effectiveRate: 0, monthName: '' };
+let _lastMileageSummary = { miles: 0, deduction: 0 };
+
+const FIN_SECTIONS = ['invoices', 'income', 'taxes', 'mileage'];
+function _finSecState() {
+    try { return JSON.parse(localStorage.getItem('myreliacare_fin_sections') || '{}'); } catch { return {}; }
+}
+function _applyFinSecState() {
+    const st = _finSecState();
+    FIN_SECTIONS.forEach(key => {
+        const sec = document.querySelector(`.fin-sec[data-sec="${key}"]`);
+        if (!sec) return;
+        const open = (key in st) ? !!st[key] : (key === 'income'); // income open by default
+        sec.classList.toggle('open', open);
+    });
+}
+function toggleFinSec(key) {
+    const sec = document.querySelector(`.fin-sec[data-sec="${key}"]`);
+    if (!sec) return;
+    const open = !sec.classList.contains('open');
+    sec.classList.toggle('open', open);
+    const st = _finSecState(); st[key] = open;
+    try { localStorage.setItem('myreliacare_fin_sections', JSON.stringify(st)); } catch (e) {}
+}
+function _fmtMoney(n) { return '$' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+function renderFinanceChrome() {
+    const periodLabel = _incomeRange === 'month' ? _monthLabel(_incomeMonth) : (_incomeRange === 'year' ? ('Year ' + todayYmd().slice(0, 4)) : 'All time');
+
+    const invs = Store.getInvoices();
+    const unpaid = invs.filter(i => i.status !== 'paid');
+    const outstanding = unpaid.reduce((s, i) => s + (parseFloat(i.total) || 0), 0);
+
+    const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    setText('sumInvoices', `${invs.length} total · ${unpaid.length} unpaid`);
+    setText('sumIncome', `Gross ${_fmtMoney(_lastIncomeTotals.gross)} · ${periodLabel}`);
+    setText('sumTaxes', `Set aside ${_fmtMoney(_lastTaxSummary.monthSetAside)} · ${_fmtMoney(_lastTaxSummary.ytdSetAside)} YTD`);
+    setText('sumMileage', `${_lastMileageSummary.miles.toFixed(1)} mi · ${_fmtMoney(_lastMileageSummary.deduction)} deduction`);
+
+    const snap = document.getElementById('finSnapshot');
+    if (snap) {
+        snap.innerHTML = `
+            <div class="fin-tile">
+                <div class="fin-tile-label">Net deposited</div>
+                <div class="fin-tile-value net">${_fmtMoney(_lastIncomeTotals.net)}</div>
+                <div class="fin-tile-sub">${periodLabel}</div>
+            </div>
+            <div class="fin-tile">
+                <div class="fin-tile-label">Set aside</div>
+                <div class="fin-tile-value gold">${_fmtMoney(_lastTaxSummary.monthSetAside)}</div>
+                <div class="fin-tile-sub">${_lastTaxSummary.monthName || 'this month'}</div>
+            </div>
+            <div class="fin-tile">
+                <div class="fin-tile-label">Outstanding</div>
+                <div class="fin-tile-value terra">${_fmtMoney(outstanding)}</div>
+                <div class="fin-tile-sub">${unpaid.length} unpaid invoice${unpaid.length === 1 ? '' : 's'}</div>
+            </div>`;
+    }
+    _applyFinSecState();
+}
+
 function refreshAll() {
     renderStats();
     renderFilterTabs();
@@ -4687,6 +4947,7 @@ function refreshAll() {
     renderIncomeBreakdown();
     renderMileage();
     renderTaxProjection();
+    renderFinanceChrome();
 }
 
 function init() {
