@@ -1111,6 +1111,19 @@
             .bottom-tabs .acct-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px 4px; color: var(--text-faint); background: none; border: none; font-family: 'Cormorant', serif; font-size: 0.78em; letter-spacing: 0.5px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
             .bottom-tabs .acct-tab .tab-icon { font-size: 1.5em; line-height: 1; }
         }
+    
+        /* Income audit modal */
+        .audit-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10050; display: none; align-items: flex-start; justify-content: center; padding: 40px 16px calc(40px + env(safe-area-inset-bottom)); overflow: auto; }
+        .audit-modal-inner { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; max-width: 640px; width: 100%; padding: 20px; color: var(--text); }
+        .audit-head { display: flex; justify-content: space-between; align-items: center; font-size: 1.35em; font-family: 'Cormorant', serif; color: var(--accent); margin-bottom: 8px; }
+        .audit-total { font-size: 1.1em; margin: 8px 0 14px; }
+        .audit-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin-bottom: 14px; }
+        .audit-table th { text-align: left; color: var(--text-faint); font-weight: normal; border-bottom: 1px solid var(--border); padding: 6px 8px; font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .audit-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        .audit-warn { background: rgba(196,130,92,0.12); border: 1px solid var(--warn); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; font-size: 0.9em; }
+        .audit-warn ul { margin: 8px 0; padding-left: 18px; max-height: 220px; overflow: auto; }
+        .audit-warn li { margin: 2px 0; }
+        .audit-muted { color: var(--text-faint); font-size: 0.85em; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -1187,11 +1200,13 @@
                 <div class="fin-sec-body">
                     <div class="income-breakdown-body" id="incomeBreakdownBody"></div>
                     <div class="fin-detail-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="runIncomeAudit()">Audit</button>
                         <button class="btn btn-ghost btn-sm" onclick="openIncomeReport()">Full report &#8599;</button>
                         <button class="btn btn-ghost btn-sm" onclick="importRoverEarnings()">Import Rover 2026</button>
                         <button class="btn btn-ghost btn-sm" onclick="importVenmoStatements()">Import Venmo</button>
                         <button class="btn btn-ghost btn-sm" onclick="importStripeStatements()">Import Stripe</button>
                         <button class="btn btn-ghost btn-sm" id="muteInvoicesBtn" onclick="toggleInvoiceIncome()">Mute invoices</button>
+                        <button class="btn btn-ghost btn-sm" id="muteCashAppBtn" onclick="toggleCashAppIncome()">Mute CashApp</button>
                     </div>
                 </div>
             </section>
@@ -1397,8 +1412,12 @@
         </div>
         <div class="modal-body modal-body-scrollable">
             <div class="form-group">
-                <label>Date paid</label>
+                <label>Date</label>
                 <input type="date" id="incomeRowEditDate">
+            </div>
+            <div class="form-group">
+                <label>Client / payer</label>
+                <input type="text" id="incomeRowEditClient" placeholder="Name">
             </div>
             <div class="form-group">
                 <label>Payment method</label>
@@ -1423,6 +1442,11 @@
                 </div>
             </div>
             <div class="ir-net-line">Net deposited: <strong id="incomeRowEditNet">$0.00</strong></div>
+            <div class="form-group" style="margin-top:10px;">
+                <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.95em;"><input type="checkbox" id="incomeRowEditTip" style="width:auto; margin:0;"> This is a tip (gratuity, not sales-taxed)</label>
+                <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.95em; margin-top:9px;"><input type="checkbox" id="incomeRowEditTaxable" style="width:auto; margin:0;"> Subject to KY sales tax</label>
+                <div id="incomeRowEditRoverNote" style="display:none; font-size:0.8em; color:var(--text-faint); margin-top:7px;">Rover income is always exempt - Rover handles KY sales tax.</div>
+            </div>
             <div id="incomeRowEditInvoiceLink" style="display:none;">
                 <button class="btn btn-ghost btn-sm" onclick="openIncomeRowInvoice()" style="width:100%; margin-top:8px;">Open invoice to change its total &rarr;</button>
             </div>
@@ -3175,14 +3199,18 @@ function renderIncomeBreakdown() {
     }
 
     const feePct = totalGross > 0 ? (totalFee / totalGross * 100) : 0;
-    // Sales tax base = gross EXCLUDING tips (tips aren't taxable)
-    const taxableGross = totalGross - tipsGross;
+    // Sales-tax base and tips use the same per-row rules the report does: tips, Rover, and
+    // anything flagged sales-tax-exempt are excluded from the KY sales-tax base.
+    const _stRows = collectIncomeRows(_incomeRange);
+    const _tipsG = Math.round(_stRows.reduce((a, r) => a + (r.isTip ? r.gross : 0), 0) * 100) / 100;
+    const _tipsN = _stRows.filter(r => r.isTip).length;
+    const taxableGross = Math.round(_stRows.reduce((a, r) => a + (_rowSalesTaxable(r) ? r.gross : 0), 0) * 100) / 100;
     const salesTaxOwed = Math.round((taxableGross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE))) * 100) / 100;
-    const tipsCell = tipsCount > 0
+    const tipsCell = _tipsN > 0
         ? `<div class="income-summary-cell clickable" onclick="openIncomeReport()">
             <div class="label">Tips</div>
-            <div class="value">$${tipsGross.toFixed(2)}</div>
-            <div class="sub">${tipsCount} tip${tipsCount === 1 ? '' : 's'} · not sales-taxed</div>
+            <div class="value">$${_tipsG.toFixed(2)}</div>
+            <div class="sub">${_tipsN} tip${_tipsN === 1 ? '' : 's'} · not sales-taxed</div>
         </div>`
         : '';
     body.innerHTML = `
@@ -3328,7 +3356,7 @@ function collectIncomeRows(range) {
         const g = parseFloat(inv.total) || 0;
         const f = inv.paymentFee != null ? (parseFloat(inv.paymentFee) || 0) : (inv.paymentMethod ? calcPaymentFee(inv.paymentMethod, g) : 0);
         const n = inv.netAmount != null ? (parseFloat(inv.netAmount) || 0) : Math.round((g - f) * 100) / 100;
-        rows.push({ kind: 'invoice', invoiceId: inv.id, date: inv.paidDate || '', svcDate: svc, client: inv.clientName || '', desc: inv.invoiceNumber || 'Invoice', method: inv.paymentMethod || '', gross: g, fee: f, net: n, isTip: false });
+        rows.push({ kind: 'invoice', invoiceId: inv.id, date: inv.paidDate || '', svcDate: svc, client: inv.clientName || '', desc: inv.invoiceNumber || 'Invoice', method: inv.paymentMethod || '', gross: g, fee: f, net: n, isTip: false, salesTaxExempt: !!inv.salesTaxExempt });
     });
     Store.getVisits().forEach(v => {
         // Attribute by VISIT date (not paid date); skip visits already on a paid invoice
@@ -3336,7 +3364,7 @@ function collectIncomeRows(range) {
         const g = parseFloat(v.price) || 0;
         const f = v.paymentFee != null ? (parseFloat(v.paymentFee) || 0) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
         const n = v.netAmount != null ? (parseFloat(v.netAmount) || 0) : Math.round((g - f) * 100) / 100;
-        rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', svcDate: v.date || v.paidDate || '', client: v.clientName || '', desc: _INCOME_DUR[v.visitType] || 'Visit', method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: false });
+        rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', svcDate: v.date || v.paidDate || '', client: v.clientName || '', desc: _INCOME_DUR[v.visitType] || 'Visit', method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: !!v.isTip, salesTaxExempt: !!v.salesTaxExempt });
     });
     Store.getClients().forEach(c => {
         if (!Array.isArray(c.tips)) return;
@@ -3354,7 +3382,8 @@ function collectIncomeRows(range) {
     return rows;
 }
 
-function _rowSalesTax(r) { return r.isTip ? 0 : Math.round(r.gross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE)) * 100) / 100; }
+function _rowSalesTaxable(r) { return !(r.isTip || r.method === 'rover' || r.salesTaxExempt); }
+function _rowSalesTax(r) { return _rowSalesTaxable(r) ? Math.round(r.gross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE)) * 100) / 100 : 0; }
 
 let _incomeReportRows = [];
 let _incomeReportRange = 'month';
@@ -3402,11 +3431,11 @@ function _renderIncomeReport() {
     const rows = collectIncomeRows(range);
     _incomeReportRows = rows;
 
-    let gross = 0, fee = 0, net = 0, tips = 0, tax = 0;
-    rows.forEach(r => { gross += r.gross; fee += r.fee; net += r.net; if (r.isTip) tips += r.gross; tax += _rowSalesTax(r); });
+    let gross = 0, fee = 0, net = 0, tips = 0, tax = 0, taxableG = 0;
+    rows.forEach(r => { gross += r.gross; fee += r.fee; net += r.net; if (r.isTip) tips += r.gross; tax += _rowSalesTax(r); if (_rowSalesTaxable(r)) taxableG += r.gross; });
     gross = Math.round(gross * 100) / 100; fee = Math.round(fee * 100) / 100; net = Math.round(net * 100) / 100;
     tips = Math.round(tips * 100) / 100; tax = Math.round(tax * 100) / 100;
-    const taxable = Math.round((gross - tips) * 100) / 100;
+    const taxable = Math.round(taxableG * 100) / 100;
 
     const rangeTab = (r, lbl) => `<button type="button" class="income-range-tab ${range === r ? 'active' : ''}" onclick="setIncomeReportRange('${r}')">${lbl}</button>`;
     const cur = todayYmd().slice(0, 7);
@@ -3485,6 +3514,11 @@ function openIncomeRowEditor(idx) {
     const grossInput = document.getElementById('incomeRowEditGross');
     grossInput.value = (r.gross || 0).toFixed(2);
     document.getElementById('incomeRowEditFee').value = (r.fee || 0).toFixed(2);
+    document.getElementById('incomeRowEditClient').value = r.client || '';
+    const tipCb = document.getElementById('incomeRowEditTip');
+    tipCb.checked = !!r.isTip; tipCb.disabled = (r.kind === 'tip');
+    document.getElementById('incomeRowEditTaxable').checked = _rowSalesTaxable(r);
+    document.getElementById('incomeRowEditRoverNote').style.display = (r.method === 'rover') ? 'block' : 'none';
     const isInv = r.kind === 'invoice';
     grossInput.disabled = isInv;
     document.getElementById('incomeRowEditGrossLabel').textContent = isInv ? 'Invoice total' : (r.kind === 'tip' ? 'Tip amount' : 'Amount');
@@ -3518,12 +3552,18 @@ function saveIncomeRowEdit() {
     const gross = Math.round((parseFloat(document.getElementById('incomeRowEditGross').value) || 0) * 100) / 100;
     const fee = Math.round((parseFloat(document.getElementById('incomeRowEditFee').value) || 0) * 100) / 100;
     const net = Math.round((gross - fee) * 100) / 100;
+    const clientName = document.getElementById('incomeRowEditClient').value.trim();
+    const isTip = document.getElementById('incomeRowEditTip').checked;
+    const salesTaxExempt = !document.getElementById('incomeRowEditTaxable').checked;
 
     if (r.kind === 'visit') {
         const visits = Store.getVisits();
         const v = visits.find(x => x.id === r.visitId);
         if (!v) { showToast('Visit not found', 'error'); return; }
-        v.price = gross; v.paymentMethod = method; v.paymentFee = fee; v.netAmount = net; v.paidDate = date;
+        v.price = gross; v.paymentMethod = method; v.paymentFee = fee; v.netAmount = net;
+        v.paidDate = date; v.date = date; // date drives where it lands in the report
+        if (clientName) v.clientName = clientName;
+        v.isTip = isTip; v.salesTaxExempt = salesTaxExempt;
         if (Store.saveVisits(visits) === false) { showToast('Save failed', 'error'); return; }
     } else if (r.kind === 'tip') {
         const clients = Store.getClients();
@@ -3539,6 +3579,8 @@ function saveIncomeRowEdit() {
         if (!inv) { showToast('Invoice not found', 'error'); return; }
         const g = parseFloat(inv.total) || 0;
         inv.paymentMethod = method; inv.paymentFee = fee; inv.netAmount = Math.round((g - fee) * 100) / 100; inv.paidDate = date;
+        if (clientName) inv.clientName = clientName;
+        inv.salesTaxExempt = salesTaxExempt;
         if (Store.saveInvoices(invoices) === false) { showToast('Save failed', 'error'); return; }
     }
     closeModal('incomeRowEditModal');
@@ -4677,23 +4719,27 @@ function renderTaxProjection() {
 
     // ─── Gross collected ──────────────────────────────────────
     const _paidInvVisits = _paidInvoiceVisitIds();
-    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && !i.excludeIncome && inRange(i.paidDate));
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inRange(v.paidDate));
+    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && !i.excludeIncome && inRange(_invoiceServiceDate(i)));
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));
     let gross = 0;
     let totalFees = 0;
+    let salesTaxableGross = 0;
     paidInvoices.forEach(inv => {
         const g = parseFloat(inv.total) || 0;
         gross += g;
         totalFees += inv.paymentFee != null ? parseFloat(inv.paymentFee) : (inv.paymentMethod ? calcPaymentFee(inv.paymentMethod, g) : 0);
+        if (!inv.salesTaxExempt) salesTaxableGross += g;
     });
     directVisits.forEach(v => {
         const g = parseFloat(v.price) || 0;
         gross += g;
         totalFees += v.paymentFee != null ? parseFloat(v.paymentFee) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
+        if (!v.isTip && v.paymentMethod !== 'rover' && !v.salesTaxExempt) salesTaxableGross += g;
     });
 
-    // ─── Sales tax extracted (tax-inclusive pricing: 6/106 of gross) ──
-    const salesTaxOwed = Math.round((gross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE))) * 100) / 100;
+    // ─── Sales tax extracted (tax-inclusive pricing: 6/106). Rover, tips, and anything
+    //     flagged exempt are NOT subject to KY sales tax. ──
+    const salesTaxOwed = Math.round((salesTaxableGross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE))) * 100) / 100;
     const netServiceRevenue = Math.round((gross - salesTaxOwed) * 100) / 100;
 
     // ─── Tips (taxable income, but NOT subject to sales tax) ────
@@ -4757,8 +4803,8 @@ function renderTaxProjection() {
     const monthPrefix = todayYmd().slice(0, 7);  // 'YYYY-MM'
     const inMonth = (d) => d && d.startsWith(monthPrefix);
     let monthGross = 0;
-    Store.getInvoices().filter(i => i.status === 'paid' && inMonth(i.paidDate)).forEach(inv => { monthGross += parseFloat(inv.total) || 0; });
-    Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inMonth(v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
+    Store.getInvoices().filter(i => i.status === 'paid' && !i.excludeIncome && inMonth(_invoiceServiceDate(i))).forEach(inv => { monthGross += parseFloat(inv.total) || 0; });
+    Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inMonth(v.date || v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
     monthGross = Math.round(monthGross * 100) / 100;
     const monthSetAside = Math.round(monthGross * (effectiveRate / 100) * 100) / 100;
     const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -4964,6 +5010,7 @@ function renderFinanceChrome() {
     }
     _applyFinSecState();
     if(typeof _syncMuteInvoicesBtn==="function") _syncMuteInvoicesBtn();
+    if(typeof _syncMuteCashAppBtn==="function") _syncMuteCashAppBtn();
 }
 
 function refreshAll() {
@@ -4978,6 +5025,7 @@ function refreshAll() {
 
 function init() {
     renderLogo();
+    if(typeof _repairImportedPaidDates==="function") _repairImportedPaidDates();
     const _fixedInvoiced = reconcileInvoicedFlags();
     refreshAll();
     if (_fixedInvoiced > 0) {
@@ -5061,7 +5109,7 @@ function importRoverEarnings(){
     var added=0, skipped=0, total=0;
     ROVER_IMPORT_DATA.forEach(function(r){
       if(existing[r.b]){ skipped++; return; }
-      visits.push({ id:"rover_"+r.b, roverBookingId:r.b, clientId:"", clientName:r.c, date:r.d, time:"",
+      visits.push({ id:"rover_"+r.b, roverBookingId:r.b, clientId:"", clientName:r.c, date:r.d, paidDate:r.d, time:"",
         visitType:"30min", price:r.e, paid:true, invoiced:false, status:"completed", assignedTo:"both",
         paymentMethod:"rover", paymentFee:0, netAmount:r.e,
         note:"Rover "+r.s+" - "+r.u+" visit"+(r.u===1?"":"s")+(r.p?" - "+r.p:"") });
@@ -5092,7 +5140,7 @@ function importVenmoStatements(){
     var added=0, skipped=0, total=0;
     VENMO_IMPORT_DATA.forEach(function(r){
       if(existing[r.t]){ skipped++; return; }
-      visits.push({ id:"venmo_"+r.t, venmoTxnId:r.t, clientId:"", clientName:r.c, date:r.d, time:"",
+      visits.push({ id:"venmo_"+r.t, venmoTxnId:r.t, clientId:"", clientName:r.c, date:r.d, paidDate:r.d, time:"",
         visitType:"30min", price:r.g, paid:true, invoiced:false, status:"completed", assignedTo:"both",
         paymentMethod:"venmo", paymentFee:r.f, netAmount:r.nt, venmoTip:r.tp,
         note:"Venmo: "+(r.n||"payment")+(r.tp>0?(" (tip $"+r.tp.toFixed(2)+")"):"") });
@@ -5141,7 +5189,7 @@ function importStripeStatements(){
     var added=0, skipped=0, total=0;
     STRIPE_IMPORT_DATA.forEach(function(r){
       if(existing[r.t]){ skipped++; return; }
-      visits.push({ id:"stripe_"+r.t, stripeChargeId:r.t, clientId:"", clientName:r.c, date:r.d, time:"",
+      visits.push({ id:"stripe_"+r.t, stripeChargeId:r.t, clientId:"", clientName:r.c, date:r.d, paidDate:r.d, time:"",
         visitType:"30min", price:r.g, paid:true, invoiced:false, status:"completed", assignedTo:"both",
         paymentMethod:"stripe", paymentFee:r.f, netAmount:r.nt,
         note:"Stripe: "+(r.n||r.em||"payment") });
@@ -5155,6 +5203,92 @@ function importStripeStatements(){
     if(muted>0) parts.push("muted "+muted+" old manual Stripe entr"+(muted===1?"y":"ies"));
     if(typeof showToast==="function") showToast(parts.join(" - ")); else alert(parts.join(" - "));
   }catch(e){ if(typeof showToast==="function") showToast("Stripe import failed: "+e.message,"error"); else alert(e.message); }
+}
+</script>
+<script>
+function _repairImportedPaidDates(){
+  try{ var visits=Store.getVisits()||[]; var fixed=0;
+    visits.forEach(function(v){ if((v.roverBookingId||v.venmoTxnId||v.stripeChargeId) && !v.paidDate && v.date){ v.paidDate=v.date; fixed++; } });
+    if(fixed>0) Store.saveVisits(visits);
+  }catch(e){}
+}
+</script>
+<script>
+function runIncomeAudit(){
+  try{
+    var range='year';
+    var paidInvVisits=_paidInvoiceVisitIds();
+    var visits=Store.getVisits()||[]; var invoices=Store.getInvoices()||[];
+    var byM={}; function M(m){return m||'cash';}
+    function bucket(m){ byM[m]=byM[m]||{impN:0,impSum:0,manN:0,manSum:0}; return byM[m]; }
+    var dupes=[], mutedSum=0,mutedN=0, unpaidSum=0,unpaidN=0, countedTotal=0;
+    visits.forEach(function(v){
+      var d=v.date||v.paidDate; if(!_incomeInRange(d,range)) return;
+      var imported=!!(v.roverBookingId||v.venmoTxnId||v.stripeChargeId);
+      var muted=v.roverSuperseded||v.excludeIncome;
+      var price=parseFloat(v.price)||0;
+      if(muted){ mutedSum+=price; mutedN++; return; }
+      if(!v.paid){ unpaidSum+=price; unpaidN++; return; }
+      if(v.invoiced||paidInvVisits.has(v.id)) return;
+      var m=M(v.paymentMethod); var b=bucket(m); countedTotal+=price;
+      if(imported){ b.impN++; b.impSum+=price; }
+      else { b.manN++; b.manSum+=price; if(m==='rover'||m==='venmo'||m==='stripe'){ dupes.push({d:d,c:v.clientName||'',m:m,p:price}); } }
+    });
+    var invCN=0,invCS=0,invMN=0,invMS=0;
+    invoices.forEach(function(i){ if(i.status!=='paid') return; var d=_invoiceServiceDate(i); if(!_incomeInRange(d,range)) return; var t=parseFloat(i.total)||0; if(i.excludeIncome){invMN++;invMS+=t;} else {invCN++;invCS+=t; countedTotal+=t;} });
+    var rows='';
+    Object.keys(byM).sort().forEach(function(m){ var b=byM[m]; var flag=(b.manN>0&&(m==='rover'||m==='venmo'||m==='stripe'));
+      rows+='<tr><td>'+paymentMethodLabel(m)+'</td><td style="text-align:right">'+(b.impN||'-')+'</td><td style="text-align:right">$'+b.impSum.toFixed(2)+'</td><td style="text-align:right">'+(b.manN||'-')+'</td><td style="text-align:right;'+(flag?'color:var(--warn);font-weight:600':'')+'">$'+b.manSum.toFixed(2)+'</td></tr>';
+    });
+    if(invCN) rows+='<tr><td>Invoices (paid)</td><td style="text-align:right">-</td><td style="text-align:right">-</td><td style="text-align:right">'+invCN+'</td><td style="text-align:right">$'+invCS.toFixed(2)+'</td></tr>';
+    var dupeHtml='';
+    if(dupes.length){ var ds=dupes.reduce(function(a,x){return a+x.p;},0);
+      dupeHtml='<div class="audit-warn"><strong>Possible duplicates: '+dupes.length+' manual entr'+(dupes.length===1?'y':'ies')+' ($'+ds.toFixed(2)+')</strong><br>These are Rover/Venmo/Stripe visits you entered by hand that are still counting - the statement import should already cover this money, so they likely double-count.<ul>'+dupes.slice(0,40).map(function(x){return '<li>'+x.d+' &middot; '+escapeHtml(x.c)+' &middot; '+paymentMethodLabel(x.m)+' &middot; $'+x.p.toFixed(2)+'</li>';}).join('')+'</ul>'+(dupes.length>40?('<div>...and '+(dupes.length-40)+' more</div>'):'')+'<button class="btn btn-primary btn-sm" onclick="muteManualStatementDupes()">Mute these '+dupes.length+' now</button></div>'; }
+    if(invCN) dupeHtml+='<div class="audit-warn"><strong>'+invCN+' paid invoice(s) still counting ($'+invCS.toFixed(2)+')</strong><br>If any were paid through Venmo/Stripe/Rover/CashApp, that money is already in the statements - tap "Mute invoices" on the Finances page to stop counting them twice.</div>';
+    var html='<div class="audit-modal-inner">'
+      +'<div class="audit-head"><span>Income audit &middot; '+(new Date().getFullYear())+'</span><button onclick="closeAudit()" class="btn btn-ghost btn-sm">Close</button></div>'
+      +'<p class="audit-total">Counted as income this year: <strong>$'+countedTotal.toFixed(2)+'</strong></p>'
+      +'<table class="audit-table"><thead><tr><th>Method</th><th style="text-align:right">Import #</th><th style="text-align:right">Import $</th><th style="text-align:right">Manual #</th><th style="text-align:right">Manual $</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      +dupeHtml
+      +'<div class="audit-muted">Not counted (correctly): '+mutedN+' muted entr'+(mutedN===1?'y':'ies')+' ($'+mutedSum.toFixed(2)+') &middot; '+invMN+' muted invoice(s) ($'+invMS.toFixed(2)+') &middot; '+unpaidN+' unpaid ($'+unpaidSum.toFixed(2)+')</div>'
+      +'</div>';
+    var ov=document.getElementById('auditOverlay');
+    if(!ov){ ov=document.createElement('div'); ov.id='auditOverlay'; ov.className='audit-overlay'; ov.addEventListener('click',function(e){ if(e.target===ov) closeAudit(); }); document.body.appendChild(ov); }
+    ov.innerHTML=html; ov.style.display='flex';
+  }catch(e){ alert('Audit failed: '+e.message); }
+}
+function closeAudit(){ var o=document.getElementById('auditOverlay'); if(o) o.style.display='none'; }
+function muteManualStatementDupes(){
+  try{ var visits=Store.getVisits()||[]; var n=0;
+    visits.forEach(function(v){ if((v.paymentMethod==='rover'||v.paymentMethod==='venmo'||v.paymentMethod==='stripe') && !v.roverBookingId && !v.venmoTxnId && !v.stripeChargeId && !v.excludeIncome && !v.roverSuperseded){ v.excludeIncome=true; n++; } });
+    if(n>0) Store.saveVisits(visits);
+    if(typeof refreshAll==='function') refreshAll();
+    closeAudit();
+    if(typeof showToast==='function') showToast('Muted '+n+' manual duplicate'+(n===1?'':'s')); 
+  }catch(e){ alert('Failed: '+e.message); }
+}
+</script>
+<script>
+function toggleCashAppIncome(){
+  try{
+    var visits=Store.getVisits()||[];
+    var ca=visits.filter(function(v){ return v.paymentMethod==='cashapp' && !v.cashappTxnId; });
+    if(ca.length===0){ if(typeof showToast==='function') showToast('No CashApp visits found'); return; }
+    var anyCounting=ca.some(function(v){ return !v.excludeIncome; });
+    var n=0,total=0;
+    ca.forEach(function(v){
+      if(anyCounting){ if(!v.excludeIncome){ v.excludeIncome=true; n++; if(v.paid) total+=parseFloat(v.price)||0; } }
+      else { if(v.excludeIncome){ delete v.excludeIncome; n++; if(v.paid) total+=parseFloat(v.price)||0; } }
+    });
+    Store.saveVisits(visits); if(typeof refreshAll==='function') refreshAll();
+    var msg = anyCounting ? ('Muted '+n+' CashApp visit'+(n===1?'':'s')+' ($'+total.toFixed(2)+' removed from income)') : ('Restored '+n+' CashApp visit'+(n===1?'':'s')+' to income');
+    if(typeof showToast==='function') showToast(msg); else alert(msg);
+  }catch(e){ if(typeof showToast==='function') showToast('Failed: '+e.message); }
+}
+function _syncMuteCashAppBtn(){
+  var b=document.getElementById('muteCashAppBtn'); if(!b) return;
+  var ca=(Store.getVisits()||[]).filter(function(v){return v.paymentMethod==='cashapp'&&!v.cashappTxnId;});
+  b.textContent=(ca.length && ca.every(function(v){return v.excludeIncome;}))?'Unmute CashApp':'Mute CashApp';
 }
 </script>
 </body>
