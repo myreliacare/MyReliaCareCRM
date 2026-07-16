@@ -1207,6 +1207,7 @@
                         <button class="btn btn-ghost btn-sm" onclick="importStripeStatements()">Import Stripe</button>
                         <button class="btn btn-ghost btn-sm" id="muteInvoicesBtn" onclick="toggleInvoiceIncome()">Mute invoices</button>
                         <button class="btn btn-ghost btn-sm" id="muteCashAppBtn" onclick="toggleCashAppIncome()">Mute CashApp</button>
+                        <button class="btn btn-ghost btn-sm" onclick="muteAllManualIncome()" style="border-color:var(--warn); color:var(--warn);">Mute all manual</button>
                     </div>
                 </div>
             </section>
@@ -1445,6 +1446,10 @@
             <div class="form-group" style="margin-top:10px;">
                 <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.95em;"><input type="checkbox" id="incomeRowEditTip" style="width:auto; margin:0;"> This is a tip (gratuity, not sales-taxed)</label>
                 <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.95em; margin-top:9px;"><input type="checkbox" id="incomeRowEditTaxable" style="width:auto; margin:0;"> Subject to KY sales tax</label>
+                <div class="form-group" style="margin-top:9px;">
+                    <label style="font-size:0.9em;">Tip portion of this amount</label>
+                    <input type="number" id="incomeRowEditTipAmount" min="0" step="0.01" placeholder="0.00">
+                </div>
                 <div id="incomeRowEditRoverNote" style="display:none; font-size:0.8em; color:var(--text-faint); margin-top:7px;">Rover income is always exempt - Rover handles KY sales tax.</div>
             </div>
             <div id="incomeRowEditInvoiceLink" style="display:none;">
@@ -1454,6 +1459,27 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('incomeRowEditModal')">Cancel</button>
             <button class="btn btn-primary" onclick="saveIncomeRowEdit()">Save</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="tipSplitModal" style="z-index: 9650;">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h2>Split off a tip</h2>
+            <button class="modal-close" onclick="closeModal('tipSplitModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="tipSplitInfo" style="color: var(--text-dim); margin-bottom: 12px;"></div>
+            <div class="form-group">
+                <label>How much of this payment was a tip?</label>
+                <input type="number" id="tipSplitAmount" min="0" step="0.01" placeholder="0.00" oninput="_updateTipSplitBreakdown()">
+            </div>
+            <div id="tipSplitBreakdown" style="font-size: 0.92em; color: var(--text-faint); margin-top: 8px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('tipSplitModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveTipSplit()">Save</button>
         </div>
     </div>
 </div>
@@ -3202,9 +3228,9 @@ function renderIncomeBreakdown() {
     // Sales-tax base and tips use the same per-row rules the report does: tips, Rover, and
     // anything flagged sales-tax-exempt are excluded from the KY sales-tax base.
     const _stRows = collectIncomeRows(_incomeRange);
-    const _tipsG = Math.round(_stRows.reduce((a, r) => a + (r.isTip ? r.gross : 0), 0) * 100) / 100;
-    const _tipsN = _stRows.filter(r => r.isTip).length;
-    const taxableGross = Math.round(_stRows.reduce((a, r) => a + (_rowSalesTaxable(r) ? r.gross : 0), 0) * 100) / 100;
+    const _tipsG = Math.round(_stRows.reduce((a, r) => a + _rowTip(r), 0) * 100) / 100;
+    const _tipsN = _stRows.filter(r => r.isTip || (parseFloat(r.tipAmount) || 0) > 0).length;
+    const taxableGross = Math.round(_stRows.reduce((a, r) => a + _rowSalesTaxableAmount(r), 0) * 100) / 100;
     const salesTaxOwed = Math.round((taxableGross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE))) * 100) / 100;
     const tipsCell = _tipsN > 0
         ? `<div class="income-summary-cell clickable" onclick="openIncomeReport()">
@@ -3280,12 +3306,6 @@ function renderIncomeBreakdown() {
             ${methodRows}
         </div>
     `);
-
-    // Platform reconciliation — only meaningful for a single month
-    if (_incomeRange === 'month') {
-        body.insertAdjacentHTML('beforeend', _reconcileSectionHTML(_incomeMonth, byMethod, methodColor));
-        _updateReconcileTotals();
-    }
 }
 
 /* ============================================================
@@ -3364,7 +3384,7 @@ function collectIncomeRows(range) {
         const g = parseFloat(v.price) || 0;
         const f = v.paymentFee != null ? (parseFloat(v.paymentFee) || 0) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
         const n = v.netAmount != null ? (parseFloat(v.netAmount) || 0) : Math.round((g - f) * 100) / 100;
-        rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', svcDate: v.date || v.paidDate || '', client: v.clientName || '', desc: _INCOME_DUR[v.visitType] || 'Visit', method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: !!v.isTip, salesTaxExempt: !!v.salesTaxExempt });
+        rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', svcDate: v.date || v.paidDate || '', client: v.clientName || '', desc: _INCOME_DUR[v.visitType] || 'Visit', method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: !!v.isTip, salesTaxExempt: !!v.salesTaxExempt, tipAmount: parseFloat(v.tipAmount) || 0 });
     });
     Store.getClients().forEach(c => {
         if (!Array.isArray(c.tips)) return;
@@ -3382,8 +3402,10 @@ function collectIncomeRows(range) {
     return rows;
 }
 
+function _rowTip(r) { return r.isTip ? r.gross : (parseFloat(r.tipAmount) || 0); }
 function _rowSalesTaxable(r) { return !(r.isTip || r.method === 'rover' || r.salesTaxExempt); }
-function _rowSalesTax(r) { return _rowSalesTaxable(r) ? Math.round(r.gross * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE)) * 100) / 100 : 0; }
+function _rowSalesTaxableAmount(r) { return _rowSalesTaxable(r) ? Math.max(0, r.gross - (parseFloat(r.tipAmount) || 0)) : 0; }
+function _rowSalesTax(r) { return Math.round(_rowSalesTaxableAmount(r) * (TAX_CONSTANTS.KY_SALES_RATE / (1 + TAX_CONSTANTS.KY_SALES_RATE)) * 100) / 100; }
 
 let _incomeReportRows = [];
 let _incomeReportRange = 'month';
@@ -3432,7 +3454,7 @@ function _renderIncomeReport() {
     _incomeReportRows = rows;
 
     let gross = 0, fee = 0, net = 0, tips = 0, tax = 0, taxableG = 0;
-    rows.forEach(r => { gross += r.gross; fee += r.fee; net += r.net; if (r.isTip) tips += r.gross; tax += _rowSalesTax(r); if (_rowSalesTaxable(r)) taxableG += r.gross; });
+    rows.forEach(r => { gross += r.gross; fee += r.fee; net += r.net; tips += _rowTip(r); tax += _rowSalesTax(r); taxableG += _rowSalesTaxableAmount(r); });
     gross = Math.round(gross * 100) / 100; fee = Math.round(fee * 100) / 100; net = Math.round(net * 100) / 100;
     tips = Math.round(tips * 100) / 100; tax = Math.round(tax * 100) / 100;
     const taxable = Math.round(taxableG * 100) / 100;
@@ -3460,13 +3482,13 @@ function _renderIncomeReport() {
             <tr>
                 <td>${r.svcDate ? formatDate(r.svcDate) : (r.date ? formatDate(r.date) : '—')}</td>
                 <td>${escapeHtml(r.client || '—')}</td>
-                <td>${escapeHtml(r.desc || '')}${r.isTip ? ' <span class="ir-tag">tip</span>' : ''}</td>
+                <td>${escapeHtml(r.desc || '')}${r.isTip ? ' <span class="ir-tag">tip</span>' : ((parseFloat(r.tipAmount)||0)>0 ? ' <span class="ir-tag">tip $'+(parseFloat(r.tipAmount)).toFixed(2)+'</span>' : '')}</td>
                 <td>${escapeHtml(paymentMethodLabel(r.method))}</td>
                 <td class="ir-num">$${r.gross.toFixed(2)}</td>
                 <td class="ir-num">${r.isTip ? '—' : '$' + _rowSalesTax(r).toFixed(2)}</td>
                 <td class="ir-num">${r.fee > 0 ? '−$' + r.fee.toFixed(2) : '—'}</td>
                 <td class="ir-num">$${r.net.toFixed(2)}</td>
-                <td class="ir-edit-cell no-print"><button type="button" class="ir-edit-btn" onclick="openIncomeRowEditor(${i})">Edit</button></td>
+                <td class="ir-edit-cell no-print">${r.kind === 'visit' ? `<button type="button" class="ir-edit-btn ir-tip-btn" onclick="openTipSplit(${i})">Tip</button> ` : ''}<button type="button" class="ir-edit-btn" onclick="openIncomeRowEditor(${i})">Edit</button></td>
             </tr>`).join('');
 
     const totalsRow = rows.length ? `
@@ -3519,6 +3541,7 @@ function openIncomeRowEditor(idx) {
     tipCb.checked = !!r.isTip; tipCb.disabled = (r.kind === 'tip');
     document.getElementById('incomeRowEditTaxable').checked = _rowSalesTaxable(r);
     document.getElementById('incomeRowEditRoverNote').style.display = (r.method === 'rover') ? 'block' : 'none';
+    document.getElementById('incomeRowEditTipAmount').value = (parseFloat(r.tipAmount) || 0) > 0 ? parseFloat(r.tipAmount).toFixed(2) : '';
     const isInv = r.kind === 'invoice';
     grossInput.disabled = isInv;
     document.getElementById('incomeRowEditGrossLabel').textContent = isInv ? 'Invoice total' : (r.kind === 'tip' ? 'Tip amount' : 'Amount');
@@ -3564,6 +3587,7 @@ function saveIncomeRowEdit() {
         v.paidDate = date; v.date = date; // date drives where it lands in the report
         if (clientName) v.clientName = clientName;
         v.isTip = isTip; v.salesTaxExempt = salesTaxExempt;
+        v.tipAmount = Math.round((parseFloat(document.getElementById('incomeRowEditTipAmount').value) || 0) * 100) / 100;
         if (Store.saveVisits(visits) === false) { showToast('Save failed', 'error'); return; }
     } else if (r.kind === 'tip') {
         const clients = Store.getClients();
@@ -4734,7 +4758,7 @@ function renderTaxProjection() {
         const g = parseFloat(v.price) || 0;
         gross += g;
         totalFees += v.paymentFee != null ? parseFloat(v.paymentFee) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
-        if (!v.isTip && v.paymentMethod !== 'rover' && !v.salesTaxExempt) salesTaxableGross += g;
+        if (!v.isTip && v.paymentMethod !== 'rover' && !v.salesTaxExempt) salesTaxableGross += Math.max(0, g - (parseFloat(v.tipAmount) || 0));
     });
 
     // ─── Sales tax extracted (tax-inclusive pricing: 6/106). Rover, tips, and anything
@@ -5289,6 +5313,89 @@ function _syncMuteCashAppBtn(){
   var b=document.getElementById('muteCashAppBtn'); if(!b) return;
   var ca=(Store.getVisits()||[]).filter(function(v){return v.paymentMethod==='cashapp'&&!v.cashappTxnId;});
   b.textContent=(ca.length && ca.every(function(v){return v.excludeIncome;}))?'Unmute CashApp':'Mute CashApp';
+}
+</script>
+<script>
+function muteAllManualIncome(){
+  try{
+    var visits=Store.getVisits()||[];
+    var importedMethods={};
+    visits.forEach(function(v){ if(v.roverBookingId)importedMethods.rover=1; if(v.venmoTxnId)importedMethods.venmo=1; if(v.stripeChargeId)importedMethods.stripe=1; if(v.cashappTxnId)importedMethods.cashapp=1; });
+    var byMethod={}, targets=[], total=0;
+    visits.forEach(function(v){
+      var imported=!!(v.roverBookingId||v.venmoTxnId||v.stripeChargeId||v.cashappTxnId);
+      if(imported||!v.paid||v.excludeIncome||v.roverSuperseded||v.invoiced) return;
+      targets.push(v); var p=parseFloat(v.price)||0; total+=p;
+      var m=v.paymentMethod||'(no method)'; byMethod[m]=(byMethod[m]||0)+p;
+    });
+    var invoices=Store.getInvoices()||[];
+    var invTargets=invoices.filter(function(i){return i.status==='paid'&&!i.excludeIncome;});
+    var invTotal=invTargets.reduce(function(s,i){return s+(parseFloat(i.total)||0);},0);
+    if(targets.length===0 && invTargets.length===0){ if(typeof showToast==='function') showToast('Nothing to mute - all manual income is already muted'); return; }
+    var lines=Object.keys(byMethod).sort().map(function(m){ return '  ' + m + ': $' + byMethod[m].toFixed(2); });
+    var warnMethods=Object.keys(byMethod).filter(function(m){ return (m==='rover'||m==='venmo'||m==='stripe'||m==='cashapp') && !importedMethods[m]; });
+    var msg='Stop counting ALL hand-entered income (everything NOT from a statement import)?\n\n'
+      + targets.length + ' visits ($' + total.toFixed(2) + ')\n' + lines.join('\n')
+      + (invTargets.length ? ('\n\n' + invTargets.length + ' paid invoices ($' + invTotal.toFixed(2) + ')') : '')
+      + '\n\nCASH / "no method" income has no statement to replace it, so it will drop out of your totals.';
+    if(warnMethods.length) msg += '\n\nWARNING: you have NOT imported: ' + warnMethods.join(', ') + '. Muting those now removes that income with nothing to replace it - run those imports first.';
+    msg += '\n\nContinue?';
+    if(!confirm(msg)) return;
+    targets.forEach(function(v){ v.excludeIncome=true; });
+    invTargets.forEach(function(i){ i.excludeIncome=true; });
+    if(targets.length) Store.saveVisits(visits);
+    if(invTargets.length) Store.saveInvoices(invoices);
+    if(typeof refreshAll==='function') refreshAll();
+    if(typeof showToast==='function') showToast('Muted '+targets.length+' manual visit'+(targets.length===1?'':'s')+' + '+invTargets.length+' invoice'+(invTargets.length===1?'':'s')); 
+  }catch(e){ alert('Mute failed: '+e.message); }
+}
+function unmuteAllManualIncome(){
+  try{
+    var visits=Store.getVisits()||[]; var n=0;
+    visits.forEach(function(v){ var imported=!!(v.roverBookingId||v.venmoTxnId||v.stripeChargeId||v.cashappTxnId); if(!imported && v.excludeIncome){ delete v.excludeIncome; n++; } });
+    var invoices=Store.getInvoices()||[]; var m=0;
+    invoices.forEach(function(i){ if(i.excludeIncome){ delete i.excludeIncome; m++; } });
+    if(n) Store.saveVisits(visits); if(m) Store.saveInvoices(invoices);
+    if(typeof refreshAll==='function') refreshAll();
+    if(typeof showToast==='function') showToast('Restored '+n+' manual visit'+(n===1?'':'s')+' + '+m+' invoice'+(m===1?'':'s'));
+  }catch(e){ alert('Failed: '+e.message); }
+}
+</script>
+<script>
+let _tipSplitIdx = null;
+function openTipSplit(idx){
+  const r = _incomeReportRows[idx];
+  if(!r || r.kind !== 'visit') return;
+  _tipSplitIdx = idx;
+  document.getElementById('tipSplitInfo').textContent = (r.client || 'Payment') + '  \u00b7  $' + r.gross.toFixed(2) + '  \u00b7  ' + paymentMethodLabel(r.method);
+  const inp = document.getElementById('tipSplitAmount');
+  inp.value = (parseFloat(r.tipAmount) || 0) > 0 ? parseFloat(r.tipAmount).toFixed(2) : '';
+  inp.max = r.gross;
+  _updateTipSplitBreakdown();
+  openModal('tipSplitModal');
+}
+function _updateTipSplitBreakdown(){
+  const r = _incomeReportRows[_tipSplitIdx]; if(!r) return;
+  let tip = parseFloat(document.getElementById('tipSplitAmount').value) || 0;
+  tip = Math.min(Math.max(tip, 0), r.gross);
+  const service = Math.round((r.gross - tip) * 100) / 100;
+  const rover = (r.method === 'rover' || r.salesTaxExempt);
+  document.getElementById('tipSplitBreakdown').innerHTML = '$' + service.toFixed(2) + (rover ? ' service' : ' taxable service') + '  +  $' + tip.toFixed(2) + ' tip (not sales-taxed)';
+}
+function saveTipSplit(){
+  const r = _incomeReportRows[_tipSplitIdx]; if(!r) return;
+  let tip = parseFloat(document.getElementById('tipSplitAmount').value) || 0;
+  tip = Math.round(Math.min(Math.max(tip, 0), r.gross) * 100) / 100;
+  const visits = Store.getVisits();
+  const v = visits.find(x => x.id === r.visitId);
+  if(!v){ showToast('Visit not found', 'error'); return; }
+  v.tipAmount = tip;
+  if(tip > 0) v.isTip = false;
+  if(Store.saveVisits(visits) === false){ showToast('Save failed', 'error'); return; }
+  closeModal('tipSplitModal');
+  _renderIncomeReport();
+  if(typeof renderIncomeBreakdown === 'function') renderIncomeBreakdown();
+  showToast(tip > 0 ? ('$' + tip.toFixed(2) + ' marked as a tip') : 'Tip cleared');
 }
 </script>
 </body>
