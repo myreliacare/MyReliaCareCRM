@@ -1243,7 +1243,6 @@
                     </div>
                     <div class="mileage-actions">
                         <button class="btn btn-primary btn-sm" onclick="openLogMilesModal()">+ Log Miles</button>
-                        <button class="btn btn-ghost btn-sm" onclick="openBackfillMilesModal()">Backfill past days</button>
                     </div>
                     <div class="income-breakdown-body" id="mileageSummaryBody"></div>
                     <div id="mileageEntriesList"></div>
@@ -3384,7 +3383,9 @@ function collectIncomeRows(range) {
         const g = parseFloat(v.price) || 0;
         const f = v.paymentFee != null ? (parseFloat(v.paymentFee) || 0) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
         const n = v.netAmount != null ? (parseFloat(v.netAmount) || 0) : Math.round((g - f) * 100) / 100;
-        rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', svcDate: v.date || v.paidDate || '', client: v.clientName || '', desc: _INCOME_DUR[v.visitType] || 'Visit', method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: !!v.isTip, salesTaxExempt: !!v.salesTaxExempt, tipAmount: parseFloat(v.tipAmount) || 0 });
+        let _vdesc = _INCOME_DUR[v.visitType] || 'Visit';
+        if (v.note) { const _nn = v.note.replace(/^(Venmo|Rover|Stripe|CashApp|Cash|Other):\s*/i, '').trim(); if (_nn) _vdesc = _nn; }
+        rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', svcDate: v.date || v.paidDate || '', client: v.clientName || '', desc: _vdesc, method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: !!v.isTip, salesTaxExempt: !!v.salesTaxExempt, tipAmount: parseFloat(v.tipAmount) || 0 });
     });
     Store.getClients().forEach(c => {
         if (!Array.isArray(c.tips)) return;
@@ -5269,11 +5270,23 @@ function runIncomeAudit(){
     if(dupes.length){ var ds=dupes.reduce(function(a,x){return a+x.p;},0);
       dupeHtml='<div class="audit-warn"><strong>Possible duplicates: '+dupes.length+' manual entr'+(dupes.length===1?'y':'ies')+' ($'+ds.toFixed(2)+')</strong><br>These are Rover/Venmo/Stripe visits you entered by hand that are still counting - the statement import should already cover this money, so they likely double-count.<ul>'+dupes.slice(0,40).map(function(x){return '<li>'+x.d+' &middot; '+escapeHtml(x.c)+' &middot; '+paymentMethodLabel(x.m)+' &middot; $'+x.p.toFixed(2)+'</li>';}).join('')+'</ul>'+(dupes.length>40?('<div>...and '+(dupes.length-40)+' more</div>'):'')+'<button class="btn btn-primary btn-sm" onclick="muteManualStatementDupes()">Mute these '+dupes.length+' now</button></div>'; }
     if(invCN) dupeHtml+='<div class="audit-warn"><strong>'+invCN+' paid invoice(s) still counting ($'+invCS.toFixed(2)+')</strong><br>If any were paid through Venmo/Stripe/Rover/CashApp, that money is already in the statements - tap "Mute invoices" on the Finances page to stop counting them twice.</div>';
+    // Look-alike payments: same day + client + amount + method among counted income. Could be a
+    // real double, or two separate payments that happen to match - listed with notes to eyeball.
+    var laRows = collectIncomeRows('year'), laG = {};
+    laRows.forEach(function(r){ var k=(r.svcDate||'')+'|'+(r.client||'').toLowerCase().trim()+'|'+r.gross.toFixed(2)+'|'+(r.method||''); (laG[k]=laG[k]||[]).push(r); });
+    var lookalikes = Object.keys(laG).map(function(k){return laG[k];}).filter(function(g){return g.length>1;});
+    var laHtml='';
+    if(lookalikes.length){
+      laHtml='<div class="audit-warn"><strong>'+lookalikes.length+' look-alike group'+(lookalikes.length===1?'':'s')+' - same day, client &amp; amount</strong><br>Could be accidental doubles OR two real payments. Check the descriptions:<ul>'
+        + lookalikes.slice(0,30).map(function(g){ return '<li>'+g[0].svcDate+' &middot; '+escapeHtml(g[0].client||'(no name)')+' &middot; $'+g[0].gross.toFixed(2)+' &middot; '+paymentMethodLabel(g[0].method)+' ('+g.length+'x):<br>'+g.map(function(r){return '&nbsp;&nbsp;&middot; '+escapeHtml(r.desc||'(no note)');}).join('<br>')+'</li>'; }).join('')
+        + '</ul>'+(lookalikes.length>30?('<div>...and '+(lookalikes.length-30)+' more</div>'):'')+'</div>';
+    }
     var html='<div class="audit-modal-inner">'
       +'<div class="audit-head"><span>Income audit &middot; '+(new Date().getFullYear())+'</span><button onclick="closeAudit()" class="btn btn-ghost btn-sm">Close</button></div>'
       +'<p class="audit-total">Counted as income this year: <strong>$'+countedTotal.toFixed(2)+'</strong></p>'
       +'<table class="audit-table"><thead><tr><th>Method</th><th style="text-align:right">Import #</th><th style="text-align:right">Import $</th><th style="text-align:right">Manual #</th><th style="text-align:right">Manual $</th></tr></thead><tbody>'+rows+'</tbody></table>'
       +dupeHtml
+      +laHtml
       +'<div class="audit-muted">Not counted (correctly): '+mutedN+' muted entr'+(mutedN===1?'y':'ies')+' ($'+mutedSum.toFixed(2)+') &middot; '+invMN+' muted invoice(s) ($'+invMS.toFixed(2)+') &middot; '+unpaidN+' unpaid ($'+unpaidSum.toFixed(2)+')</div>'
       +'</div>';
     var ov=document.getElementById('auditOverlay');

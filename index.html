@@ -8088,7 +8088,7 @@ function _bfRenderMileage() {
     const existingByKey = {};
     existingMileage.forEach(r => { existingByKey[`${r.date}|${r.driver}`] = r; });
 
-    // Build the set of relevant dates: session-added dates + last 21 days of visits
+    // Build the set of relevant dates: all past days that have visits (plus session-added dates)
     const todayStr = (function(){
         const d = new Date(); const pad = n => String(n).padStart(2,'0');
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -8104,11 +8104,10 @@ function _bfRenderMileage() {
             .filter(Boolean).map(v => v.date)
     );
 
-    // Days needing attention: recent days with visits where at least one driver had visits but no mileage logged
+    // Days needing attention: ALL past days with visits where a driver drove but no mileage logged
     const datesWithRecentVisits = new Set();
     allVisits.forEach(v => {
         if (!v.date || v.date > todayStr) return;  // future-scheduled visits don't need mileage
-        if (v.date < cutoff && !sessionDates.has(v.date)) return;
         datesWithRecentVisits.add(v.date);
     });
 
@@ -8135,7 +8134,7 @@ function _bfRenderMileage() {
     _bfRenderSetupPanel();
 
     if (candidateDates.length === 0) {
-        list.innerHTML = `<div class="bf-mileage-empty">No days need mileage in the last 21 days — all caught up.</div>`;
+        list.innerHTML = `<div class="bf-mileage-empty">No days need mileage — all caught up.</div>`;
         actionsEl.style.display = 'none';
         return;
     }
