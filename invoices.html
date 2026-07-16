@@ -1188,6 +1188,7 @@
                     <div class="income-breakdown-body" id="incomeBreakdownBody"></div>
                     <div class="fin-detail-actions">
                         <button class="btn btn-ghost btn-sm" onclick="openIncomeReport()">Full report &#8599;</button>
+                        <button class="btn btn-ghost btn-sm" onclick="importRoverEarnings()">Import Rover 2026</button>
                     </div>
                 </div>
             </section>
@@ -3114,7 +3115,7 @@ function renderIncomeBreakdown() {
     const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(_invoiceServiceDate(i)));
     // Collect direct-paid visits (not on any paid invoice) by VISIT date — avoid double-counting
     const _paidInvVisits = _paidInvoiceVisitIds();
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));
 
     // Aggregate by method
     const byMethod = {}; // method -> { gross, fee, net, count }
@@ -3328,7 +3329,7 @@ function collectIncomeRows(range) {
     });
     Store.getVisits().forEach(v => {
         // Attribute by VISIT date (not paid date); skip visits already on a paid invoice
-        if (!(v.paid && !v.invoiced && !paidInvVisits.has(v.id) && _incomeInRange(v.date || v.paidDate, range))) return;
+        if (!(v.paid && !v.invoiced && !v.roverSuperseded && !paidInvVisits.has(v.id) && _incomeInRange(v.date || v.paidDate, range))) return;
         const g = parseFloat(v.price) || 0;
         const f = v.paymentFee != null ? (parseFloat(v.paymentFee) || 0) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
         const n = v.netAmount != null ? (parseFloat(v.netAmount) || 0) : Math.round((g - f) * 100) / 100;
@@ -4674,7 +4675,7 @@ function renderTaxProjection() {
     // ─── Gross collected ──────────────────────────────────────
     const _paidInvVisits = _paidInvoiceVisitIds();
     const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(i.paidDate));
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !_paidInvVisits.has(v.id) && inRange(v.paidDate));
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !_paidInvVisits.has(v.id) && inRange(v.paidDate));
     let gross = 0;
     let totalFees = 0;
     paidInvoices.forEach(inv => {
@@ -4754,7 +4755,7 @@ function renderTaxProjection() {
     const inMonth = (d) => d && d.startsWith(monthPrefix);
     let monthGross = 0;
     Store.getInvoices().filter(i => i.status === 'paid' && inMonth(i.paidDate)).forEach(inv => { monthGross += parseFloat(inv.total) || 0; });
-    Store.getVisits().filter(v => v.paid && !v.invoiced && !_paidInvVisits.has(v.id) && inMonth(v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
+    Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !_paidInvVisits.has(v.id) && inMonth(v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
     monthGross = Math.round(monthGross * 100) / 100;
     const monthSetAside = Math.round(monthGross * (effectiveRate / 100) * 100) / 100;
     const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -5046,6 +5047,37 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 function toggleAccountMenu(ev){ if(ev)ev.stopPropagation(); var m=document.getElementById("indicatorMenu"); if(!m)return; m.style.display=(m.style.display==="block")?"none":"block"; }
+</script>
+<script>
+const ROVER_IMPORT_DATA = [{"b":"gXV0RkmA","d":"2025-12-31","c":"Michael T.","p":"Mama","s":"Drop-In Visits","u":6,"e":120.0},{"b":"gDWjXDVN","d":"2026-01-01","c":"Makena W.","p":"Lucky","s":"Drop-In Visits","u":1,"e":20.0},{"b":"gl2kGp5A","d":"2026-01-01","c":"Kevin K.","p":"Lexi, Quincy","s":"Drop-In Visits","u":26,"e":637.6},{"b":"AyOyeVGg","d":"2026-01-08","c":"Lori N.","p":"Enzo, Poppy","s":"Drop-In Visits","u":2,"e":43.2},{"b":"APP2oZXA","d":"2026-01-09","c":"Jen G.","p":"Tucker, Jever (y\u0101ver)","s":"Dog Walking","u":1,"e":21.6},{"b":"NbXpkO3Q","d":"2026-01-10","c":"John R.","p":"Reggie, Sterling","s":"Drop-In Visits","u":8,"e":224.0},{"b":"N8Pnek0N","d":"2026-01-11","c":"Matias M.","p":"Ian","s":"Dog Walking","u":1,"e":17.6},{"b":"Q901prPg","d":"2026-01-14","c":"Lori N.","p":"Enzo, Poppy","s":"Drop-In Visits","u":3,"e":64.8},{"b":"gxORwExN","d":"2026-01-18","c":"Matias M.","p":"Ian","s":"Dog Walking","u":1,"e":17.6},{"b":"gDWw7YeN","d":"2026-01-25","c":"Matias M.","p":"Ian","s":"Dog Walking","u":1,"e":22.0},{"b":"AzOrnwRN","d":"2026-01-27","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Drop-In Visits","u":1,"e":21.6},{"b":"gaY1aBRg","d":"2026-02-04","c":"Ali M.","p":"Honey","s":"Dog Walking","u":2,"e":54.0},{"b":"gLodPYjN","d":"2026-02-05","c":"Lori N.","p":"Enzo, Poppy","s":"Drop-In Visits","u":5,"e":110.0},{"b":"AzOJPRRN","d":"2026-02-12","c":"Matias M.","p":"Ian","s":"Dog Walking","u":2,"e":44.0},{"b":"APPYJ2XA","d":"2026-02-15","c":"Patrick S.","p":"Ev, Kitty, Ivy, Sammy","s":"Drop-In Visits","u":3,"e":60.0},{"b":"NEeaqwoN","d":"2026-02-18","c":"Lori N.","p":"Enzo, Poppy","s":"Drop-In Visits","u":5,"e":120.0},{"b":"gXVll5mA","d":"2026-02-19","c":"James R.","p":"Elvis","s":"Drop-In Visits","u":12,"e":240.0},{"b":"N63RZVVg","d":"2026-02-20","c":"Michael T.","p":"Mama","s":"Drop-In Visits","u":4,"e":80.0},{"b":"Qk5ZRzeN","d":"2026-02-22","c":"Joel A.","p":"Brooks","s":"Drop-In Visits","u":7,"e":154.0},{"b":"gw6E0R3N","d":"2026-02-26","c":"Lori N.","p":"Enzo, Poppy","s":"Drop-In Visits","u":1,"e":32.4},{"b":"gDWEdjKN","d":"2026-03-05","c":"Ali M.","p":"Honey","s":"Drop-In Visits","u":3,"e":66.0},{"b":"N63oB5mg","d":"2026-03-05","c":"Matias M.","p":"Ian","s":"Dog Walking","u":1,"e":17.6},{"b":"gw6x2LGN","d":"2026-03-07","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Drop-In Visits","u":1,"e":21.6},{"b":"g7byVbqN","d":"2026-03-13","c":"Lori N.","p":"Enzo, Poppy","s":"Drop-In Visits","u":6,"e":120.0},{"b":"AMWOE4Og","d":"2026-03-18","c":"Michael T.","p":"Mama","s":"Drop-In Visits","u":2,"e":35.2},{"b":"gR9LbybN","d":"2026-03-19","c":"Ali M.","p":"Honey","s":"Dog Walking","u":2,"e":60.0},{"b":"gw6o2MGN","d":"2026-03-19","c":"Lori N.","p":"Enzo, Poppy","s":"Dog Walking","u":2,"e":43.2},{"b":"gLom8Y5N","d":"2026-03-21","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Drop-In Visits","u":1,"e":38.0},{"b":"N8P2B49N","d":"2026-03-26","c":"Tanner H.","p":"Lona","s":"Drop-In Visits","u":2,"e":39.6},{"b":"Q13VEqqN","d":"2026-03-26","c":"Rachel D.","p":"Nova, Sheldon","s":"Drop-In Visits","u":1,"e":31.6},{"b":"gR92oBbN","d":"2026-03-26","c":"Lori N.","p":"Enzo, Poppy","s":"Dog Walking","u":2,"e":43.2},{"b":"QObMpvpg","d":"2026-03-26","c":"Jason Z.","p":"Tabitha, Regan","s":"Drop-In Visits","u":3,"e":66.0},{"b":"N03YJ3aA","d":"2026-03-30","c":"Cory M.","p":"Jax, Bean, Peanut","s":"Drop-In Visits","u":4,"e":156.0},{"b":"g7bLOwwN","d":"2026-04-04","c":"Brian D.","p":"Mo, Opal","s":"Drop-In Visits","u":4,"e":86.4},{"b":"Qj95LRYg","d":"2026-04-05","c":"Hannah T.","p":"Murphy, Stanley","s":"Drop-In Visits","u":1,"e":21.6},{"b":"NqmRr9ZN","d":"2026-04-05","c":"Brian D.","p":"Mo, Opal","s":"Drop-In Visits","u":1,"e":21.6},{"b":"Q13XjjJN","d":"2026-04-07","c":"Amy M.","p":"Neko","s":"Drop-In Visits","u":10,"e":190.0},{"b":"N8PvZaEN","d":"2026-04-10","c":"Lori N.","p":"Enzo, Poppy","s":"Dog Walking","u":5,"e":108.0},{"b":"APPOdVdA","d":"2026-04-11","c":"Monica A.","p":"Winnie, Oakley, Mittens, Theo","s":"Drop-In Visits","u":13,"e":395.2},{"b":"g4OBbaoN","d":"2026-04-12","c":"Hannah O.","p":"Luna, Braxton","s":"Drop-In Visits","u":1,"e":21.6},{"b":"gmeWd1Mg","d":"2026-04-12","c":"Hannah O.","p":"Luna, Braxton","s":"Drop-In Visits","u":7,"e":170.1},{"b":"NbXzm8nQ","d":"2026-04-12","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":5,"e":108.0},{"b":"N0E8X6Kg","d":"2026-04-17","c":"Ali M.","p":"Honey","s":"Dog Walking","u":4,"e":120.0},{"b":"NbJGqVrN","d":"2026-04-19","c":"Jason Z.","p":"Tabitha, Regan","s":"Drop-In Visits","u":2,"e":44.0},{"b":"A5Ozp61g","d":"2026-04-19","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":5,"e":108.0},{"b":"N0EXEKLg","d":"2026-04-20","c":"Joan-Anne L S.","p":"Paddy, Sandy","s":"Drop-In Visits","u":6,"e":96.0},{"b":"g7prVz4Q","d":"2026-04-22","c":"Lori N.","p":"Enzo, Poppy","s":"Dog Walking","u":4,"e":86.4},{"b":"gDdDGpKg","d":"2026-04-22","c":"Matias M.","p":"Ian","s":"Dog Walking","u":1,"e":17.6},{"b":"gBpeObjA","d":"2026-04-23","c":"Ronda Y.","p":"Timone, Sofie","s":"Drop-In Visits","u":4,"e":88.4},{"b":"Q1Mw6zoQ","d":"2026-04-26","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":4,"e":86.4},{"b":"gX07K45g","d":"2026-04-27","c":"Matias M.","p":"Ian","s":"Dog Walking","u":1,"e":17.6},{"b":"gLE5nElQ","d":"2026-04-30","c":"Katie H.","p":"Duck","s":"Dog Walking","u":1,"e":24.0},{"b":"NEMrXpoN","d":"2026-05-03","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":4,"e":86.4},{"b":"APEP4lXN","d":"2026-05-10","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":4,"e":86.4},{"b":"gDdWldXg","d":"2026-05-10","c":"Sammie R.","p":"Simba","s":"Drop-In Visits","u":2,"e":35.2},{"b":"N6ZZ7l3N","d":"2026-05-13","c":"Matias M.","p":"Ian","s":"Dog Walking","u":2,"e":35.2},{"b":"N0ErOq6g","d":"2026-05-14","c":"Ali M.","p":"Honey","s":"Dog Walking","u":2,"e":60.0},{"b":"APEynmaN","d":"2026-05-16","c":"Patrick S.","p":"Ev, Kitty, Ivy, Sammy","s":"Drop-In Visits","u":2,"e":44.0},{"b":"NKKpYnON","d":"2026-05-17","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":4,"e":86.4},{"b":"AyVwMbLN","d":"2026-05-19","c":"Lori N.","p":"Enzo, Poppy","s":"Dog Walking","u":4,"e":108.0},{"b":"g7pWPZ4Q","d":"2026-05-23","c":"Heidi H.","p":"Curie, Poppy","s":"Drop-In Visits","u":2,"e":52.8},{"b":"AZ5Rm2zQ","d":"2026-05-24","c":"Stefanie T.","p":"Rune","s":"Drop-In Visits","u":2,"e":44.8},{"b":"Q9djbOXg","d":"2026-05-24","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":3,"e":64.8},{"b":"g4OOGLvN","d":"2026-05-24","c":"Meghan N.","p":"Daniel, Izzy, Kuna, Millie","s":"Drop-In Visits","u":3,"e":75.0},{"b":"Aoq6Z4Lg","d":"2026-05-27","c":"Ronda Y.","p":"Timone, Sofie","s":"Drop-In Visits","u":7,"e":175.0},{"b":"Qr0O8oGN","d":"2026-05-29","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Drop-In Visits","u":3,"e":64.8},{"b":"ga4w3zvN","d":"2026-05-31","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":2,"e":43.2},{"b":"AeqP0pVA","d":"2026-06-05","c":"Lori N.","p":"Enzo, Poppy","s":"Dog Walking","u":4,"e":97.2},{"b":"Q3Od2k4Q","d":"2026-06-05","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Drop-In Visits","u":5,"e":100.0},{"b":"gX0BpVBg","d":"2026-06-07","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":4,"e":86.4},{"b":"g7p9KnDQ","d":"2026-06-08","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Dog Walking","u":1,"e":21.6},{"b":"Q9d2yDng","d":"2026-06-14","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":4,"e":86.4},{"b":"gVK2BKDQ","d":"2026-06-19","c":"Meg S.","p":"Hazel, Fred","s":"Drop-In Visits","u":3,"e":91.2},{"b":"gY9jJYqg","d":"2026-06-19","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Drop-In Visits","u":1,"e":24.0},{"b":"Q9d7mEXg","d":"2026-06-21","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":4,"e":86.4},{"b":"A5OLLKEg","d":"2026-06-23","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Dog Walking","u":1,"e":28.8},{"b":"gDdL1LGg","d":"2026-06-24","c":"Lori N.","p":"Enzo, Poppy","s":"Dog Walking","u":4,"e":86.4},{"b":"NbJKmdRN","d":"2026-06-28","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":3,"e":64.8},{"b":"Azm13ERQ","d":"2026-06-29","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Dog Walking","u":1,"e":28.8},{"b":"NvY0nxoA","d":"2026-07-04","c":"Brianna D.","p":"Buffy, Walter, Bo","s":"Drop-In Visits","u":2,"e":68.2},{"b":"Qr05Y56N","d":"2026-07-05","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":4,"e":86.4},{"b":"AdqrXBjN","d":"2026-07-06","c":"Madison D.","p":"Essie","s":"Drop-In Visits","u":8,"e":272.0},{"b":"Aeq9qOeA","d":"2026-07-08","c":"Matias M.","p":"Ian","s":"Dog Walking","u":1,"e":17.6},{"b":"gxyBvr1Q","d":"2026-07-12","c":"Clarissa P.","p":"Harley, Peanut","s":"Drop-In Visits","u":4,"e":86.4},{"b":"g7pymZ4Q","d":"2026-07-13","c":"Roberta W.","p":"Bernard, Daisy Mae","s":"Dog Walking","u":1,"e":14.4}];
+function importRoverEarnings(){
+  try{
+    var visits = Store.getVisits() || [];
+    var existing = {}; visits.forEach(function(v){ if(v.roverBookingId) existing[v.roverBookingId]=1; });
+    var added=0, skipped=0, total=0;
+    ROVER_IMPORT_DATA.forEach(function(r){
+      if(existing[r.b]){ skipped++; return; }
+      visits.push({ id:"rover_"+r.b, roverBookingId:r.b, clientId:"", clientName:r.c, date:r.d, time:"",
+        visitType:"30min", price:r.e, paid:true, invoiced:false, status:"completed", assignedTo:"both",
+        paymentMethod:"rover", paymentFee:0, netAmount:r.e,
+        note:"Rover "+r.s+" - "+r.u+" visit"+(r.u===1?"":"s")+(r.p?" - "+r.p:"") });
+      added++; total+=r.e;
+    });
+    // Mute previously hand-entered Rover income so the official report is the single source of
+    // truth. Nothing is deleted — these visits just stop counting toward income and taxes.
+    var muted = 0;
+    visits.forEach(function(v){
+      if(v.paymentMethod==="rover" && !v.roverBookingId && !v.roverSuperseded){ v.roverSuperseded = true; muted++; }
+    });
+    if(added>0 || muted>0) Store.saveVisits(visits);
+    if(typeof refreshAll==="function") refreshAll();
+    var parts = [];
+    parts.push(added>0 ? ("Imported "+added+" Rover booking"+(added===1?"":"s")+" ($"+total.toFixed(2)+")"+(skipped?(" - "+skipped+" already added"):"")) : ("All "+skipped+" Rover bookings already imported"));
+    if(muted>0) parts.push("muted "+muted+" old manual Rover entr"+(muted===1?"y":"ies"));
+    var msg = parts.join(" - ");
+    if(typeof showToast==="function") showToast(msg); else alert(msg);
+  }catch(e){ if(typeof showToast==="function") showToast("Rover import failed: "+e.message,"error"); else alert("Import failed: "+e.message); }
+}
 </script>
 </body>
 </html>

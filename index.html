@@ -1096,8 +1096,13 @@
             .schedule-time { font-size: 1.05em; }
             .schedule-title { font-size: 1.15em; line-height: 1.3; }
             .schedule-meta { font-size: 0.92em; }
-            /* Calendar header tighter */
-            .calendar-header { padding: 8px 4px; font-size: 0.78em; }
+            /* Calendar header: arrows hug the month, Month/Week to the right of the arrow, one line */
+            .calendar-header { padding: 8px 4px; font-size: 0.78em; flex-wrap: nowrap; justify-content: flex-start; gap: 8px; }
+            .calendar-nav { gap: 4px; flex: 0 0 auto; }
+            .calendar-nav button { padding: 5px 10px; }
+            .calendar-month { min-width: 0; padding: 0 2px; }
+            .view-toggle { flex: 0 0 auto; }
+            .view-btn { padding: 4px 11px; }
         }
 
         /* === SIDEBAR LIST === */
