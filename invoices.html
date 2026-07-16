@@ -1189,6 +1189,9 @@
                     <div class="fin-detail-actions">
                         <button class="btn btn-ghost btn-sm" onclick="openIncomeReport()">Full report &#8599;</button>
                         <button class="btn btn-ghost btn-sm" onclick="importRoverEarnings()">Import Rover 2026</button>
+                        <button class="btn btn-ghost btn-sm" onclick="importVenmoStatements()">Import Venmo</button>
+                        <button class="btn btn-ghost btn-sm" onclick="importStripeStatements()">Import Stripe</button>
+                        <button class="btn btn-ghost btn-sm" id="muteInvoicesBtn" onclick="toggleInvoiceIncome()">Mute invoices</button>
                     </div>
                 </div>
             </section>
@@ -3112,10 +3115,10 @@ function renderIncomeBreakdown() {
     };
 
     // Collect paid invoices whose SERVICE date (earliest visit on the invoice) falls in range
-    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(_invoiceServiceDate(i)));
+    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && !i.excludeIncome && inRange(_invoiceServiceDate(i)));
     // Collect direct-paid visits (not on any paid invoice) by VISIT date — avoid double-counting
     const _paidInvVisits = _paidInvoiceVisitIds();
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));
 
     // Aggregate by method
     const byMethod = {}; // method -> { gross, fee, net, count }
@@ -3318,7 +3321,7 @@ function collectIncomeRows(range) {
     const rows = [];
     const paidInvVisits = _paidInvoiceVisitIds();
     Store.getInvoices().forEach(inv => {
-        if (inv.status !== 'paid') return;
+        if (inv.status !== 'paid' || inv.excludeIncome) return;
         // Service date = earliest visit/item date on the invoice (what the payment was for)
         const svc = _invoiceServiceDate(inv);
         if (!_incomeInRange(svc, range)) return;
@@ -3329,7 +3332,7 @@ function collectIncomeRows(range) {
     });
     Store.getVisits().forEach(v => {
         // Attribute by VISIT date (not paid date); skip visits already on a paid invoice
-        if (!(v.paid && !v.invoiced && !v.roverSuperseded && !paidInvVisits.has(v.id) && _incomeInRange(v.date || v.paidDate, range))) return;
+        if (!(v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !paidInvVisits.has(v.id) && _incomeInRange(v.date || v.paidDate, range))) return;
         const g = parseFloat(v.price) || 0;
         const f = v.paymentFee != null ? (parseFloat(v.paymentFee) || 0) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
         const n = v.netAmount != null ? (parseFloat(v.netAmount) || 0) : Math.round((g - f) * 100) / 100;
@@ -4674,8 +4677,8 @@ function renderTaxProjection() {
 
     // ─── Gross collected ──────────────────────────────────────
     const _paidInvVisits = _paidInvoiceVisitIds();
-    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && inRange(i.paidDate));
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !_paidInvVisits.has(v.id) && inRange(v.paidDate));
+    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && !i.excludeIncome && inRange(i.paidDate));
+    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inRange(v.paidDate));
     let gross = 0;
     let totalFees = 0;
     paidInvoices.forEach(inv => {
@@ -4755,7 +4758,7 @@ function renderTaxProjection() {
     const inMonth = (d) => d && d.startsWith(monthPrefix);
     let monthGross = 0;
     Store.getInvoices().filter(i => i.status === 'paid' && inMonth(i.paidDate)).forEach(inv => { monthGross += parseFloat(inv.total) || 0; });
-    Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !_paidInvVisits.has(v.id) && inMonth(v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
+    Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inMonth(v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
     monthGross = Math.round(monthGross * 100) / 100;
     const monthSetAside = Math.round(monthGross * (effectiveRate / 100) * 100) / 100;
     const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -4960,6 +4963,7 @@ function renderFinanceChrome() {
             </div>`;
     }
     _applyFinSecState();
+    if(typeof _syncMuteInvoicesBtn==="function") _syncMuteInvoicesBtn();
 }
 
 function refreshAll() {
@@ -5077,6 +5081,80 @@ function importRoverEarnings(){
     var msg = parts.join(" - ");
     if(typeof showToast==="function") showToast(msg); else alert(msg);
   }catch(e){ if(typeof showToast==="function") showToast("Rover import failed: "+e.message,"error"); else alert("Import failed: "+e.message); }
+}
+</script>
+<script>
+const VENMO_IMPORT_DATA = [{"t":"4472518563606167060","d":"2025-11-23","c":"Suzanne Murphy","n":"x","g":25.0,"f":0.57,"nt":24.43,"tp":0.0},{"t":"4474596067497924346","d":"2025-11-26","c":"Tom Noguchi","n":"11/26/2025","g":20.98,"f":0.49,"nt":20.49,"tp":3.49},{"t":"4487771092539641061","d":"2025-12-14","c":"Tom Noguchi","n":"Corey and Bootsie","g":171.72,"f":3.36,"nt":168.36,"tp":28.62},{"t":"4488475552186294833","d":"2025-12-15","c":"Jennifer Griffiths","n":"Pet care","g":185.5,"f":3.62,"nt":181.88,"tp":0.0},{"t":"4488948445332910547","d":"2025-12-16","c":"Jeannie Noguchi","n":"Extra cat care","g":299.56,"f":5.79,"nt":293.77,"tp":0.0},{"t":"4495511537679870723","d":"2025-12-25","c":"Nikhil Jaisinghani","n":"Nestle & Zagnut","g":68.39,"f":1.39,"nt":67.0,"tp":8.92},{"t":"4498023789276480750","d":"2025-12-29","c":"Kevin Melton","n":"Zeke visits","g":71.36,"f":1.45,"nt":69.91,"tp":11.89},{"t":"4502096920915854913","d":"2026-01-03","c":"Jennifer Griffiths","n":"Appreciation for your service!","g":50.0,"f":1.05,"nt":48.95,"tp":0.0},{"t":"4506566367769378247","d":"2026-01-09","c":"Suzanne Murphy","n":"x","g":51.2,"f":1.07,"nt":50.13,"tp":0.0},{"t":"4507381993618291981","d":"2026-01-11","c":"Kevin Melton","n":"1/12 Zeke","g":69.96,"f":1.42,"nt":68.54,"tp":0.0},{"t":"4511528985785243709","d":"2026-01-16","c":"Kevin Melton","n":"Zeke 1/18","g":83.95,"f":1.69,"nt":82.26,"tp":13.99},{"t":"4518340911743641636","d":"2026-01-26","c":"Jennifer Griffiths","n":"Petcare","g":127.99,"f":2.53,"nt":125.46,"tp":16.69},{"t":"4520791040261658506","d":"2026-01-29","c":"Kelly Gersch","n":"Dog visits","g":138.72,"f":2.73,"nt":135.99,"tp":20.0},{"t":"4521632786172556681","d":"2026-01-30","c":"Kristin Woollum","n":"Storm","g":47.0,"f":0.99,"nt":46.01,"tp":0.0},{"t":"4526669970995306692","d":"2026-02-06","c":"Kristin Woollum","n":"x","g":74.0,"f":1.5,"nt":72.5,"tp":0.0},{"t":"4533321818078224480","d":"2026-02-15","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4536304292476081675","d":"2026-02-19","c":"Catherine Morris","n":"house dogs","g":200.0,"f":3.9,"nt":196.1,"tp":0.0},{"t":"4537888101301866136","d":"2026-02-22","c":"Catherine Morris","n":"lizard","g":10.0,"f":0.29,"nt":9.71,"tp":0.0},{"t":"4541974836202065738","d":"2026-02-27","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4549088045459909944","d":"2026-03-09","c":"Kelly Gersch","n":"Upcoming visits","g":111.3,"f":2.21,"nt":109.09,"tp":22.26},{"t":"4550849567500336980","d":"2026-03-11","c":"Kristin Woollum","n":"x","g":50.0,"f":1.05,"nt":48.95,"tp":0.0},{"t":"4551957020547540419","d":"2026-03-13","c":"Jennifer Griffiths","n":"Pet care","g":200.0,"f":3.9,"nt":196.1,"tp":14.5},{"t":"4555899599106162697","d":"2026-03-18","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4556497444075461411","d":"2026-03-19","c":"Kevin Melton","n":"Zeke","g":69.96,"f":1.42,"nt":68.54,"tp":0.0},{"t":"4557164283156185426","d":"2026-03-20","c":"Kevin Melton","n":"Zeke-Saturday","g":23.32,"f":0.54,"nt":22.78,"tp":0.0},{"t":"4558077158976556561","d":"2026-03-21","c":"Diane Appleberry","n":"dogs","g":436.08,"f":8.38,"nt":427.7,"tp":0.0},{"t":"4559947165976610572","d":"2026-03-24","c":"Kelly Gersch","n":"This week Weiner and kitten visits!","g":66.77,"f":1.36,"nt":65.41,"tp":13.35},{"t":"4562216091192275194","d":"2026-03-27","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4563765218476815329","d":"2026-03-29","c":"Kevin Melton","n":"Zeke","g":46.64,"f":0.98,"nt":45.66,"tp":0.0},{"t":"4565959875076152526","d":"2026-04-01","c":"Diane Appleberry","n":"dog","g":80.0,"f":1.62,"nt":78.38,"tp":0.0},{"t":"4567258647559359472","d":"2026-04-03","c":"Kevin Melton","n":"Zeke 4/3","g":70.0,"f":1.43,"nt":68.57,"tp":0.0},{"t":"4567490737919650656","d":"2026-04-03","c":"Kristin Woollum","n":"x","g":50.0,"f":1.05,"nt":48.95,"tp":0.0},{"t":"4570350101994670803","d":"2026-04-07","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4576864396014987375","d":"2026-04-16","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4581804472935545321","d":"2026-04-23","c":"Jeannie Noguchi","n":"Jeannies cats May 4 5 and 6","g":69.96,"f":1.42,"nt":68.54,"tp":0.0},{"t":"4582530224445810159","d":"2026-04-24","c":"Kristin Woollum","n":"x","g":50.0,"f":1.05,"nt":48.95,"tp":0.0},{"t":"4587565514055262205","d":"2026-05-01","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4590776745331453233","d":"2026-05-06","c":"Paige Courtney","n":"Gatsby Drop In 5/6","g":19.82,"f":0.47,"nt":19.35,"tp":0.0},{"t":"4591166763560364523","d":"2026-05-06","c":"Kelly Gersch","n":"Gersch pets May","g":136.85,"f":2.7,"nt":134.15,"tp":30.0},{"t":"4591432859089851357","d":"2026-05-06","c":"Paige Courtney","n":"Gatsby Drop In 5/7","g":19.82,"f":0.47,"nt":19.35,"tp":0.0},{"t":"4592564498993317700","d":"2026-05-08","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4594825890610335790","d":"2026-05-11","c":"Kelly Gersch","n":"Gersch pets this week","g":100.17,"f":2.0,"nt":98.17,"tp":20.03},{"t":"4595615676081792484","d":"2026-05-12","c":"Paige Courtney","n":"Gatsby Drop-In and Tip for May 13th","g":26.0,"f":0.59,"nt":25.41,"tp":0.0},{"t":"4597016074420399420","d":"2026-05-14","c":"Kristin Woollum","n":"x","g":50.0,"f":1.05,"nt":48.95,"tp":0.0},{"t":"4601557637624144599","d":"2026-05-20","c":"Diane Appleberry","n":"Brooks","g":279.84,"f":5.41,"nt":274.43,"tp":0.0},{"t":"4602240033646646834","d":"2026-05-21","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4603786830097498795","d":"2026-05-24","c":"Kevin Melton","n":"Zeke","g":27.98,"f":0.63,"nt":27.35,"tp":4.66},{"t":"4604428333451389977","d":"2026-05-24","c":"Jennifer Griffiths","n":"Pet care","g":250.0,"f":4.85,"nt":245.15,"tp":0.0},{"t":"4604977726381812097","d":"2026-05-25","c":"Diane Appleberry","n":"dog","g":50.0,"f":1.05,"nt":48.95,"tp":0.0},{"t":"4605976827093124743","d":"2026-05-27","c":"Paige Courtney","n":"Gatsby Drop In 5/27","g":25.0,"f":0.57,"nt":24.43,"tp":0.0},{"t":"4607243711247702888","d":"2026-05-28","c":"Kevin Melton","n":"Zeke 6/2","g":76.32,"f":1.55,"nt":74.77,"tp":12.72},{"t":"4607794102725912536","d":"2026-05-29","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4610248345479189038","d":"2026-06-01","c":"Paige Courtney","n":"Gatsby drop-in 6/2","g":25.0,"f":0.57,"nt":24.43,"tp":0.0},{"t":"4611550991133365374","d":"2026-06-03","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4615163780544610097","d":"2026-06-08","c":"Kevin Melton","n":"Zeke 6/10","g":76.32,"f":1.55,"nt":74.77,"tp":12.72},{"t":"4616761817490646869","d":"2026-06-10","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4618112220421604442","d":"2026-06-12","c":"Kelly Gersch","n":"Last week","g":82.28,"f":1.66,"nt":80.62,"tp":16.45},{"t":"4621599404956580742","d":"2026-06-17","c":"Jane Luptak","n":"Mikey Luptak - June 20","g":56.07,"f":1.16,"nt":54.91,"tp":7.31},{"t":"4621947122488689236","d":"2026-06-18","c":"Diane Appleberry","n":"Brooks","g":186.56,"f":3.64,"nt":182.92,"tp":0.0},{"t":"4622495857661153832","d":"2026-06-18","c":"Ken Jones","n":"MRC305 for Christine Jones 21.94 plus tip","g":27.0,"f":0.61,"nt":26.39,"tp":0.0},{"t":"4622686904483637738","d":"2026-06-19","c":"Jennifer Griffiths","n":"Pet care July 2-4","g":150.0,"f":2.95,"nt":147.05,"tp":0.0},{"t":"4623088067372273663","d":"2026-06-19","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4624559863040629803","d":"2026-06-21","c":"Diane Appleberry","n":"dog","g":35.0,"f":0.76,"nt":34.24,"tp":0.0},{"t":"4625546389992295559","d":"2026-06-23","c":"Kelly Gersch","n":"Gersch girls week of 6/22","g":54.85,"f":1.14,"nt":53.71,"tp":10.97},{"t":"4626865505429174024","d":"2026-06-24","c":"Paige Courtney","n":"Gatsby Drop In 6/25","g":25.0,"f":0.57,"nt":24.43,"tp":0.0},{"t":"4626943379578188657","d":"2026-06-24","c":"Kevin Melton","n":"Zeke 6/25","g":63.6,"f":1.3,"nt":62.3,"tp":0.0},{"t":"4627732408875929840","d":"2026-06-26","c":"Diane Appleberry","n":"Brooks","g":863.0,"f":16.49,"nt":846.51,"tp":0.0},{"t":"4628117035024619971","d":"2026-06-26","c":"Kristin Woollum","n":"x","g":125.0,"f":2.47,"nt":122.53,"tp":0.0},{"t":"4628127722195569392","d":"2026-06-26","c":"Jane Luptak","n":"Mikey 6/26","g":56.07,"f":1.16,"nt":54.91,"tp":7.31},{"t":"4631124118502299392","d":"2026-06-30","c":"Paige Courtney","n":"Gatsby and Byron 7/1","g":28.0,"f":0.63,"nt":27.37,"tp":0.0},{"t":"4631130145676014054","d":"2026-06-30","c":"Wayne Ellis","n":"Kiwi walks","g":236.97,"f":4.6,"nt":232.37,"tp":39.49},{"t":"4632524996308279595","d":"2026-07-02","c":"Kevin Melton","n":"Zeke","g":73.14,"f":1.48,"nt":71.66,"tp":9.54},{"t":"4632763501177345527","d":"2026-07-02","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4634829002079130074","d":"2026-07-05","c":"Diane Appleberry","n":"Brooksie Girl","g":100.0,"f":2.0,"nt":98.0,"tp":0.0},{"t":"4636315155571035595","d":"2026-07-07","c":"Jane Luptak","n":"Mikey 7/8","g":56.07,"f":1.16,"nt":54.91,"tp":7.31},{"t":"4636908340048177159","d":"2026-07-08","c":"Kristin Woollum","n":"x","g":75.0,"f":1.52,"nt":73.48,"tp":0.0},{"t":"4637619600204974436","d":"2026-07-09","c":"Ken Jones","n":"Dog walking 30 minutes for jones","g":30.0,"f":0.67,"nt":29.33,"tp":0.0},{"t":"4640062729772270955","d":"2026-07-13","c":"Paige Courtney","n":"Byron Drop In 7/13","g":25.0,"f":0.57,"nt":24.43,"tp":0.0},{"t":"4642568466524083891","d":"2026-07-16","c":"Ken Jones","n":"Millie and Josie","g":30.0,"f":0.67,"nt":29.33,"tp":5.0}];
+function importVenmoStatements(){
+  try{
+    var visits = Store.getVisits() || [];
+    var existing = {}; visits.forEach(function(v){ if(v.venmoTxnId) existing[v.venmoTxnId]=1; });
+    var added=0, skipped=0, total=0;
+    VENMO_IMPORT_DATA.forEach(function(r){
+      if(existing[r.t]){ skipped++; return; }
+      visits.push({ id:"venmo_"+r.t, venmoTxnId:r.t, clientId:"", clientName:r.c, date:r.d, time:"",
+        visitType:"30min", price:r.g, paid:true, invoiced:false, status:"completed", assignedTo:"both",
+        paymentMethod:"venmo", paymentFee:r.f, netAmount:r.nt, venmoTip:r.tp,
+        note:"Venmo: "+(r.n||"payment")+(r.tp>0?(" (tip $"+r.tp.toFixed(2)+")"):"") });
+      added++; total+=r.g;
+    });
+    var muted=0;
+    visits.forEach(function(v){ if(v.paymentMethod==="venmo" && !v.venmoTxnId && !v.excludeIncome){ v.excludeIncome=true; muted++; } });
+    if(added>0||muted>0) Store.saveVisits(visits);
+    if(typeof refreshAll==="function") refreshAll();
+    var parts=[]; parts.push(added>0 ? ("Imported "+added+" Venmo payment"+(added===1?"":"s")+" ($"+total.toFixed(2)+")"+(skipped?(" - "+skipped+" already added"):"")) : ("All "+skipped+" Venmo payments already imported"));
+    if(muted>0) parts.push("muted "+muted+" old manual Venmo entr"+(muted===1?"y":"ies"));
+    if(typeof showToast==="function") showToast(parts.join(" - ")); else alert(parts.join(" - "));
+  }catch(e){ if(typeof showToast==="function") showToast("Venmo import failed: "+e.message,"error"); else alert("Import failed: "+e.message); }
+}
+</script>
+<script>
+function toggleInvoiceIncome(){
+  try{
+    var invs = Store.getInvoices() || [];
+    var paid = invs.filter(function(i){ return i.status==="paid"; });
+    if(paid.length===0){ if(typeof showToast==="function") showToast("No paid invoices to mute"); return; }
+    var anyCounting = paid.some(function(i){ return !i.excludeIncome; });
+    var n=0, total=0;
+    paid.forEach(function(i){
+      if(anyCounting){ if(!i.excludeIncome){ i.excludeIncome=true; n++; total+=(parseFloat(i.total)||0); } }
+      else { if(i.excludeIncome){ delete i.excludeIncome; n++; total+=(parseFloat(i.total)||0); } }
+    });
+    Store.saveInvoices(invs);
+    if(typeof refreshAll==="function") refreshAll();
+    var msg = anyCounting ? ("Muted "+n+" paid invoice"+(n===1?"":"s")+" from income ($"+total.toFixed(2)+")") : ("Restored "+n+" invoice"+(n===1?"":"s")+" to income ($"+total.toFixed(2)+")");
+    if(typeof showToast==="function") showToast(msg); else alert(msg);
+  }catch(e){ if(typeof showToast==="function") showToast("Failed: "+e.message,"error"); }
+}
+function _syncMuteInvoicesBtn(){
+  var btn=document.getElementById("muteInvoicesBtn"); if(!btn) return;
+  var paid=(Store.getInvoices()||[]).filter(function(i){return i.status==="paid";});
+  btn.textContent = (paid.length && paid.every(function(i){return i.excludeIncome;})) ? "Unmute invoices" : "Mute invoices";
+}
+</script>
+<script>
+const STRIPE_IMPORT_DATA = [{"t":"ch_3RsBEGLaPOevTl0n0Q1ztWAp","d":"2025-08-03","c":"mmurphy@bestversionmedia.com","n":"1515020314 - Michael Murphy - 30 Minute Visit - New Clients - August 10, 2025 3:00pm","em":"mmurphy@bestversionmedia.com","g":19.0,"f":0.85,"nt":18.15},{"t":"py_3SWkugLaPOevTl0n2DORhq1j","d":"2025-11-23","c":"kaseycockerill03@gmail.com","n":"","em":"kaseycockerill03@gmail.com","g":5.0,"f":0.45,"nt":4.55},{"t":"py_3SaeGFLaPOevTl0n0aRgx7em","d":"2025-12-04","c":"kris.woollum@gmail.com","n":"","em":"kris.woollum@gmail.com","g":41.45,"f":1.5,"nt":39.95},{"t":"ch_3SeJTALaPOevTl0n0DSvOoDr","d":"2025-12-14","c":"kris.woollum@gmail.com","n":"","em":"kris.woollum@gmail.com","g":121.9,"f":3.84,"nt":118.06},{"t":"ch_3ShD2cLaPOevTl0n1T2KVC8C","d":"2025-12-22","c":"kris.woollum@gmail.com","n":"","em":"kris.woollum@gmail.com","g":25.0,"f":1.03,"nt":23.97},{"t":"ch_3SnKmPLaPOevTl0n0UdgXEao","d":"2026-01-08","c":"kris.woollum@gmail.com","n":"","em":"kris.woollum@gmail.com","g":73.14,"f":2.42,"nt":70.72},{"t":"py_3SqD8ULaPOevTl0n2GUVD5rN","d":"2026-01-16","c":"kvnkress@gmail.com","n":"","em":"kvnkress@gmail.com","g":379.68,"f":11.31,"nt":368.37},{"t":"ch_3SsnhkLaPOevTl0n1OYfPIHr","d":"2026-01-23","c":"kris.woollum@gmail.com","n":"","em":"kris.woollum@gmail.com","g":122.0,"f":3.84,"nt":118.16},{"t":"ch_3T1bPyLaPOevTl0n1q48w2YJ","d":"2026-02-16","c":"jaisinghani.nikhil@gmail.com","n":"","em":"jaisinghani.nikhil@gmail.com","g":80.0,"f":2.62,"nt":77.38},{"t":"ch_3T2xlVLaPOevTl0n2lPRDupF","d":"2026-02-20","c":"kris.woollum@gmail.com","n":"","em":"kris.woollum@gmail.com","g":75.0,"f":2.48,"nt":72.52},{"t":"ch_3T6cv3LaPOevTl0n0NezLe9y","d":"2026-03-02","c":"jaisinghanin@yahoo.com","n":"","em":"jaisinghanin@yahoo.com","g":400.0,"f":11.9,"nt":388.1},{"t":"ch_3T81AwLaPOevTl0n3qi1Sg7D","d":"2026-03-06","c":"kris.woollum@gmail.com","n":"","em":"kris.woollum@gmail.com","g":75.0,"f":2.48,"nt":72.52},{"t":"ch_3TL2bZLaPOevTl0n27boiYMG","d":"2026-04-11","c":"4/11/2026","n":"4/11/2026","em":"","g":52.0,"f":1.45,"nt":50.55},{"t":"ch_3TLTrZLaPOevTl0n1yDraIq4","d":"2026-04-12","c":"4/12/26","n":"4/12/26","em":"","g":52.0,"f":1.81,"nt":50.19},{"t":"ch_3TLsszLaPOevTl0n2ZmQvcUC","d":"2026-04-13","c":"4/13/2026","n":"4/13/2026","em":"","g":52.0,"f":1.81,"nt":50.19},{"t":"ch_3TMCx4LaPOevTl0n2EoPAcae","d":"2026-04-14","c":"4/14/2026 2 walks","n":"4/14/2026 2 walks","em":"","g":52.0,"f":1.81,"nt":50.19},{"t":"ch_3TMaICLaPOevTl0n3IrtvEIC","d":"2026-04-15","c":"4/15/26 2 walkz","n":"4/15/26 2 walkz","em":"","g":52.0,"f":1.81,"nt":50.19},{"t":"ch_3TNHYKLaPOevTl0n1EVQLyTh","d":"2026-04-17","c":"4/16-17, 4 walks","n":"4/16-17, 4 walks","em":"","g":104.0,"f":3.32,"nt":100.68},{"t":"ch_3TNZViLaPOevTl0n1DFj52pf","d":"2026-04-18","c":"kvnkress@gmail.com","n":"","em":"kvnkress@gmail.com","g":222.6,"f":6.76,"nt":215.84},{"t":"ch_3TNlDVLaPOevTl0n2xpjSBwK","d":"2026-04-19","c":"4/18/26 3 walks","n":"4/18/26 3 walks","em":"","g":73.94,"f":2.44,"nt":71.5},{"t":"ch_3TOeRXLaPOevTl0n2oHo7yji","d":"2026-04-21","c":"4/19-21, 6 walks","n":"4/19-21, 6 walks","em":"","g":156.0,"f":4.82,"nt":151.18},{"t":"ch_3TQZT6LaPOevTl0n15E41NDt","d":"2026-04-26","c":"4/22-26, 10 walks","n":"4/22-26, 10 walks","em":"","g":260.0,"f":7.84,"nt":252.16},{"t":"ch_3TRe7sLaPOevTl0n3vdwfzm7","d":"2026-04-29","c":"4/27-29, 6 walks","n":"4/27-29, 6 walks","em":"","g":156.0,"f":4.82,"nt":151.18},{"t":"ch_3TSnILLaPOevTl0n2aItKYEb","d":"2026-05-02","c":"4/30-5/2, 8 walks","n":"4/30-5/2, 8 walks","em":"","g":208.0,"f":6.33,"nt":201.67},{"t":"ch_3TTkR8LaPOevTl0n2aXCLx9S","d":"2026-05-05","c":"5/3-5/5, 6 walks, bumped to 1 hr mornings on 5/5","n":"5/3-5/5, 6 walks, bumped to 1 hr mornings on 5/5","em":"","g":161.0,"f":4.97,"nt":156.03},{"t":"ch_3TUp0vLaPOevTl0n3zhFAILe","d":"2026-05-08","c":"5/6-5/8, 6 walks","n":"5/6-5/8, 6 walks","em":"","g":171.0,"f":5.26,"nt":165.74},{"t":"ch_3TVJzxLaPOevTl0n2XbmTjkC","d":"2026-05-09","c":"5/9 - 3 walks: 1 hr, 2 30 mins","n":"5/9 - 3 walks: 1 hr, 2 30 mins","em":"","g":80.0,"f":2.62,"nt":77.38},{"t":"ch_3TWP24LaPOevTl0n16nE5H5d","d":"2026-05-12","c":"5/10-12, 6 walks","n":"5/10-12, 6 walks","em":"","g":171.0,"f":5.26,"nt":165.74},{"t":"ch_3TYDbOLaPOevTl0n2TOf3emj","d":"2026-05-17","c":"5/13-17, 10 walks","n":"5/13-17, 10 walks","em":"","g":285.0,"f":8.57,"nt":276.43},{"t":"ch_3Tam9tLaPOevTl0n0X9U3b8U","d":"2026-05-25","c":"5/18, 5/19, one 30 min on 5/23, 5/24 - 7 walks total","n":"5/18, 5/19, one 30 min on 5/23, 5/24 - 7 walks total","em":"","g":195.0,"f":5.96,"nt":189.04},{"t":"py_3TbrDBLaPOevTl0n135btyhq","d":"2026-05-27","c":"devoted2dogs@fuse.net","n":"","em":"devoted2dogs@fuse.net","g":95.0,"f":3.06,"nt":91.94},{"t":"ch_3Te10JLaPOevTl0n0SEp10Yk","d":"2026-06-02","c":"May 25-June 2. Updated card. 12 walks total","n":"May 25-June 2. Updated card. 12 walks total","em":"","g":369.0,"f":11.0,"nt":358.0},{"t":"ch_3TfmodLaPOevTl0n3jcoyC1W","d":"2026-06-07","c":"6/3-6/7, 5 1 hr walks","n":"6/3-6/7, 5 1 hr walks","em":"","g":170.0,"f":5.23,"nt":164.77},{"t":"ch_3TiQ9iLaPOevTl0n1HlfOX7g","d":"2026-06-15","c":"6/8-6/14, 7 hr walks","n":"6/8-6/14, 7 hr walks","em":"","g":235.0,"f":7.12,"nt":227.88},{"t":"py_3TkP1mLaPOevTl0n3rlzdo8J","d":"2026-06-20","c":"kvnkress@gmail.com","n":"","em":"kvnkress@gmail.com","g":127.2,"f":3.99,"nt":123.21},{"t":"ch_3Tko8ILaPOevTl0n24iQ4etN","d":"2026-06-21","c":"6/15-6/21, 7 Hr walks","n":"6/15-6/21, 7 Hr walks","em":"","g":235.0,"f":7.12,"nt":227.88},{"t":"ch_3TnKOYLaPOevTl0n1JLYToyo","d":"2026-06-28","c":"6/22-6/28, 7 HR walks","n":"6/22-6/28, 7 HR walks","em":"","g":235.0,"f":7.12,"nt":227.88},{"t":"ch_3TomgdLaPOevTl0n35hrVsjA","d":"2026-07-02","c":"FINAL CHARGE 6/29-6/30","n":"FINAL CHARGE 6/29-6/30","em":"","g":68.0,"f":2.27,"nt":65.73},{"t":"ch_3TpAHZLaPOevTl0n0CCYJeTF","d":"2026-07-03","c":"jaisinghanin@yahoo.com","n":"","em":"jaisinghanin@yahoo.com","g":69.96,"f":2.33,"nt":67.63}];
+function importStripeStatements(){
+  try{
+    var visits = Store.getVisits() || [];
+    var existing = {}; visits.forEach(function(v){ if(v.stripeChargeId) existing[v.stripeChargeId]=1; });
+    var added=0, skipped=0, total=0;
+    STRIPE_IMPORT_DATA.forEach(function(r){
+      if(existing[r.t]){ skipped++; return; }
+      visits.push({ id:"stripe_"+r.t, stripeChargeId:r.t, clientId:"", clientName:r.c, date:r.d, time:"",
+        visitType:"30min", price:r.g, paid:true, invoiced:false, status:"completed", assignedTo:"both",
+        paymentMethod:"stripe", paymentFee:r.f, netAmount:r.nt,
+        note:"Stripe: "+(r.n||r.em||"payment") });
+      added++; total+=r.g;
+    });
+    var muted=0;
+    visits.forEach(function(v){ if(v.paymentMethod==="stripe" && !v.stripeChargeId && !v.excludeIncome){ v.excludeIncome=true; muted++; } });
+    if(added>0||muted>0) Store.saveVisits(visits);
+    if(typeof refreshAll==="function") refreshAll();
+    var parts=[]; parts.push(added>0 ? ("Imported "+added+" Stripe payment"+(added===1?"":"s")+" ($"+total.toFixed(2)+")"+(skipped?(" - "+skipped+" already added"):"")) : ("All "+skipped+" Stripe payments already imported"));
+    if(muted>0) parts.push("muted "+muted+" old manual Stripe entr"+(muted===1?"y":"ies"));
+    if(typeof showToast==="function") showToast(parts.join(" - ")); else alert(parts.join(" - "));
+  }catch(e){ if(typeof showToast==="function") showToast("Stripe import failed: "+e.message,"error"); else alert(e.message); }
 }
 </script>
 </body>
