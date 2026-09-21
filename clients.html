@@ -1182,7 +1182,7 @@ window.updateVisitFilter = function(key, value) {
     if (!container) return;
     const clientId = container.dataset.clientId;
     if (!clientId) return;
-    const visits = Store.getVisits().filter(v => v.clientId === clientId)
+    const visits = Store.index().visitsFor(clientId).slice()   // read only
         .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
     container.innerHTML = renderFilteredVisitList(visits);
 };
@@ -1382,7 +1382,7 @@ function uploadLogo(event) {
                 showToast('Logo updated');
             } catch (err) {
                 if (err && (err.name === 'QuotaExceededError' || err.code === 22)) {
-                    showToast('Image too large to save — try a smaller photo', 'error');
+                    showToast('Image too large to save, try a smaller photo', 'error');
                 } else {
                     showToast('Could not save logo', 'error');
                 }
@@ -1548,11 +1548,25 @@ function formatPhone(p) {
     if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
     return p;
 }
-function formatDateLong(s) {
-    if (!s) return '';
-    const [y, m, d] = s.split('-').map(Number);
-    return new Date(y, m-1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+/* Memoized date formatting — see note in index.html. */
+const _DTF = {
+    long:  new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+    short: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+};
+const _dateMemo = { long: new Map(), short: new Map() };
+function _fmtYmd(str, style) {
+    if (!str) return '';
+    const memo = _dateMemo[style];
+    let out = memo.get(str);
+    if (out === undefined) {
+        const [y, m, d] = String(str).split('-').map(Number);
+        out = _DTF[style].format(new Date(y, m - 1, d));
+        if (memo.size > 3000) memo.clear();
+        memo.set(str, out);
+    }
+    return out;
 }
+function formatDateLong(s) { return _fmtYmd(s, 'long'); }
 function formatTime12(t) {
     if (!t) return '';
     const [h, m] = t.split(':').map(Number);
@@ -1562,9 +1576,12 @@ function formatTime12(t) {
 }
 
 function getClientStats(clientId) {
-    const visits = Store.getVisits().filter(v => v.clientId === clientId);
-    const invoices = Store.getInvoices().filter(i => i.clientId === clientId);
-    const clientRec = Store.getClients().find(c => c.id === clientId);
+    // Read-only: pulls from the shared index instead of deep-cloning every
+    // visit, invoice and client once per card. Nothing here mutates.
+    const idx = Store.index();
+    const visits = idx.visitsFor(clientId);
+    const invoices = idx.invoicesFor(clientId);
+    const clientRec = idx.client(clientId);
     const today = new Date().toISOString().split('T')[0];
     const upcoming = visits
         .filter(v => v.date >= today && v.status !== 'completed' && v.status !== 'cancelled')
@@ -1596,7 +1613,7 @@ function isVisitEarned(v) {
 }
 
 function renderStats() {
-    const clients = Store.getClients();
+    const clients = Store.view.clients();   // read only
     const totalPets = clients.reduce((s, c) => s + (c.pets?.length || 0), 0);
     document.getElementById('statClients').textContent = clients.length;
     document.getElementById('statPets').textContent = totalPets;
@@ -1613,7 +1630,7 @@ function showActiveClientsModal() {
     const thisMonthYM = today.toISOString().slice(0, 7);
     const monthLabel = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-    const visits = Store.getVisits().filter(v => (v.date || '').startsWith(thisMonthYM));
+    const visits = Store.view.visits().filter(v => (v.date || '').startsWith(thisMonthYM));   // read only
     const byClient = {};
     visits.forEach(v => {
         if (!v.clientId) return;
@@ -1685,7 +1702,7 @@ function jumpToClient(id) {
 function renderClients() {
     const list = document.getElementById('clientsList');
     const search = document.getElementById('searchBar').value.toLowerCase().trim();
-    let clients = Store.getClients();
+    let clients = Store.view.clients().slice();   // read only, copied before sorting
     if (search) {
         clients = clients.filter(c => {
             const blob = [c.name, c.email, c.phone, c.address, c.city,
@@ -1695,7 +1712,7 @@ function renderClients() {
     }
     clients.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     if (clients.length === 0) {
-        const allClients = Store.getClients();
+        const allClients = Store.view.clients();   // read only
         list.innerHTML = `<div class="empty-state"><h3>${allClients.length === 0 ? 'No clients yet' : 'No matches'}</h3><p>${allClients.length === 0 ? 'Add your first client to get started.' : 'Try a different search term.'}</p></div>`;
         renderStats(); return;
     }
@@ -1796,8 +1813,8 @@ function renderClientValueReport() {
     const summaryEl = document.getElementById('cvrSummary');
     if (!wrap || !summaryEl) return;
 
-    const clients = Store.getClients() || [];
-    const visits = Store.getVisits() || [];
+    const clients = Store.view.clients();   // read only
+    const visits = Store.view.visits();   // read only
     const todayStr = todayYmd();
     const todayDate = new Date(todayStr + 'T00:00:00');
 
@@ -2100,7 +2117,7 @@ function bookAgainFor(clientId) {
         v.date && v.date <= todayStr && v.time && v.visitType
     );
     if (usable.length === 0) {
-        showToast('No past visits yet — opening the full scheduler', 'info');
+        showToast('No past visits yet, opening the full scheduler', 'info');
         setTimeout(() => scheduleVisitFor(clientId), 300);
         return;
     }
@@ -2539,7 +2556,7 @@ function deleteClient(clientId, ev) {
     if (ev) { ev.stopPropagation(); ev.preventDefault(); }
     const c = Store.getClients().find(x => x.id === clientId);
     if (!c) { showToast('Client not found', 'error'); return; }
-    const visits = Store.getVisits().filter(v => v.clientId === clientId);
+    const visits = Store.index().visitsFor(clientId);   // read only
     let msg = `Are you sure you want to delete "${c.name}"?`;
     if (visits.length > 0) msg += `\n\nThis client has ${visits.length} visit${visits.length > 1 ? 's' : ''} on file. The visits will stay so your records remain accurate.`;
     showConfirm('Delete client?', msg, () => {
@@ -2547,7 +2564,7 @@ function deleteClient(clientId, ev) {
         const fresh = Store.getClients();
         const updated = fresh.filter(x => x.id !== clientId);
         const ok = Store.saveClients(updated);
-        if (!ok) { showToast('Could not save — try again', 'error'); return; }
+        if (!ok) { showToast('Could not save, try again', 'error'); return; }
         closeModal('detailModal');
         renderClients();
         showToast('Client deleted');
@@ -2555,9 +2572,9 @@ function deleteClient(clientId, ev) {
 }
 
 function viewClient(clientId) {
-    const c = Store.getClients().find(x => x.id === clientId);
+    const c = Store.index().client(clientId);   // read only
     if (!c) return;
-    const visits = Store.getVisits().filter(v => v.clientId === clientId)
+    const visits = Store.index().visitsFor(clientId).slice()   // read only
         .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
     const stats = getClientStats(clientId);
     document.getElementById('detailTitle').textContent = c.name || '(unnamed)';
@@ -2609,7 +2626,7 @@ function viewClient(clientId) {
         </div>`;
     // Inbox items tagged to this client (reminders / tasks / notes from the
     // home dashboard Inbox). Read-only here; click "Open Inbox" to edit.
-    const inboxItems = (Store.getQuickNotes() || []).filter(it => it && it.clientId === c.id && !it.done);
+    const inboxItems = Store.view.quickNotes().filter(it => it && it.clientId === c.id && !it.done);   // read only
     if (inboxItems.length > 0) {
         inboxItems.sort((a, b) => {
             const orderOf = (x) => x.type === 'reminder' ? 0 : x.type === 'task' ? 1 : 2;

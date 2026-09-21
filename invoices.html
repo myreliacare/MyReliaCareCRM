@@ -84,7 +84,21 @@
         .fin-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
         .fin-title { font-family: 'Cormorant Unicase', serif; font-size: 1.7em; font-weight: 600; color: var(--accent); letter-spacing: 0.5px; }
         .fin-snapshot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
-        .fin-tile { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; }
+        .fin-tile { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; width: 100%; text-align: left; font-family: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color 0.15s, background 0.15s; }
+        .fin-tile:active { background: var(--bg-input); border-color: var(--accent); }
+        .fin-tile-go { display: block; color: var(--accent); font-size: 0.95em; margin-top: 2px; }
+        .os-summary { display: flex; flex-direction: column; gap: 3px; padding: 0 0 12px; margin-bottom: 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+        .os-note { color: var(--warn); font-size: 0.9em; }
+        .os-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 2px; background: none; border: none; border-bottom: 1px solid var(--border); color: inherit; font-family: inherit; font-size: 1em; text-align: left; cursor: pointer; }
+        .os-row:active { background: var(--bg-input); }
+        .os-client { font-size: 1.05em; }
+        .os-meta { color: var(--text-faint); font-size: 0.85em; margin-top: 2px; }
+        .os-overdue { color: var(--danger); }
+        .os-right { text-align: right; flex-shrink: 0; }
+        .os-amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+        .os-status { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-faint); margin-top: 2px; }
+        .os-status.sent { color: var(--info); }
+        .os-status.draft { color: var(--warn); }
         .fin-tile-label { color: var(--text-faint); font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; }
         .fin-tile-value { font-family: 'Cormorant Unicase', serif; font-size: 1.5em; font-weight: 700; margin-top: 3px; line-height: 1; font-variant-numeric: tabular-nums; }
         .fin-tile-value.net { color: var(--info, #ABBFA0); }
@@ -1234,11 +1248,6 @@
                 </button>
                 <div class="fin-sec-body">
                     <div class="fin-mileage-controls">
-                        <div class="income-range-tabs" id="mileageRangeTabs">
-                            <button class="income-range-tab active" data-range="month" onclick="setMileageRange('month')">This Month</button>
-                            <button class="income-range-tab" data-range="year" onclick="setMileageRange('year')">This Year</button>
-                            <button class="income-range-tab" data-range="all" onclick="setMileageRange('all')">All Time</button>
-                        </div>
                         <span class="mileage-rate-note" id="mileageRateNote"></span>
                     </div>
                     <div class="mileage-actions">
@@ -1261,6 +1270,16 @@
 <div class="print-document" id="printDoc"></div>
 
 <!-- Invoice editor modal -->
+<div class="modal-overlay" id="outstandingModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Outstanding</h2>
+            <button class="modal-close" onclick="closeModal('outstandingModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="outstandingBody"></div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="invoiceModal">
     <div class="modal">
         <div class="modal-header">
@@ -1630,6 +1649,31 @@ function _isDefaultClosing(note) {
     return t.startsWith(DEFAULT_CLOSING_PREFIX) || t.startsWith(OLD_DEFAULT_CLOSING_PREFIX);
 }
 
+/* ============================================================
+   PAYMENT INSTRUCTIONS
+   ============================================================ */
+const PAYMENT_PAGE_URL = 'https://myreliacare.com/Make_a_Payment_Page.html';
+
+// Lines for the PAYMENT block of a copied invoice. If the client has a
+// preferred payment method set on their record, only that one is listed.
+// With no preference set, list every self-serve option.
+function _invoicePaymentLines(client) {
+    const method = (client && client.defaultPaymentMethod) || null;
+    switch (method) {
+        case 'venmo':   return [`Venmo: @MyReliaCare`];
+        case 'cashapp': return [`CashApp: $MyReliaCare`];
+        case 'stripe':  return [`Card: ${PAYMENT_PAGE_URL}`];
+        case 'rover':   return [`Pay through the Rover app`];
+        case 'cash':    return [`Cash, collected before the first visit`];
+        default:
+            return [
+                `Venmo: @MyReliaCare`,
+                `CashApp: $MyReliaCare`,
+                `Card: ${PAYMENT_PAGE_URL}`
+            ];
+    }
+}
+
 let currentFilter = 'draft';
 let editingInvoiceId = null;
 
@@ -1673,7 +1717,7 @@ function uploadLogo(event) {
                 showToast('Logo updated');
             } catch (err) {
                 if (err && (err.name === 'QuotaExceededError' || err.code === 22)) {
-                    showToast('Image too large to save — try a smaller photo', 'error');
+                    showToast('Image too large to save, try a smaller photo', 'error');
                 } else {
                     showToast('Could not save logo', 'error');
                 }
@@ -1746,8 +1790,25 @@ function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g
 function ymd(d) { if (typeof d === 'string') return d; const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const da = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; }
 function todayYmd() { return ymd(new Date()); }
 function parseYmd(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m-1, d); }
-function formatDate(s) { if (!s) return ''; return parseYmd(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
-function formatDateLong(s) { if (!s) return ''; return parseYmd(s).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }); }
+/* Memoized date formatting — see note in index.html. */
+const _DTF = {
+    long:  new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }),
+    short: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+};
+const _dateMemo = { long: new Map(), short: new Map() };
+function _fmtYmd(str, style) {
+    if (!str) return '';
+    const memo = _dateMemo[style];
+    let out = memo.get(str);
+    if (out === undefined) {
+        out = _DTF[style].format(parseYmd(str));
+        if (memo.size > 3000) memo.clear();
+        memo.set(str, out);
+    }
+    return out;
+}
+function formatDate(s) { return _fmtYmd(s, 'short'); }
+function formatDateLong(s) { return _fmtYmd(s, 'long'); }
 function formatTime12(t) {
     if (!t) return '';
     const [h, m] = t.split(':').map(Number);
@@ -1769,7 +1830,9 @@ function nextInvoiceNumber() {
     });
     return `MRC${maxNum + 1}`;
 }
-function clientById(id) { return Store.getClients().find(c => c.id === id); }
+// Read-only lookup off the shared index. Callers only read from the result;
+// anything editing a client goes through Store.getClients()/saveClients().
+function clientById(id) { return Store.index().client(id); }
 function clientName(id) { const c = clientById(id); return c ? c.name : '(client deleted)'; }
 
 /* ============================================================
@@ -1800,20 +1863,35 @@ function paymentMethodLabel(method) {
 /* ============================================================
    MILEAGE / IRS DEDUCTION
    ============================================================ */
-// IRS standard mileage rates by year (business use, $/mile).
-// Sources: IRS Notice 2026-10 (72.5¢ for 2026, up from 70¢ in 2025).
-const IRS_MILEAGE_RATES = {
-    2022: 0.585,
-    2023: 0.655,
-    2024: 0.670,
-    2025: 0.700,
-    2026: 0.725
-};
-const DEFAULT_MILEAGE_RATE = 0.725;  // fallback for years not listed
+// Mileage rates live in the tax constants block below, keyed by year.
+// Returns the rate in force on that date. A year's entry is either a flat
+// number or a list of dated periods (2026 changed mid-year).
 function mileageRateForDate(dateStr) {
     if (!dateStr) return DEFAULT_MILEAGE_RATE;
-    const year = parseInt(dateStr.slice(0, 4));
-    return IRS_MILEAGE_RATES[year] || DEFAULT_MILEAGE_RATE;
+    const entry = IRS_MILEAGE_RATES[parseInt(String(dateStr).slice(0, 4), 10)];
+    if (entry == null) return DEFAULT_MILEAGE_RATE;
+    if (typeof entry === 'number') return entry;
+    const hit = entry.find(p => dateStr >= p.from && dateStr <= p.to);
+    return hit ? hit.rate : (entry[entry.length - 1].rate || DEFAULT_MILEAGE_RATE);
+}
+// Miles and deduction split by rate period, for the tax report's backup detail.
+function mileageByRatePeriod(records) {
+    const buckets = new Map();
+    (records || []).forEach(r => {
+        const miles = parseFloat(r.miles) || 0;
+        if (!miles) return;
+        const rate = mileageRateForDate(r.date);
+        const key = _taxYearOf(r.date) + '|' + rate;
+        const b = buckets.get(key) || { year: _taxYearOf(r.date), rate, miles: 0, deduction: 0, from: r.date, to: r.date };
+        b.miles += miles;
+        b.deduction += miles * rate;
+        if (r.date < b.from) b.from = r.date;
+        if (r.date > b.to) b.to = r.date;
+        buckets.set(key, b);
+    });
+    return [...buckets.values()]
+        .map(b => ({ ...b, miles: Math.round(b.miles * 10) / 10, deduction: Math.round(b.deduction * 100) / 100 }))
+        .sort((a, b) => a.from.localeCompare(b.from));
 }
 function calcMileageDeduction(records) {
     // Sum each record's miles * the rate for that record's year
@@ -1880,7 +1958,7 @@ function getEligibleVisitsForInvoice(clientId, opts = {}) {
     const showInvoiced = !!opts.showInvoiced;
     const { startStr, endStr } = _invoiceRangeBounds(opts.range || 'rolling-60');
 
-    return Store.getVisits()
+    return Store.index().visitsFor(clientId)   // read only
         .filter(v => v.clientId === clientId
                   && v.status !== 'cancelled'      // exclude cancelled only
                   && !v.paid                       // exclude already-paid
@@ -2003,7 +2081,7 @@ window._setPickerRange = function(range) {
 
 window._toggleVisitInInvoice = function(visitId, isChecked) {
     if (isChecked) {
-        const visit = Store.getVisits().find(v => v.id === visitId);
+        const visit = Store.index().visitsById.get(visitId);   // read only
         if (!visit) return;
         // Avoid duplicate add (if somehow already in line items)
         const existing = Array.from(document.querySelectorAll('#invItems .line-item'))
@@ -2720,9 +2798,7 @@ function copyInvoiceAsText(id) {
     lines.push(``);
     lines.push(`— PAYMENT —`);
     lines.push(``);
-    lines.push(`Venmo: @MyReliaCare`);
-    lines.push(`CashApp: $MyReliaCare`);
-    lines.push(`myreliacare.com/makeapayment`);
+    _invoicePaymentLines(c).forEach(l => lines.push(l));
 
     // Closing: regenerate the default with the client's current pets, or keep a custom note.
     const closing = _isDefaultClosing(inv.notes) ? defaultClosing(c) : inv.notes.trim();
@@ -2738,7 +2814,7 @@ function copyInvoiceAsText(id) {
     // Try clipboard, fall back to a modal where she can manually copy
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text)
-            .then(() => showToast('Copied — paste into a new text message'))
+            .then(() => showToast('Copied, paste into a new text message'))
             .catch(() => showCopyFallback(text));
     } else {
         showCopyFallback(text);
@@ -2749,7 +2825,7 @@ function copyInvoiceAsText(id) {
 function _itemDurationLabel(it) {
     let vt = null;
     if (it.visitId) {
-        const v = Store.getVisits().find(x => x.id === it.visitId);
+        const v = Store.index().visitsById.get(it.visitId);   // read only
         if (v) vt = v.visitType;
     }
     if (!vt && it.description) {
@@ -2924,7 +3000,7 @@ function setFilter(f) {
 }
 
 function renderInvoiceList() {
-    let invoices = Store.getInvoices();
+    let invoices = Store.view.invoices().slice();   // read only, copied before sorting
     if (currentFilter !== 'all') invoices = invoices.filter(i => i.status === currentFilter);
     invoices.sort((a, b) => (b.issueDate || '').localeCompare(a.issueDate || ''));
 
@@ -3045,11 +3121,21 @@ function _syncIncomeRangeUI() {
     // Arrows only make sense while browsing months
     box.querySelectorAll('.irt-nav').forEach(b => b.classList.toggle('irt-nav-dim', _incomeRange !== 'month'));
 }
+/* Everything on this page reads the same period. Repaint all of it together,
+   otherwise the month tab moves while the tiles and section summaries keep
+   showing the month you just left. */
+function renderForPeriod() {
+    renderIncomeBreakdown();
+    renderMileage();
+    renderTaxProjection();
+    renderInvoiceList();
+    renderFinanceChrome();
+}
 function setIncomeRange(range) {
     _incomeRange = range;
     if (range === 'month') _incomeMonth = todayYmd().slice(0, 7);
     _syncIncomeRangeUI();
-    renderIncomeBreakdown();
+    renderForPeriod();
 }
 function stepIncomeMonth(delta) {
     const cur = todayYmd().slice(0, 7);
@@ -3058,7 +3144,7 @@ function stepIncomeMonth(delta) {
     if (next > cur) return; // never step into the future
     _incomeMonth = next;
     _syncIncomeRangeUI();
-    renderIncomeBreakdown();
+    renderForPeriod();
 }
 
 // ── Reconcile CRM income against what each platform statement says ──
@@ -3156,18 +3242,13 @@ function renderIncomeBreakdown() {
     const today = todayYmd();
     const thisYM = today.slice(0, 7);
     const thisY = today.slice(0, 4);
-    const inRange = (dateStr) => {
-        if (!dateStr) return false;
-        if (_incomeRange === 'month') return dateStr.startsWith(_incomeMonth);
-        if (_incomeRange === 'year') return dateStr.startsWith(thisY);
-        return true; // all time
-    };
+    const inRange = (dateStr) => _incomeInRange(dateStr, _incomeRange, _incomeMonth);
 
     // Collect paid invoices whose SERVICE date (earliest visit on the invoice) falls in range
-    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && !i.excludeIncome && inRange(_invoiceServiceDate(i)));
+    const paidInvoices = Store.view.invoices().filter(i => i.status === 'paid' && !i.excludeIncome && inRange(_invoiceServiceDate(i)));   // read only
     // Collect direct-paid visits (not on any paid invoice) by VISIT date — avoid double-counting
     const _paidInvVisits = _paidInvoiceVisitIds();
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));
+    const directVisits = Store.view.visits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));   // read only
 
     // Aggregate by method
     const byMethod = {}; // method -> { gross, fee, net, count }
@@ -3197,7 +3278,7 @@ function renderIncomeBreakdown() {
     // separately so we can EXCLUDE them from KY sales-tax base (tips are gratuity,
     // not service revenue).
     let tipsGross = 0, tipsFee = 0, tipsNet = 0, tipsCount = 0;
-    Store.getClients().forEach(c => {
+    Store.view.clients().forEach(c => {   // read only
         if (!Array.isArray(c.tips)) return;
         c.tips.forEach(t => {
             if (!inRange(t.date)) return;
@@ -3226,7 +3307,7 @@ function renderIncomeBreakdown() {
     const feePct = totalGross > 0 ? (totalFee / totalGross * 100) : 0;
     // Sales-tax base and tips use the same per-row rules the report does: tips, Rover, and
     // anything flagged sales-tax-exempt are excluded from the KY sales-tax base.
-    const _stRows = collectIncomeRows(_incomeRange);
+    const _stRows = collectIncomeRows(_incomeRange, _incomeMonth);
     const _tipsG = Math.round(_stRows.reduce((a, r) => a + _rowTip(r), 0) * 100) / 100;
     const _tipsN = _stRows.filter(r => r.isTip || (parseFloat(r.tipAmount) || 0) > 0).length;
     const taxableGross = Math.round(_stRows.reduce((a, r) => a + _rowSalesTaxableAmount(r), 0) * 100) / 100;
@@ -3312,12 +3393,17 @@ function renderIncomeBreakdown() {
    Same source data as the summary cards: paid invoices, direct-paid
    visits, and per-client tips, filtered to the selected period.
    ============================================================ */
-function _incomeInRange(dateStr, range) {
+/* The one range test for this page. `month` says which month a 'month' range
+   means: the page passes the month the tabs are on, the income report passes
+   the month the report is browsing. They used to be separate helpers reading
+   different variables, which is how the page ended up showing two periods at
+   once. */
+function _incomeInRange(dateStr, range, month) {
     if (!dateStr) return false;
     const today = todayYmd();
-    if (range === 'month') return dateStr.startsWith(_incomeReportMonth || today.slice(0, 7));
+    if (range === 'month') return dateStr.startsWith(month || _incomeMonth || today.slice(0, 7));
     if (range === 'year')  return dateStr.startsWith(today.slice(0, 4));
-    return true;
+    return true;   // all time
 }
 const _INCOME_DUR = { '30min': '30 min visit', '60min': '1 hr visit', 'meet-greet': 'Meet & Greet' };
 // Visit IDs that sit on a PAID invoice. Those visits are already represented by the
@@ -3363,23 +3449,24 @@ function reconcileInvoicedFlags() {
     } catch (e) { console.warn('[reconcileInvoicedFlags]', e); return 0; }
 }
 
-function collectIncomeRows(range) {
+function collectIncomeRows(range, month) {
     range = range || _incomeRange;
+    month = month || _incomeMonth;
     const rows = [];
     const paidInvVisits = _paidInvoiceVisitIds();
-    Store.getInvoices().forEach(inv => {
+    Store.view.invoices().forEach(inv => {   // read only
         if (inv.status !== 'paid' || inv.excludeIncome) return;
         // Service date = earliest visit/item date on the invoice (what the payment was for)
         const svc = _invoiceServiceDate(inv);
-        if (!_incomeInRange(svc, range)) return;
+        if (!_incomeInRange(svc, range, month)) return;
         const g = parseFloat(inv.total) || 0;
         const f = inv.paymentFee != null ? (parseFloat(inv.paymentFee) || 0) : (inv.paymentMethod ? calcPaymentFee(inv.paymentMethod, g) : 0);
         const n = inv.netAmount != null ? (parseFloat(inv.netAmount) || 0) : Math.round((g - f) * 100) / 100;
         rows.push({ kind: 'invoice', invoiceId: inv.id, date: inv.paidDate || '', svcDate: svc, client: inv.clientName || '', desc: inv.invoiceNumber || 'Invoice', method: inv.paymentMethod || '', gross: g, fee: f, net: n, isTip: false, salesTaxExempt: !!inv.salesTaxExempt });
     });
-    Store.getVisits().forEach(v => {
+    Store.view.visits().forEach(v => {   // read only
         // Attribute by VISIT date (not paid date); skip visits already on a paid invoice
-        if (!(v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !paidInvVisits.has(v.id) && _incomeInRange(v.date || v.paidDate, range))) return;
+        if (!(v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !paidInvVisits.has(v.id) && _incomeInRange(v.date || v.paidDate, range, month))) return;
         const g = parseFloat(v.price) || 0;
         const f = v.paymentFee != null ? (parseFloat(v.paymentFee) || 0) : (v.paymentMethod ? calcPaymentFee(v.paymentMethod, g) : 0);
         const n = v.netAmount != null ? (parseFloat(v.netAmount) || 0) : Math.round((g - f) * 100) / 100;
@@ -3387,10 +3474,10 @@ function collectIncomeRows(range) {
         if (v.note) { const _nn = v.note.replace(/^(Venmo|Rover|Stripe|CashApp|Cash|Other):\s*/i, '').trim(); if (_nn) _vdesc = _nn; }
         rows.push({ kind: 'visit', visitId: v.id, date: v.paidDate || '', svcDate: v.date || v.paidDate || '', client: v.clientName || '', desc: _vdesc, method: v.paymentMethod || '', gross: g, fee: f, net: n, isTip: !!v.isTip, salesTaxExempt: !!v.salesTaxExempt, tipAmount: parseFloat(v.tipAmount) || 0 });
     });
-    Store.getClients().forEach(c => {
+    Store.view.clients().forEach(c => {   // read only
         if (!Array.isArray(c.tips)) return;
         c.tips.forEach(t => {
-            if (!_incomeInRange(t.date, range)) return;
+            if (!_incomeInRange(t.date, range, month)) return;
             const g = parseFloat(t.amount) || 0;
             const f = t.paymentFee != null ? (parseFloat(t.paymentFee) || 0) : (t.paymentMethod ? calcPaymentFee(t.paymentMethod, g) : 0);
             const n = t.netAmount != null ? (parseFloat(t.netAmount) || 0) : Math.round((g - f) * 100) / 100;
@@ -3414,8 +3501,8 @@ let _incomeReportMonth = todayYmd().slice(0, 7); // specific month when _incomeR
 let _editingIncomeRowIdx = null;
 let _incomeRowEditInvoiceId = null;
 
-function _incomeRangeLabel(range) {
-    if (range === 'month') return _monthLabel(_incomeReportMonth || todayYmd().slice(0, 7));
+function _incomeRangeLabel(range, month) {
+    if (range === 'month') return _monthLabel(month || _incomeReportMonth || todayYmd().slice(0, 7));
     if (range === 'year') return todayYmd().slice(0, 4);
     return 'All time';
 }
@@ -3451,7 +3538,7 @@ function stepIncomeReportMonth(delta) {
 
 function _renderIncomeReport() {
     const range = _incomeReportRange;
-    const rows = collectIncomeRows(range);
+    const rows = collectIncomeRows(range, _incomeReportMonth);
     _incomeReportRows = rows;
 
     let gross = 0, fee = 0, net = 0, tips = 0, tax = 0, taxableG = 0;
@@ -3846,32 +3933,33 @@ function taxPrepDeleteSession(id) {
 /* ============================================================
    MILEAGE RENDERING + ENTRY
    ============================================================ */
-let _mileageRange = 'month';
 let _editingMileageDate = null;  // date string when editing an existing entry
 
-function setMileageRange(range) {
-    _mileageRange = range;
-    document.querySelectorAll('#mileageRangeTabs .income-range-tab').forEach(b => {
-        b.classList.toggle('active', b.dataset.range === range);
-    });
-    renderMileage();
-}
+// Mileage used to carry its own month/year/all switch, which quietly showed a
+// different period from the rest of the page. It follows the page period now.
+function setMileageRange(range) { setIncomeRange(range); }
 
 function renderMileage() {
     const today = todayYmd();
-    const thisYM = today.slice(0, 7);
     const thisY = today.slice(0, 4);
-    const inRange = (dateStr) => {
-        if (!dateStr) return false;
-        if (_mileageRange === 'month') return dateStr.startsWith(thisYM);
-        if (_mileageRange === 'year') return dateStr.startsWith(thisY);
-        return true;
-    };
-    const records = Store.getMileage().filter(r => inRange(r.date));
+    const inRange = (dateStr) => _incomeInRange(dateStr, _incomeRange);
+    const records = Store.view.mileage().filter(r => inRange(r.date));   // read only
 
-    // Rate note — show current year's rate
-    const currentRate = mileageRateForDate(today);
-    document.getElementById('mileageRateNote').textContent = `· IRS rate ${(currentRate * 100).toFixed(1)}¢/mi (${thisY})`;
+    // Rate note: name every rate actually applied to the miles on screen. 2026
+    // changed mid-year, so a period spanning July 1 uses two of them.
+    const periods = mileageByRatePeriod(records);
+    const noteEl = document.getElementById('mileageRateNote');
+    if (noteEl) {
+        if (periods.length === 0) {
+            noteEl.textContent = `· IRS rate ${(mileageRateForDate(today) * 100).toFixed(1)}\u00A2/mi`;
+        } else if (periods.length === 1) {
+            noteEl.textContent = `· IRS rate ${(periods[0].rate * 100).toFixed(1)}\u00A2/mi`;
+        } else {
+            noteEl.textContent = '\u00B7 ' + periods
+                .map(b => `${b.miles.toFixed(1)} mi at ${(b.rate * 100).toFixed(1)}\u00A2`)
+                .join(' + ');
+        }
+    }
 
     // Summary
     const totalMiles = records.reduce((s, r) => s + (parseFloat(r.miles) || 0), 0);
@@ -4039,7 +4127,7 @@ function _bfmDoLogSave(date, kMiles, cMiles, notes) {
         });
     }
     const ok = Store.saveMileage(records);
-    if (ok === false) { showToast('Could not save — try refreshing', 'error'); return; }
+    if (ok === false) { showToast('Could not save, try refreshing', 'error'); return; }
     closeModal('logMilesModal');
     _editingMileageDate = null;
     refreshAll();
@@ -4060,17 +4148,26 @@ function deleteLoggedMiles() {
 }
 
 /* ============================================================
-   BACKFILL MILEAGE — auto-calculated using 60-min gap rule
-   - Per (date, driver): if visits 60+ min apart, infers home trip between
+   BACKFILL MILEAGE — auto-calculated using the home-return gap rule
+   - Per (date, driver): if visits _BFM_HOME_RETURN_GAP_MIN+ min apart, infers home trip between
    - Pre-fills inputs with suggested miles; user can edit any value
    - Kept in sync with the calc in index.html's Backfill Workspace
    ============================================================ */
 const _BFM_VISIT_DURATION = { 'meet-greet': 15, '30min': 30, '60min': 60 };
+const _BFM_HOME_RETURN_GAP_MIN = 45;   // keep in step with BF_HOME_RETURN_GAP_MIN in index.html
 
 // Decides whether a visit counts toward a given driver's mileage.
 // Visits assigned to 'kasey' or 'both' (the default) count for Kasey — they took her car.
 // Visits explicitly assigned to 'charlie' count only for Charlie.
+// Records created by the Stripe / Venmo / Rover imports are payments, not trips:
+// no client, no address, and one payment often covers several days of work.
+// They count toward income only, never toward a day's driving.
+function _isImportedPaymentRecord(v) {
+    return !!(v && !v.clientId && (v.roverBookingId || v.venmoTxnId || v.stripeChargeId));
+}
 function _visitCountsForDriver(visit, driver) {
+    if (_isImportedPaymentRecord(visit)) return false;
+    if (visit.status === 'cancelled') return false;
     const a = visit.assignedTo || 'both';
     if (driver === 'kasey') return a === 'kasey' || a === 'both';
     return a === 'charlie';
@@ -4162,7 +4259,7 @@ function _bfmBuildDayMapsUrl(visits, clientsById) {
         const addr = addrFor(c);
         if (!addr) continue;
         const startMin = _bfmTimeToMin(v.time);
-        if (prevEndMin !== null && (startMin - prevEndMin) >= 60) {
+        if (prevEndMin !== null && (startMin - prevEndMin) >= _BFM_HOME_RETURN_GAP_MIN) {
             stops.push(homeAddr);
         }
         stops.push(addr);
@@ -4268,7 +4365,7 @@ async function _geocodioSingle(addressStr, apiKey) {
     try {
         const r = await fetch(url);
         console.log(`[geocodio] HTTP ${r.status}`);
-        if (r.status === 403) { showToast('Geocodio API key rejected — check settings', 'error'); return null; }
+        if (r.status === 403) { showToast('Geocodio API key rejected, check settings', 'error'); return null; }
         if (!r.ok) return null;
         const data = await r.json();
         const top = data?.results?.[0];
@@ -4294,7 +4391,7 @@ async function _geocodioBatch(addresses, apiKey) {
             body: JSON.stringify(addresses)
         });
         console.log(`[geocodio] batch HTTP ${r.status}`);
-        if (r.status === 403) { showToast('Geocodio API key rejected — check settings', 'error'); return addresses.map(() => null); }
+        if (r.status === 403) { showToast('Geocodio API key rejected, check settings', 'error'); return addresses.map(() => null); }
         if (r.status === 422) { showToast('Geocodio quota exceeded for today (2500/day free)', 'error'); return addresses.map(() => null); }
         if (!r.ok) return addresses.map(() => null);
         const data = await r.json();
@@ -4428,7 +4525,7 @@ function _bfmSaveHomeAddress() {
     const addr = (inp.value || '').trim();
     if (!addr) { showToast('Enter a home address', 'error'); return; }
     const ok = _saveHomeSetting({ homeAddress: addr, homeCoords: null });
-    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+    if (ok === false) { showToast('Save failed, check connection', 'error'); return; }
     showToast('Home address saved');
     openBackfillMilesModal();   // re-render
 }
@@ -4563,69 +4660,105 @@ function _bfmDoBackfillSave(toSave, allVisits) {
    ============================================================ */
 // 2026 federal tax constants (sources: IRS Rev. Proc. 2025-32, KY DOR).
 // Update annually if rates change.
+/* ============================================================
+   TAX CONSTANTS BY YEAR
+   Every figure below is from the IRS or the KY Department of
+   Revenue for that specific year. Checked 2026-09-20.
+
+   Two things that bite if you assume one year looks like another:
+   - 2026 mileage is a SPLIT year. 72.5 cents through June 30,
+     76 cents from July 1 (Announcement 2026-11). No other recent
+     year splits, so a single 2026 rate undercounts the back half.
+   - Kentucky was 4.0% in 2024 and 2025, and drops to 3.5% in 2026.
+   ============================================================ */
+
 const TAX_CONSTANTS = {
     KY_SALES_RATE: 0.06,
-    KY_INCOME_RATE: 0.035,         // KY flat individual income tax for 2026
-    SE_TAX_RATE: 0.153,            // 12.4% SS + 2.9% Medicare
-    SE_INCOME_ADJ: 0.9235,         // Only 92.35% of net SE earnings subject to SE tax
-    SS_WAGE_BASE_2026: 184500,     // Social Security cap for 2026
+    SE_TAX_RATE: 0.153,            // 12.4% Social Security + 2.9% Medicare
+    SE_INCOME_ADJ: 0.9235,         // only 92.35% of net SE earnings are subject to SE tax
+    SS_RATE: 0.124,
+    MEDICARE_RATE: 0.029,
+    ADDL_MEDICARE_RATE: 0.009,     // applies above the threshold below
+    ADDL_MEDICARE_THRESHOLD_MFJ: 250000,   // not inflation indexed
+    QBI_RATE: 0.20,                // Section 199A, made permanent by the OBBBA
+    SE_FILING_THRESHOLD: 400,      // net SE earnings at or above this require filing
 };
 
-// 2026 standard deduction by filing status
-const STANDARD_DEDUCTION_2026 = {
-    single: 16100,
-    mfj:    32200,   // Married Filing Jointly
-    hoh:    24150,
-    mfs:    16100,
-};
-
-// KY 2026 standard deduction (KRS 141.081, per-filer, applies to all filing statuses)
-const KY_STANDARD_DEDUCTION_2026 = 3360;
-
-// 2026 federal income tax brackets (taxable income, after standard deduction)
-// Each entry: [upper_bound_or_Infinity, rate]
-const FEDERAL_BRACKETS_2026 = {
-    single: [
-        [12400,   0.10],
-        [50400,   0.12],
-        [105700,  0.22],
-        [201775,  0.24],
-        [256225,  0.32],
-        [640600,  0.35],
-        [Infinity, 0.37],
-    ],
-    mfj: [
-        [24800,   0.10],
-        [100800,  0.12],
-        [211400,  0.22],
-        [403550,  0.24],
-        [512450,  0.32],
-        [768700,  0.35],
-        [Infinity, 0.37],
-    ],
-    hoh: [
-        [17700,   0.10],
-        [67450,   0.12],
-        [105700,  0.22],
-        [201775,  0.24],
-        [256225,  0.32],
-        [640600,  0.35],
-        [Infinity, 0.37],
-    ],
-    mfs: [
-        [12400,   0.10],
-        [50400,   0.12],
-        [105700,  0.22],
-        [201775,  0.24],
-        [256225,  0.32],
-        [384350,  0.35],
-        [Infinity, 0.37],
+// Business standard mileage rate. A year is either a flat rate or split periods.
+const IRS_MILEAGE_RATES = {
+    2022: 0.585,
+    2023: 0.655,
+    2024: 0.670,
+    2025: 0.700,
+    2026: [                                        // split year
+        { from: '2026-01-01', to: '2026-06-30', rate: 0.725 },
+        { from: '2026-07-01', to: '2026-12-31', rate: 0.760 },
     ],
 };
+const DEFAULT_MILEAGE_RATE = 0.760;   // fallback for years not listed above
 
-function applyFederalBrackets(taxableIncome, filingStatus) {
+const FEDERAL_STANDARD_DEDUCTION = {
+    // 2025 was raised retroactively by the OBBBA. 31,500 is the enacted figure,
+    // not the 30,000 originally published in Rev. Proc. 2024-40.
+    2024: { single: 14600, mfj: 29200, hoh: 21900, mfs: 14600 },
+    2025: { single: 15750, mfj: 31500, hoh: 23625, mfs: 15750 },
+    2026: { single: 16100, mfj: 32200, hoh: 24150, mfs: 16100 },
+};
+
+// KY standard deduction is per filer (KRS 141.081).
+// On a KY joint return (Status 4) a couple claims ONE of these. Filing
+// "separately on a combined return" (Status 2) lets each spouse claim their
+// own. Worth asking the preparer which is better for you.
+const KY_STANDARD_DEDUCTION = { 2024: 3160, 2025: 3270, 2026: 3360 };
+const KY_INCOME_RATE = { 2024: 0.040, 2025: 0.040, 2026: 0.035 };
+const SS_WAGE_BASE = { 2024: 168600, 2025: 176100, 2026: 184500 };
+
+// QBI phase-in. Below the first number the deduction is a clean 20% with no
+// wage or property limit. The OBBBA widened the MFJ range for 2026.
+const QBI_THRESHOLD = {
+    2024: { mfj: 383900, single: 191950, hoh: 191950, mfs: 191950 },
+    2025: { mfj: 394600, single: 197300, hoh: 197300, mfs: 197300 },
+    2026: { mfj: 403500, single: 201750, hoh: 201750, mfs: 201750 },
+};
+
+// Taxable income after the standard deduction. [upper bound, rate]
+const FEDERAL_BRACKETS = {
+    2024: {
+        single: [[11600,0.10],[47150,0.12],[100525,0.22],[191950,0.24],[243725,0.32],[609350,0.35],[Infinity,0.37]],
+        mfj:    [[23200,0.10],[94300,0.12],[201050,0.22],[383900,0.24],[487450,0.32],[731200,0.35],[Infinity,0.37]],
+        hoh:    [[16550,0.10],[63100,0.12],[100500,0.22],[191950,0.24],[243700,0.32],[609350,0.35],[Infinity,0.37]],
+        mfs:    [[11600,0.10],[47150,0.12],[100525,0.22],[191950,0.24],[243725,0.32],[365600,0.35],[Infinity,0.37]],
+    },
+    2025: {
+        single: [[11925,0.10],[48475,0.12],[103350,0.22],[197300,0.24],[250525,0.32],[626350,0.35],[Infinity,0.37]],
+        mfj:    [[23850,0.10],[96950,0.12],[206700,0.22],[394600,0.24],[501050,0.32],[751600,0.35],[Infinity,0.37]],
+        hoh:    [[17000,0.10],[64850,0.12],[103350,0.22],[197300,0.24],[250500,0.32],[626350,0.35],[Infinity,0.37]],
+        mfs:    [[11925,0.10],[48475,0.12],[103350,0.22],[197300,0.24],[250525,0.32],[375800,0.35],[Infinity,0.37]],
+    },
+    2026: {
+        single: [[12400,0.10],[50400,0.12],[105700,0.22],[201775,0.24],[256225,0.32],[640600,0.35],[Infinity,0.37]],
+        mfj:    [[24800,0.10],[100800,0.12],[211400,0.22],[403550,0.24],[512450,0.32],[768700,0.35],[Infinity,0.37]],
+        hoh:    [[17700,0.10],[67450,0.12],[105700,0.22],[201775,0.24],[256225,0.32],[640600,0.35],[Infinity,0.37]],
+        mfs:    [[12400,0.10],[50400,0.12],[105700,0.22],[201775,0.24],[256225,0.32],[384350,0.35],[Infinity,0.37]],
+    },
+};
+
+const TAX_YEARS = [2024, 2025, 2026];
+const DEFAULT_TAX_YEAR = 2026;
+function _taxYearOf(dateStr) {
+    const y = parseInt(String(dateStr || '').slice(0, 4), 10);
+    return isNaN(y) ? DEFAULT_TAX_YEAR : y;
+}
+// Nearest year we have real figures for, so an out-of-range date still computes.
+function _clampTaxYear(year) {
+    if (FEDERAL_BRACKETS[year]) return year;
+    return year < TAX_YEARS[0] ? TAX_YEARS[0] : TAX_YEARS[TAX_YEARS.length - 1];
+}
+
+function applyFederalBrackets(taxableIncome, filingStatus, year) {
     if (taxableIncome <= 0) return 0;
-    const brackets = FEDERAL_BRACKETS_2026[filingStatus] || FEDERAL_BRACKETS_2026.mfj;
+    const table = FEDERAL_BRACKETS[_clampTaxYear(year || DEFAULT_TAX_YEAR)];
+    const brackets = table[filingStatus] || table.mfj;
     let tax = 0, prevBound = 0;
     for (const [bound, rate] of brackets) {
         if (taxableIncome <= bound) {
@@ -4718,12 +4851,41 @@ function renderTaxSettings() {
 }
 
 // Compute SE tax accurately, respecting the Social Security wage base cap
-function calcSelfEmploymentTax(seIncome) {
+function calcSelfEmploymentTax(seIncome, year, filingStatus) {
     if (seIncome <= 0) return 0;
+    const y = _clampTaxYear(year || DEFAULT_TAX_YEAR);
     const adjustedSE = seIncome * TAX_CONSTANTS.SE_INCOME_ADJ;
-    const ssPortion = Math.min(adjustedSE, TAX_CONSTANTS.SS_WAGE_BASE_2026) * 0.124;
-    const medicarePortion = adjustedSE * 0.029;
-    return Math.round((ssPortion + medicarePortion) * 100) / 100;
+    const ssPortion = Math.min(adjustedSE, SS_WAGE_BASE[y]) * TAX_CONSTANTS.SS_RATE;
+    const medicarePortion = adjustedSE * TAX_CONSTANTS.MEDICARE_RATE;
+    // 0.9% extra Medicare above the threshold. Flat $250k for MFJ, never indexed.
+    const threshold = filingStatus === 'mfj' ? TAX_CONSTANTS.ADDL_MEDICARE_THRESHOLD_MFJ
+                    : filingStatus === 'mfs' ? 125000 : 200000;
+    const addl = Math.max(0, adjustedSE - threshold) * TAX_CONSTANTS.ADDL_MEDICARE_RATE;
+    return Math.round((ssPortion + medicarePortion + addl) * 100) / 100;
+}
+
+/* Section 199A qualified business income deduction. Below the phase-in
+   threshold it is a flat 20% of QBI, with no wage or property limit and no
+   restriction on the type of business. QBI is the business profit reduced by
+   the deductions that came out of it: half of SE tax, self-employed health
+   insurance and self-employed retirement contributions. The deduction is also
+   capped at 20% of taxable income before it is applied. */
+function calcQbiDeduction({ businessProfit, seTaxDeduction, healthInsurance, retirementContributions, agi, standardDeduction, filingStatus, year }) {
+    const y = _clampTaxYear(year || DEFAULT_TAX_YEAR);
+    const qbi = Math.max(0, businessProfit - (seTaxDeduction || 0) - (healthInsurance || 0) - (retirementContributions || 0));
+    if (qbi <= 0) return { deduction: 0, qbi: 0, limited: false, overThreshold: false };
+    const taxableBeforeQbi = Math.max(0, (agi || 0) - (standardDeduction || 0));
+    const raw = qbi * TAX_CONSTANTS.QBI_RATE;
+    const incomeCap = taxableBeforeQbi * TAX_CONSTANTS.QBI_RATE;
+    const deduction = Math.round(Math.min(raw, incomeCap) * 100) / 100;
+    const thresholds = QBI_THRESHOLD[y] || QBI_THRESHOLD[DEFAULT_TAX_YEAR];
+    return {
+        deduction,
+        qbi: Math.round(qbi * 100) / 100,
+        limited: incomeCap < raw,
+        // Past this point the calculation gets more involved than this does.
+        overThreshold: taxableBeforeQbi > (thresholds[filingStatus] || thresholds.mfj)
+    };
 }
 
 /* Helper: percentage of value relative to a base (capped at 100), for tax-flow bars. */
@@ -4732,6 +4894,18 @@ function _tfPct(value, base) {
     const pct = (Math.abs(value) / base) * 100;
     return Math.min(100, pct).toFixed(1);
 }
+
+// Which year the projection is showing. Set by the year picker.
+let _taxProjectionYear = DEFAULT_TAX_YEAR;
+function setTaxProjectionYear(y) {
+    _taxProjectionYear = _clampTaxYear(parseInt(y, 10) || DEFAULT_TAX_YEAR);
+    try { localStorage.setItem('myreliacare_tax_year', String(_taxProjectionYear)); } catch (e) {}
+    if (typeof refreshAll === 'function') refreshAll();
+}
+try {
+    const _savedTaxYear = parseInt(localStorage.getItem('myreliacare_tax_year'), 10);
+    if (_savedTaxYear) _taxProjectionYear = _clampTaxYear(_savedTaxYear);
+} catch (e) {}
 
 function renderTaxProjection() {
     // Tax projection is locked to the current year (annual settings need annual scope)
@@ -4744,8 +4918,8 @@ function renderTaxProjection() {
 
     // ─── Gross collected ──────────────────────────────────────
     const _paidInvVisits = _paidInvoiceVisitIds();
-    const paidInvoices = Store.getInvoices().filter(i => i.status === 'paid' && !i.excludeIncome && inRange(_invoiceServiceDate(i)));
-    const directVisits = Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));
+    const paidInvoices = Store.view.invoices().filter(i => i.status === 'paid' && !i.excludeIncome && inRange(_invoiceServiceDate(i)));   // read only
+    const directVisits = Store.view.visits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inRange(v.date || v.paidDate));   // read only
     let gross = 0;
     let totalFees = 0;
     let salesTaxableGross = 0;
@@ -4770,7 +4944,7 @@ function renderTaxProjection() {
     // ─── Tips (taxable income, but NOT subject to sales tax) ────
     // Also accumulate any processor fees attached to tips — they're deductible
     // business expenses just like invoice/visit fees, so they roll into totalFees.
-    const tips = Store.getClients().reduce((sum, c) => {
+    const tips = Store.view.clients().reduce((sum, c) => {   // read only
         if (!Array.isArray(c.tips)) return sum;
         return sum + c.tips.filter(t => inRange(t.date)).reduce((s, t) => {
             const amt = parseFloat(t.amount) || 0;
@@ -4782,7 +4956,7 @@ function renderTaxProjection() {
     }, 0);
 
     // ─── Mileage deduction ──────────────────────────────────
-    const mileageRecords = Store.getMileage().filter(r => inRange(r.date));
+    const mileageRecords = Store.view.mileage().filter(r => inRange(r.date));   // read only
     const mileageDeduction = calcMileageDeduction(mileageRecords);
     const totalMiles = mileageRecords.reduce((s, r) => s + (parseFloat(r.miles) || 0), 0);
 
@@ -4795,11 +4969,13 @@ function renderTaxProjection() {
     const otherTaxable = settings.otherTaxableIncome;
     const healthInsurance = settings.healthInsurance;
     const retirementContrib = settings.retirementContributions;
-    const stdDeduction = STANDARD_DEDUCTION_2026[settings.filingStatus];
+    // Year drives every rate, bracket and deduction below.
+    const taxYear = _clampTaxYear(_taxProjectionYear || DEFAULT_TAX_YEAR);
+    const stdDeduction = FEDERAL_STANDARD_DEDUCTION[taxYear][settings.filingStatus];
 
     // ─── SE tax on combined SE income ────────────────────────
     const combinedSeIncome = netBusinessIncome + otherSe;
-    const seTax = calcSelfEmploymentTax(combinedSeIncome);
+    const seTax = calcSelfEmploymentTax(combinedSeIncome, taxYear, settings.filingStatus);
     const seTaxDeduction = seTax / 2;  // Half SE tax is deductible (above-the-line)
 
     // ─── AGI = combined SE - half SE tax - SE health ins - retirement + other taxable ──
@@ -4808,32 +4984,49 @@ function renderTaxProjection() {
     const allowedHealthIns = Math.min(healthInsurance, seEarningsAfterTax);
     const agi = Math.max(0, combinedSeIncome - seTaxDeduction - allowedHealthIns - retirementContrib + otherTaxable);
 
+    // ─── QBI deduction (Section 199A) ────────────────────────
+    // 20% of business profit, taken after the standard deduction and before
+    // the brackets. Federal only; Kentucky starts from AGI so it doesn't apply.
+    const qbi = calcQbiDeduction({
+        businessProfit: netBusinessIncome + otherSe,
+        seTaxDeduction, healthInsurance: allowedHealthIns,
+        retirementContributions: retirementContrib,
+        agi, standardDeduction: stdDeduction,
+        filingStatus: settings.filingStatus, year: taxYear
+    });
+    const qbiDeduction = qbi.deduction;
+
     // ─── Federal taxable income → progressive brackets ───────
-    const federalTaxableIncome = Math.max(0, agi - stdDeduction);
-    const federalTax = applyFederalBrackets(federalTaxableIncome, settings.filingStatus);
+    const federalTaxableIncome = Math.max(0, agi - stdDeduction - qbiDeduction);
+    const federalTax = applyFederalBrackets(federalTaxableIncome, settings.filingStatus, taxYear);
 
     // ─── KY income tax: 3.5% × (AGI - KY std deduction) ──────
     // KY std deduction is per-filer ($3,360). Couples where both spouses earn income may
     // file "MFS on combined return" and claim 2x; but with only one earner (Kasey's case),
     // the unused portion is wasted. Default to 1x (conservative for single-earner couples).
-    const kyStdDed = KY_STANDARD_DEDUCTION_2026;
+    const kyStdDed = KY_STANDARD_DEDUCTION[taxYear];
     const kyTaxableIncome = Math.max(0, agi - kyStdDed);
-    const kyIncomeTax = Math.round(kyTaxableIncome * TAX_CONSTANTS.KY_INCOME_RATE * 100) / 100;
+    const kyIncomeTax = Math.round(kyTaxableIncome * KY_INCOME_RATE[taxYear] * 100) / 100;
 
     // ─── Set aside total ─────────────────────────────────────
     const setAside = Math.round((salesTaxOwed + seTax + federalTax + kyIncomeTax) * 100) / 100;
     const effectiveRate = gross > 0 ? (setAside / gross * 100) : 0;
 
-    // ─── This month's set-aside: blended effective rate applied to this month's collected income ──
-    const monthPrefix = todayYmd().slice(0, 7);  // 'YYYY-MM'
-    const inMonth = (d) => d && d.startsWith(monthPrefix);
+    // ─── Set-aside for the period on screen: the blended effective rate applied
+    // to what was actually collected in that period. Follows the period tabs, so
+    // stepping back to July shows July's set-aside, not this month's. ──
+    const periodIsMonth = _incomeRange === 'month';
+    const monthPrefix = periodIsMonth ? _incomeMonth : todayYmd().slice(0, 7);
+    const inMonth = (d) => _incomeInRange(d, _incomeRange, _incomeMonth);
     let monthGross = 0;
-    Store.getInvoices().filter(i => i.status === 'paid' && !i.excludeIncome && inMonth(_invoiceServiceDate(i))).forEach(inv => { monthGross += parseFloat(inv.total) || 0; });
-    Store.getVisits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inMonth(v.date || v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });
+    Store.view.invoices().filter(i => i.status === 'paid' && !i.excludeIncome && inMonth(_invoiceServiceDate(i))).forEach(inv => { monthGross += parseFloat(inv.total) || 0; });   // read only
+    Store.view.visits().filter(v => v.paid && !v.invoiced && !v.roverSuperseded && !v.excludeIncome && !_paidInvVisits.has(v.id) && inMonth(v.date || v.paidDate)).forEach(v => { monthGross += parseFloat(v.price) || 0; });   // read only
     monthGross = Math.round(monthGross * 100) / 100;
     const monthSetAside = Math.round(monthGross * (effectiveRate / 100) * 100) / 100;
     const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const monthName = MONTH_NAMES[parseInt(monthPrefix.slice(5, 7), 10) - 1];
+    const monthName = periodIsMonth
+        ? MONTH_NAMES[parseInt(monthPrefix.slice(5, 7), 10) - 1]
+        : (_incomeRange === 'year' ? todayYmd().slice(0, 4) : 'all time');
     _lastTaxSummary = { monthSetAside, ytdSetAside: setAside, effectiveRate, monthName };
 
     const body = document.getElementById('taxProjectionBody');
@@ -5001,6 +5194,57 @@ function toggleFinSec(key) {
 }
 function _fmtMoney(n) { return '$' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
+/* Open a collapsed accordion section and scroll it into view. Used by the
+   snapshot tiles so a number always leads to the detail behind it. */
+function openFinSec(key) {
+    const sec = document.querySelector(`.fin-sec[data-sec="${key}"]`);
+    if (!sec) return;
+    if (!sec.classList.contains('open')) toggleFinSec(key);
+    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* Who owes you, oldest first. Every row opens that invoice. */
+function openOutstanding() {
+    const today = todayYmd();
+    const unpaid = Store.view.invoices()   // read only
+        .filter(i => i.status !== 'paid')
+        .slice()
+        .sort((a, b) => (a.issueDate || '').localeCompare(b.issueDate || ''));
+    const total = unpaid.reduce((s, i) => s + (parseFloat(i.total) || 0), 0);
+    const body = document.getElementById('outstandingBody');
+    if (!body) return;
+
+    if (unpaid.length === 0) {
+        body.innerHTML = `<div class="empty-state"><h3>Nothing outstanding</h3><p>Every invoice is paid.</p></div>`;
+    } else {
+        const rows = unpaid.map(inv => {
+            const age = inv.issueDate ? daysBetween(inv.issueDate, today) : 0;
+            const overdue = inv.dueDate && inv.dueDate < today;
+            const ageLabel = age > 0 ? `${age} day${age === 1 ? '' : 's'} old` : 'today';
+            return `
+                <button type="button" class="os-row" onclick="closeOutstanding(); editInvoice('${inv.id}')">
+                    <div class="os-main">
+                        <div class="os-client">${escapeHtml(invoiceClientDisplayName(inv))}</div>
+                        <div class="os-meta">${escapeHtml(inv.invoiceNumber || '')} · ${formatDate(inv.issueDate)} · ${ageLabel}${overdue ? ' · <span class="os-overdue">past due</span>' : ''}</div>
+                    </div>
+                    <div class="os-right">
+                        <div class="os-amount">${_fmtMoney(inv.total)}</div>
+                        <div class="os-status ${inv.status}">${inv.status}</div>
+                    </div>
+                </button>`;
+        }).join('');
+        const draftCount = unpaid.filter(i => i.status === 'draft').length;
+        body.innerHTML = `
+            <div class="os-summary">
+                <span>${_fmtMoney(total)} across ${unpaid.length} invoice${unpaid.length === 1 ? '' : 's'}</span>
+                ${draftCount > 0 ? `<span class="os-note">${draftCount} still in draft, so ${draftCount === 1 ? 'it has' : 'they have'} not been sent</span>` : ''}
+            </div>
+            ${rows}`;
+    }
+    openModal('outstandingModal');
+}
+function closeOutstanding() { closeModal('outstandingModal'); }
+
 function renderFinanceChrome() {
     const periodLabel = _incomeRange === 'month' ? _monthLabel(_incomeMonth) : (_incomeRange === 'year' ? ('Year ' + todayYmd().slice(0, 4)) : 'All time');
 
@@ -5017,21 +5261,21 @@ function renderFinanceChrome() {
     const snap = document.getElementById('finSnapshot');
     if (snap) {
         snap.innerHTML = `
-            <div class="fin-tile">
+            <button type="button" class="fin-tile" onclick="openIncomeReport(_incomeRange)">
                 <div class="fin-tile-label">Net deposited</div>
                 <div class="fin-tile-value net">${_fmtMoney(_lastIncomeTotals.net)}</div>
-                <div class="fin-tile-sub">${periodLabel}</div>
-            </div>
-            <div class="fin-tile">
+                <div class="fin-tile-sub">${periodLabel} <span class="fin-tile-go">see payments</span></div>
+            </button>
+            <button type="button" class="fin-tile" onclick="openFinSec('taxes')">
                 <div class="fin-tile-label">Set aside</div>
                 <div class="fin-tile-value gold">${_fmtMoney(_lastTaxSummary.monthSetAside)}</div>
-                <div class="fin-tile-sub">${_lastTaxSummary.monthName || 'this month'}</div>
-            </div>
-            <div class="fin-tile">
+                <div class="fin-tile-sub">${_lastTaxSummary.monthName || 'this month'} <span class="fin-tile-go">see the math</span></div>
+            </button>
+            <button type="button" class="fin-tile" onclick="openOutstanding()">
                 <div class="fin-tile-label">Outstanding</div>
                 <div class="fin-tile-value terra">${_fmtMoney(outstanding)}</div>
-                <div class="fin-tile-sub">${unpaid.length} unpaid invoice${unpaid.length === 1 ? '' : 's'}</div>
-            </div>`;
+                <div class="fin-tile-sub">${unpaid.length} unpaid invoice${unpaid.length === 1 ? '' : 's'} <span class="fin-tile-go">see who owes</span></div>
+            </button>`;
     }
     _applyFinSecState();
     if(typeof _syncMuteInvoicesBtn==="function") _syncMuteInvoicesBtn();
@@ -5054,7 +5298,7 @@ function init() {
     const _fixedInvoiced = reconcileInvoicedFlags();
     refreshAll();
     if (_fixedInvoiced > 0) {
-        setTimeout(() => showToast(`Updated ${_fixedInvoiced} past visit${_fixedInvoiced === 1 ? '' : 's'} linked to paid invoices — no longer double-counted`), 500);
+        setTimeout(() => showToast(`Updated ${_fixedInvoiced} past visit${_fixedInvoiced === 1 ? '' : 's'} linked to paid invoices, no longer double-counted`), 500);
     }
 
     // Handle ?openInvoice=invoiceId — opens that invoice's detail view (from global search)

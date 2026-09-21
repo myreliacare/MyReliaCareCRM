@@ -776,6 +776,7 @@ function attachListeners() {
             const newJson = JSON.stringify(merged);
             if (oldJson === newJson) return;
             _state[c.stateKey] = merged;
+            _bumpDataGen();   // invalidate read indexes
             try { localStorage.setItem(c.storageKey, newJson); }
             catch (e) {
                 if (e && e.name === 'QuotaExceededError') {
@@ -826,7 +827,74 @@ function _notifyDataChange() {
 // would cause "no diff detected" and silently skip the Firestore write.
 function _deepClone(x) { return JSON.parse(JSON.stringify(x)); }
 
+/* --- READ VIEWS AND INDEXES ---------------------------------------
+   The deep-cloning getters above are correct but expensive: each call
+   copies an entire collection. Render code reads the same collections
+   dozens of times per pass, which is what made the app feel slow.
+
+   Store.view.*  hands back the LIVE array — no copy.
+   Store.index() hands back lookup maps, rebuilt only when data changes.
+
+   Anything from view or index is READ ONLY. Never mutate it, never
+   .sort() it in place, and never pass it to a save* method. Use the
+   get* methods for anything you intend to edit and save.
+------------------------------------------------------------------ */
+let _dataGen = 0;
+let _indexCache = null;
+// Per-collection map of id -> serialized record, stamped with the generation
+// it was built for. Only trusted when the stamp still matches.
+const _serialCache = {};
+function _bumpDataGen() { _dataGen++; _indexCache = null; }
+
+function _groupBy(arr, keyFn) {
+    const m = new Map();
+    for (const item of arr) {
+        const k = keyFn(item);
+        if (k == null) continue;
+        const bucket = m.get(k);
+        if (bucket) bucket.push(item); else m.set(k, [item]);
+    }
+    return m;
+}
+
+const EMPTY = Object.freeze([]);
+
+window._storeIndex = function () {
+    if (_indexCache && _indexCache.gen === _dataGen) return _indexCache;
+    const clientsById = new Map();
+    for (const c of _state.clients) if (c && c.id) clientsById.set(c.id, c);
+    _indexCache = {
+        gen: _dataGen,
+        clientsById,
+        visitsByDate:    _groupBy(_state.visits, v => v && v.date),
+        visitsByClient:  _groupBy(_state.visits, v => v && v.clientId),
+        visitsById:      new Map(_state.visits.map(v => [v && v.id, v])),
+        invoicesByClient:_groupBy(_state.invoices, i => i && i.clientId),
+        personalByDate:  _groupBy(_state.personalEvents, p => p && p.date),
+        mileageByDate:   _groupBy(_state.mileage, m => m && m.date),
+        // Convenience: a bucket lookup that never returns undefined
+        visitsOn:   (d) => _indexCache.visitsByDate.get(d) || EMPTY,
+        personalOn: (d) => _indexCache.personalByDate.get(d) || EMPTY,
+        visitsFor:  (id) => _indexCache.visitsByClient.get(id) || EMPTY,
+        invoicesFor:(id) => _indexCache.invoicesByClient.get(id) || EMPTY,
+        client:     (id) => clientsById.get(id) || null
+    };
+    return _indexCache;
+};
+
 window.Store = {
+    // Live, uncopied reads. Read only — see the note above.
+    view: {
+        clients:        () => _state.clients,
+        visits:         () => _state.visits,
+        personalEvents: () => _state.personalEvents,
+        invoices:       () => _state.invoices,
+        quickNotes:     () => _state.quickNotes,
+        mileage:        () => _state.mileage,
+        settings:       () => _state.settings
+    },
+    index() { return window._storeIndex(); },
+    dataGen() { return _dataGen; },
     load(key, defaultValue) {
         try {
             const raw = localStorage.getItem(key);
@@ -948,6 +1016,27 @@ function _saveCollection(coll, newArr) {
     const oldById = Object.fromEntries(oldArr.map(x => [x.id, x]));
     const newIds = new Set(newArr.map(x => x.id));
 
+    // Change detection used to run JSON.stringify twice per record on every
+    // save — the whole collection serialized four times to write one row.
+    // Each record is serialized once here and the verdict is reused below and
+    // handed to _persistToFirestore so it doesn't repeat the work.
+    const _changed = new Set();   // ids that are new or edited
+    const _newJson = new Map();   // id -> serialized record
+    // The previous save already serialized every record. If nothing has changed
+    // the state since then, that map is still valid as the "old" side of the
+    // diff, so each record is serialized once per save instead of twice.
+    const _prev = _serialCache[coll.stateKey];
+    const _oldJson = (_prev && _prev.gen === _dataGen) ? _prev.map : null;
+    for (const item of newArr) {
+        if (!item.id) continue;
+        const js = JSON.stringify(item);
+        _newJson.set(item.id, js);
+        const old = oldById[item.id];
+        if (!old) { _changed.add(item.id); continue; }
+        const oldJs = _oldJson ? _oldJson.get(item.id) : undefined;
+        if ((oldJs !== undefined ? oldJs : JSON.stringify(old)) !== js) _changed.add(item.id);
+    }
+
     // Track op IDs queued for THIS save so we can clear them from the persistent
     // log when Firestore confirms. The log is the safety net against the
     // tab-closes-mid-write data-loss pattern — see PERSISTENT PENDING-OPS LOG above.
@@ -956,8 +1045,7 @@ function _saveCollection(coll, newArr) {
     // Mark items being written/updated as pending (so listener doesn't lose them to stale snapshots)
     for (const item of newArr) {
         if (!item.id) continue;
-        const old = oldById[item.id];
-        if (!old || JSON.stringify(old) !== JSON.stringify(item)) {
+        if (_changed.has(item.id)) {
             _pendingWrites.add(item.id);
             const id = _enqueueOp(coll.name, 'write', item);
             if (id) opIds.push(id);
@@ -972,8 +1060,14 @@ function _saveCollection(coll, newArr) {
         }
     }
 
-    // Optimistic local update — caller's next get*() returns fresh data
-    _state[coll.stateKey] = JSON.parse(JSON.stringify(newArr));
+    // Optimistic local update — caller's next get*() returns fresh data.
+    // The same JSON string is reused for the localStorage cache below, so the
+    // collection is serialized once here instead of twice.
+    let _newArrJson = null;
+    try { _newArrJson = JSON.stringify(newArr); } catch (e) { _newArrJson = null; }
+    _state[coll.stateKey] = _newArrJson != null ? JSON.parse(_newArrJson) : JSON.parse(JSON.stringify(newArr));
+    _bumpDataGen();   // invalidate read indexes
+    _serialCache[coll.stateKey] = { gen: _dataGen, map: _newJson };   // reused by the next save's diff
     // Notify the UI immediately. The listener's later snapshot will diff equal
     // and skip — so this is the ONLY signal that fires for local writes.
     // Without this, summaries on other parts of the page (finances totals, tax
@@ -981,7 +1075,7 @@ function _saveCollection(coll, newArr) {
     _scheduleNotify();
     // localStorage cache write — surface quota / corruption failures
     try {
-        localStorage.setItem(coll.storageKey, JSON.stringify(newArr));
+        localStorage.setItem(coll.storageKey, _newArrJson != null ? _newArrJson : JSON.stringify(newArr));
     } catch (e) {
         console.error(`[storage] localStorage write failed for ${coll.name}:`, e);
         if (e && e.name === 'QuotaExceededError') {
@@ -994,7 +1088,7 @@ function _saveCollection(coll, newArr) {
 
     // Push to Firestore (async). Listener will reconcile.
     _syncPendingOps++;
-    _persistToFirestore(coll, oldArr, newArr)
+    _persistToFirestore(coll, oldArr, newArr, _changed)
         .then(() => {
             _syncPendingOps--;
             // Firestore confirmed — clear these ops from the persistent log.
@@ -1013,7 +1107,9 @@ function _saveCollection(coll, newArr) {
     return true;
 }
 
-async function _persistToFirestore(coll, oldArr, newArr) {
+// changedIds: optional Set from _saveCollection, so the same diff isn't computed
+// twice. Without it (direct callers) the comparison is done here as before.
+async function _persistToFirestore(coll, oldArr, newArr, changedIds) {
     const oldById = Object.fromEntries(oldArr.map(x => [x.id, x]));
     const newIds = new Set(newArr.map(x => x.id));
     const ops = [];
@@ -1023,7 +1119,9 @@ async function _persistToFirestore(coll, oldArr, newArr) {
         if (!item.id) item.id = _generateSyncId(coll.stateKey);
         const old = oldById[item.id];
         const isNew = !old;
-        const isChanged = old && JSON.stringify(old) !== JSON.stringify(item);
+        const isChanged = changedIds
+            ? (!isNew && changedIds.has(item.id))
+            : (old && JSON.stringify(old) !== JSON.stringify(item));
         if (isNew || isChanged) {
             const { id, ...data } = item;
             const cleaned = JSON.parse(JSON.stringify(data));  // strips undefined

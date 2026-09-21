@@ -1149,14 +1149,8 @@
         .vt-timer-btn.stop { background: var(--warn); }
         .vt-edit-time { background: none; border: none; color: var(--text-faint); font-family: inherit; font-size: 0.8em; text-decoration: underline; cursor: pointer; }
         .vt-section-title { font-family: 'Cormorant Unicase', serif; font-size: 0.95em; letter-spacing: 0.5px; color: var(--text-dim); text-transform: uppercase; margin: 18px 0 9px; }
-        .vt-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-        .vt-chip { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-dim); border-radius: 50px; padding: 9px 15px; font-family: inherit; font-size: 0.95em; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.12s, color 0.12s, border-color 0.12s; }
-        .vt-chip.on { background: var(--success); border-color: var(--success); color: var(--bg-deep); font-weight: 600; }
-        .vt-walk-miles { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
-        .vt-walk-miles label { color: var(--text-dim); font-size: 0.95em; }
-        .vt-miles-input { display: flex; align-items: center; gap: 6px; }
-        .vt-miles-input input { width: 90px; padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; text-align: right; min-width: 0; }
-        .vt-miles-input span { color: var(--text-faint); }
+        .bf-route-btn { display: inline-block; margin: 6px 0 8px; padding: 6px 12px; text-decoration: none; font-size: 0.85em; }
+        .bf-route-missing { display: block; margin: 6px 0 8px; color: var(--warn); font-size: 0.85em; }
         .vt-note { width: 100%; padding: 11px 13px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; resize: vertical; box-sizing: border-box; }
         .vt-actions { display: flex; gap: 10px; margin-top: 22px; }
         .vt-actions .btn { flex: 1; }
@@ -3261,7 +3255,7 @@ function uploadLogo(event) {
                 showToast('Logo updated');
             } catch (err) {
                 if (err && (err.name === 'QuotaExceededError' || err.code === 22)) {
-                    showToast('Image too large to save — try a smaller photo', 'error');
+                    showToast('Image too large to save, try a smaller photo', 'error');
                 } else {
                     showToast('Could not save logo', 'error');
                 }
@@ -3308,17 +3302,28 @@ function parseYmd(str) {
     const [y, m, d] = str.split('-').map(Number);
     return new Date(y, m - 1, d);
 }
-function formatDateLong(str) {
-    const d = parseYmd(str);
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-}
-function formatDate(str) {
-    // Short date used by the mileage banner and unpaid-visits list. Was referenced
-    // but never defined on this page (only existed in invoices.html), which threw
-    // "formatDate is not defined" and aborted refreshAll whenever those rendered.
+/* Date formatting is called thousands of times per render over a handful of
+   distinct dates. toLocaleDateString spins up a new Intl formatter every call,
+   so the formatters are built once and the results memoized by date string. */
+const _DTF = {
+    long:  new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+    short: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+};
+const _dateMemo = { long: new Map(), short: new Map() };
+function _fmtYmd(str, style) {
     if (!str) return '';
-    return parseYmd(str).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const memo = _dateMemo[style];
+    let out = memo.get(str);
+    if (out === undefined) {
+        out = _DTF[style].format(parseYmd(str));
+        if (memo.size > 3000) memo.clear();
+        memo.set(str, out);
+    }
+    return out;
 }
+function formatDateLong(str) { return _fmtYmd(str, 'long'); }
+// Short date used by the mileage banner and unpaid-visits list.
+function formatDate(str) { return _fmtYmd(str, 'short'); }
 function formatTime12(t) {
     if (!t) return '';
     const [h, m] = t.split(':').map(Number);
@@ -3697,7 +3702,7 @@ function createInlineClient() {
     document.getElementById('clientDropdown').classList.remove('active');
 
     // address/access stay empty — user can fill in for THIS visit, then update full client record on the Clients page later
-    showToast(`Added "${name}" — fill in their full info on the Clients page later`);
+    showToast(`Added "${name}", fill in their full info on the Clients page later`);
 }
 
 function addVisitRow(prefilledDate = null, isAuto = false) {
@@ -3823,7 +3828,7 @@ function applyRangeBuilder() {
     const end = document.getElementById('rb_end').value;
     if (!start || !end) { showToast('Pick start and end dates', 'error'); return; }
     if (parseYmd(start) > parseYmd(end)) { showToast('End date must be after start date', 'error'); return; }
-    if (monthsBetween(start, end) > 3) { showToast('Range too long — max 3 months at once', 'error'); return; }
+    if (monthsBetween(start, end) > 3) { showToast('Range too long, max 3 months at once', 'error'); return; }
 
     const timeRows = document.querySelectorAll('#rb_times .time-line');
     if (timeRows.length === 0) { showToast('Add at least one time slot', 'error'); return; }
@@ -3868,7 +3873,7 @@ function applyRangeBuilder() {
     cancelRangeBuilder();
     fillEmptyPricesFromClient();
     refreshAllRowHints();
-    showToast(`Added ${added} visit${added === 1 ? '' : 's'} — review & save`);
+    showToast(`Added ${added} visit${added === 1 ? '' : 's'}, review & save`);
 }
 
 function buildDayCheckboxes() {
@@ -3999,7 +4004,7 @@ function saveSchedule() {
 
     const ok = Store.saveVisits([...visits, ...toCreate]);
     if (ok === false) {
-        showToast('Could not save — you may be signed out. Please refresh and sign in again.', 'error');
+        showToast('Could not save, you may be signed out. Please refresh and sign in again.', 'error');
         return;
     }
 
@@ -4368,7 +4373,7 @@ function saveTip() {
     });
     const ok = Store.saveClients(clients);
     if (ok === false) {
-        showToast('Could not save — try refreshing', 'error');
+        showToast('Could not save, try refreshing', 'error');
         return;
     }
     closeModal('addTipModal');
@@ -4603,8 +4608,11 @@ function _initViewFilter() {
 }
 
 function getEventsForDate(dateStr) {
-    const visits = _filterVisitsByDriver(Store.getVisits().filter(v => v.date === dateStr));
-    const personal = Store.getPersonalEvents().filter(p => p.date === dateStr);
+    // Read-only path: uses the date index instead of cloning every visit in the
+    // book for each calendar cell. The spread below copies each event anyway.
+    const idx = Store.index();
+    const visits = _filterVisitsByDriver(idx.visitsOn(dateStr));
+    const personal = idx.personalOn(dateStr);
     const all = [
         ...visits.map(v => ({ ...v, _type: 'visit', _sortTime: v.time || '' })),
         ...personal.map(p => ({ ...p, _type: 'personal', _sortTime: p.time || '' }))
@@ -5413,7 +5421,7 @@ function renderWeeklySnapshot() {
     const dates = [];
     for (let i = 0; i < 7; i++) dates.push(ymd(addDays(sundayStart, i)));
 
-    const visits = _filterVisitsByDriver(Store.getVisits());
+    const visits = _filterVisitsByDriver(Store.view.visits());   // read only
     const weekVisits = visits.filter(v => dates.includes(v.date));
     const earnedWeekVisits = weekVisits.filter(isVisitEarned);
     const totalCount = weekVisits.length;
@@ -5424,7 +5432,7 @@ function renderWeeklySnapshot() {
     // (plus any legacy per-visit tips on earned visits this week, for backward compat)
     const earnedVisitRevenue = earnedWeekVisits.reduce((s, v) => s + (v.price || 0), 0);
     const legacyTipsThisWeek = earnedWeekVisits.reduce((s, v) => s + (v.tip || 0), 0);
-    const clients = Store.getClients();
+    const clients = Store.view.clients();   // read only
     const clientTipsThisWeek = clients.reduce((s, c) => {
         if (!Array.isArray(c.tips)) return s;
         return s + c.tips.filter(t => dates.includes(t.date)).reduce((ss, t) => ss + (t.amount || 0), 0);
@@ -5519,9 +5527,10 @@ function _todoNormalize(t) {
         createdAt: t.createdAt || null,
     };
 }
+// _todoNormalize builds a fresh object per item, so callers still get their
+// own copies to mutate — this only skips the deep clone of the raw records.
 function getTodos() {
-    const raw = Store.getQuickNotes() || [];
-    return raw.map(_todoNormalize);
+    return Store.view.quickNotes().map(_todoNormalize);
 }
 function _todoSave(todos) {
     return Store.saveQuickNotes(todos);
@@ -5708,7 +5717,7 @@ function addOrUpdateTodo(source) {
         });
     }
     const ok = _todoSave(todos);
-    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+    if (ok === false) { showToast('Save failed, check connection', 'error'); return; }
 
     // Reset form for this source
     document.getElementById(ids.text).value = '';
@@ -5777,7 +5786,7 @@ function toggleTodoDone(id) {
     t.done = !t.done;
     t.doneAt = t.done ? new Date().toISOString() : null;
     const ok = _todoSave(todos);
-    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+    if (ok === false) { showToast('Save failed, check connection', 'error'); return; }
     _renderAllTodoUI();
 }
 
@@ -6198,7 +6207,7 @@ function renderTodayRouteCard() {
     const card = document.getElementById('todayRouteCard');
     if (!card) return;
     const today = todayYmd();
-    const todays = (Store.getVisits() || []).filter(v => v.date === today);
+    const todays = Store.index().visitsOn(today);   // read only
     const kVisits = todays.filter(v => _visitCountsForDriver(v, 'kasey'));
     const cVisits = todays.filter(v => _visitCountsForDriver(v, 'charlie'));
 
@@ -6207,7 +6216,7 @@ function renderTodayRouteCard() {
         return;
     }
 
-    const mileage = (Store.getMileage && Store.getMileage()) || [];
+    const mileage = Store.view.mileage();   // read only
     const logged = {};
     mileage.forEach(r => { if (r.date === today) logged[r.driver] = r.miles; });
 
@@ -6330,7 +6339,7 @@ function _enableMileageReminder() {
     Notification.requestPermission().then(perm => {
         if (perm === 'granted') {
             localStorage.setItem('myreliacare_mileage_remind', 'on');
-            showToast('Nightly reminder on — fires when you open the app in the evening');
+            showToast('Nightly reminder on, fires when you open the app in the evening');
             renderTodayRouteCard();
         } else {
             showToast('Notification permission denied', 'error');
@@ -6345,11 +6354,11 @@ function _maybeFireMileageReminder() {
         const today = todayYmd();
         if (localStorage.getItem('myreliacare_mileage_notified') === today) return;
         if (new Date().getHours() < 16) return; // evening only
-        const todays = (Store.getVisits() || []).filter(v => v.date === today);
+        const todays = Store.index().visitsOn(today);   // read only
         const kVisits = todays.filter(v => _visitCountsForDriver(v, 'kasey'));
         const cVisits = todays.filter(v => _visitCountsForDriver(v, 'charlie'));
         if (kVisits.length === 0 && cVisits.length === 0) return;
-        const mileage = (Store.getMileage && Store.getMileage()) || [];
+        const mileage = Store.view.mileage();   // read only
         const logged = {};
         mileage.forEach(r => { if (r.date === today) logged[r.driver] = true; });
         const pending = (kVisits.length > 0 && !logged.kasey) || (cVisits.length > 0 && !logged.charlie);
@@ -6400,7 +6409,7 @@ function _renderLogMileageButton() {
     const statusEl = document.getElementById('logMileageStatus');
     if (!btn || !statusEl) return;
     const today = todayYmd();
-    const todays = _filterVisitsByDriver((Store.getVisits() || []).filter(v => v.date === today));
+    const todays = _filterVisitsByDriver(Store.index().visitsOn(today));   // read only
     const kVisits = todays.filter(v => _visitCountsForDriver(v, 'kasey'));
     const cVisits = todays.filter(v => _visitCountsForDriver(v, 'charlie'));
     const mileage = (Store.getMileage && Store.getMileage()) || [];
@@ -6435,14 +6444,14 @@ function _renderLogMileageEmpty() {
 function _renderDailyReportInvoices() {
     const wrap = document.getElementById('drInvoices');
     if (!wrap) return;
-    const open = (Store.getInvoices() || []).filter(inv => inv.status === 'draft' || inv.status === 'sent');
+    const open = Store.view.invoices().filter(inv => inv.status === 'draft' || inv.status === 'sent');   // read only
     if (open.length === 0) {
         wrap.innerHTML = `<p class="empty-state">No open invoices.</p>`;
         return;
     }
     const rows = open.map(inv => {
         const first = (inv.items || []).map(it => it.date).filter(Boolean).sort()[0] || null;
-        const client = Store.getClients().find(c => c.id === inv.clientId);
+        const client = Store.index().client(inv.clientId);   // read only
         return { inv, first, name: inv.clientName || (client && client.name) || 'Client' };
     }).sort((a, b) => {
         if (a.first && b.first) return a.first.localeCompare(b.first);
@@ -6516,7 +6525,7 @@ function _renderDailyReportButton() {
     const statusEl = document.getElementById('dailyReportStatus');
     if (!btn || !statusEl) return;
     const today = todayYmd();
-    const allVisits = Store.getVisits() || [];
+    const allVisits = Store.view.visits();   // read only
     const todays = _filterVisitsByDriver(allVisits.filter(v => v.date === today));
     const unpaidCount = _filterVisitsByDriver(allVisits.filter(v => v.status === 'completed' && !v.paid)).length;
     const openNotes = getTodos().filter(t => !t.done).length;
@@ -6533,7 +6542,7 @@ function renderUnpaidVisitsCard() {
     const today = todayYmd();
     // Respect the Kasey/Charlie view filter for consistency with the rest of the homepage.
     const unpaid = _filterVisitsByDriver(
-        Store.getVisits().filter(v => v.status === 'completed' && !v.paid)
+        Store.view.visits().filter(v => v.status === 'completed' && !v.paid)   // read only
     ).sort((a, b) => (a.date || '').localeCompare(b.date || '')); // oldest first
 
     if (unpaid.length === 0) { card.style.display = 'none'; return; }
@@ -6581,7 +6590,7 @@ function _renderMileagePrompt() {
     // Look back 7 days for completed visits — EXCLUDING today (today's mileage is
     // handled by the always-on "Today's Drive" card, so the two don't overlap).
     const sevenAgo = _addDaysYmd(today, -7);
-    const completedVisits = Store.getVisits().filter(v =>
+    const completedVisits = Store.view.visits().filter(v =>   // read only
         v.status === 'completed' &&
         v.date >= sevenAgo &&
         v.date < today
@@ -6714,31 +6723,11 @@ function _saveMileagePromptInputs() {
 }
 
 /* ============================================================
-   VISIT TRACKER — start/stop timer, tasks, security, note,
-   and one-tap text summary to the client.
-   Walk mileage here is the DOG-WALK distance for the client summary;
-   it is intentionally separate from the driving/tax mileage system.
+   VISIT TRACKER — start/stop timer, written recap, and one-tap
+   text summary to the client. The recap is typed out by hand;
+   there are no task or security checklists (they only ever got
+   repeated in the written recap).
    ============================================================ */
-const TRACKER_TASKS = [
-    { key: 'fresh-water', label: 'Fresh water' },
-    { key: 'fed',         label: 'Fed' },
-    { key: 'treats',      label: 'Treats' },
-    { key: 'play',        label: 'Play & affection' },
-    { key: 'walk',        label: 'Walk' },
-    { key: 'meds',        label: 'Meds given' },
-    { key: 'mail',        label: 'Brought in mail' },
-    { key: 'package',     label: 'Brought in package' },
-    { key: 'poop',        label: 'Poop' },
-    { key: 'pee',         label: 'Pee' },
-    { key: 'litter',      label: 'Scooped litter box' }
-];
-const TRACKER_SECURITY = [
-    { key: 'front-door', label: 'Front door locked' },
-    { key: 'side-door',  label: 'Side door locked' },
-    { key: 'back-door',  label: 'Back door locked' },
-    { key: 'garage',     label: 'Garage closed' },
-    { key: 'crate',      label: 'Pup back in crate' }
-];
 let _trackerVisitId = null;
 let _trackerInterval = null;
 let _bannerInterval = null;
@@ -6750,9 +6739,6 @@ function _getTracking(v) {
         startedAt: tk.startedAt || null,
         endedAt: tk.endedAt || null,
         elapsedSec: tk.elapsedSec || 0,
-        tasks: tk.tasks || {},
-        walkMiles: tk.walkMiles != null ? tk.walkMiles : null,
-        security: tk.security || {},
         note: tk.note || ''
     };
 }
@@ -6824,28 +6810,7 @@ function _updateTrackerClock() {
 function _trackerCaptureInputs() {
     if (!_trackerVisitId) return;
     const noteEl = document.getElementById('trackerNote');
-    const milesEl = document.getElementById('trackerWalkMiles');
-    const patch = {};
-    if (noteEl) patch.note = noteEl.value;
-    if (milesEl) patch.walkMiles = milesEl.value === '' ? null : (parseFloat(milesEl.value) || 0);
-    if (Object.keys(patch).length) _saveTracking(_trackerVisitId, patch);
-}
-
-function trackerToggleTask(key) {
-    _trackerCaptureInputs();
-    const v = Store.getVisits().find(x => x.id === _trackerVisitId); if (!v) return;
-    const tk = _getTracking(v);
-    tk.tasks[key] = !tk.tasks[key];
-    _saveTracking(_trackerVisitId, { tasks: tk.tasks });
-    _renderVisitTracker();
-}
-function trackerToggleSecurity(key) {
-    _trackerCaptureInputs();
-    const v = Store.getVisits().find(x => x.id === _trackerVisitId); if (!v) return;
-    const tk = _getTracking(v);
-    tk.security[key] = !tk.security[key];
-    _saveTracking(_trackerVisitId, { security: tk.security });
-    _renderVisitTracker();
+    if (noteEl) _saveTracking(_trackerVisitId, { note: noteEl.value });
 }
 function trackerStart() {
     const v = Store.getVisits().find(x => x.id === _trackerVisitId); if (!v) return;
@@ -6908,22 +6873,6 @@ function _renderVisitTracker() {
         ? `<button class="vt-timer-btn stop" onclick="trackerStop()">Stop</button>`
         : `<button class="vt-timer-btn start" onclick="trackerStart()">${tk.elapsedSec > 0 || tk.endedAt ? 'Resume' : 'Start'}</button>`;
 
-    const taskChips = TRACKER_TASKS.map(t => {
-        const on = !!tk.tasks[t.key];
-        return `<button type="button" class="vt-chip ${on ? 'on' : ''}" onclick="trackerToggleTask('${t.key}')">${escapeHtml(t.label)}</button>`;
-    }).join('');
-    const walkMilesRow = tk.tasks['walk']
-        ? `<div class="vt-walk-miles">
-               <label>Walk distance</label>
-               <div class="vt-miles-input"><input type="number" id="trackerWalkMiles" min="0" step="0.1" inputmode="decimal" value="${tk.walkMiles != null ? tk.walkMiles : ''}" placeholder="0.0" onchange="_trackerCaptureInputs()"><span>mi</span></div>
-           </div>`
-        : '';
-
-    const secChips = TRACKER_SECURITY.map(s => {
-        const on = !!tk.security[s.key];
-        return `<button type="button" class="vt-chip ${on ? 'on' : ''}" onclick="trackerToggleSecurity('${s.key}')">${escapeHtml(s.label)}</button>`;
-    }).join('');
-
     document.getElementById('visitTrackerBody').innerHTML = `
         <div class="vt-head">
             <div class="vt-client">${escapeHtml(v.clientName || 'Client')}${pets ? ` <span class="vt-pets">— ${pets}</span>` : ''}</div>
@@ -6936,15 +6885,8 @@ function _renderVisitTracker() {
             <button type="button" class="vt-edit-time" onclick="trackerEditTime()">edit time</button>
         </div>
 
-        <div class="vt-section-title">Tasks completed</div>
-        <div class="vt-chips">${taskChips}</div>
-        ${walkMilesRow}
-
-        <div class="vt-section-title">Security check</div>
-        <div class="vt-chips">${secChips}</div>
-
-        <div class="vt-section-title">Note for the client</div>
-        <textarea id="trackerNote" class="vt-note" rows="3" placeholder="Anything to share about today's visit..." onchange="_trackerCaptureInputs()">${escapeHtml(tk.note || '')}</textarea>
+        <div class="vt-section-title">Recap for the client</div>
+        <textarea id="trackerNote" class="vt-note" rows="6" placeholder="How the visit went..." onchange="_trackerCaptureInputs()">${escapeHtml(tk.note || '')}</textarea>
 
         <div class="vt-actions">
             <button class="btn btn-ghost" onclick="trackerSaveProgress()">Save</button>
@@ -6954,23 +6896,6 @@ function _renderVisitTracker() {
     _updateTrackerClock();
 }
 
-function _joinList(a) {
-    if (!a.length) return '';
-    if (a.length === 1) return a[0];
-    if (a.length === 2) return a[0] + ' and ' + a[1];
-    return a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1];
-}
-function _securitySentence(tk, petName) {
-    const doorLabels = { 'front-door': 'front', 'side-door': 'side', 'back-door': 'back' };
-    const doors = ['front-door', 'side-door', 'back-door'].filter(k => tk.security[k]).map(k => doorLabels[k]);
-    const parts = [];
-    if (doors.length) parts.push(_joinList(doors) + ' ' + (doors.length > 1 ? 'doors' : 'door') + ' locked');
-    if (tk.security['garage']) parts.push('garage closed');
-    if (tk.security['crate']) parts.push((petName || 'the pup') + ' back in the crate');
-    if (!parts.length) return '';
-    return 'before we left: ' + parts.join(', ');
-}
-function _capFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 // Time range that drops the redundant am/pm when both ends share it: "4:05 - 4:35 PM"
 function _clockRange(a, b) {
     const fmt = ms => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -6982,35 +6907,16 @@ function buildVisitSummary(id) {
     const v = Store.getVisits().find(x => x.id === id);
     if (!v) return '';
     const tk = _getTracking(v);
-    const client = Store.getClients().find(c => c.id === v.clientId);
-    const firstName = ((v.clientName || (client && client.name) || 'there').trim().split(/\s+/)[0]) || 'there';
-    const petArr = (client && client.pets && client.pets.length) ? client.pets.map(p => p.name).filter(Boolean) : [];
-    const pets = _joinList(petArr) || 'your pet';
 
     // Abbreviated date + time, e.g. "Mon, Jun 23 · 4:05 - 4:35 PM"
     let when = parseYmd(v.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     if (tk.startedAt && tk.endedAt) when += ` · ${_clockRange(tk.startedAt, tk.endedAt)}`;
     else if (v.time) when += ` · ${formatTime12(v.time)}`;
 
-    const doneTasks = TRACKER_TASKS.filter(t => tk.tasks[t.key]);
-    const items = doneTasks.map(t => (t.key === 'walk' && tk.walkMiles)
-        ? `a ${Math.round(tk.walkMiles * 100) / 100} mi walk`
-        : t.label.toLowerCase());
-
-    const sentences = [`Just wrapped up with ${pets} (${when}).`];
-    if (items.length) sentences.push(_capFirst(_joinList(items)) + '.');
-    if (tk.note && tk.note.trim()) {
-        let n = tk.note.trim();
-        if (!/[.!?]$/.test(n)) n += '.';
-        sentences.push(n);
-    }
-    const sec = _securitySentence(tk, petArr.length === 1 ? petArr[0] : '');
-    if (sec) {
-        let s = _capFirst(sec.trim());
-        if (!/[.!?]$/.test(s)) s += '.';
-        sentences.push(s);
-    }
-    return sentences.join(' ') + '\n\n— Kasey & Charlie, MyReliaCare';
+    // Date/time stamp, no period, then a space before the written recap.
+    const note = (tk.note || '').trim();
+    const body = note ? `(${when}) ${note}` : `(${when})`;
+    return body + '\n\n— Kasey & Charlie, MyReliaCare';
 }
 
 function openVisitSummary(id) {
@@ -7045,7 +6951,7 @@ function copyVisitSummary() {
 function renderVisitTrackerBanner() {
     const host = document.getElementById('visitTrackerBanner');
     if (!host) return;
-    const running = Store.getVisits().find(v => v.tracking && v.tracking.startedAt && !v.tracking.endedAt);
+    const running = Store.view.visits().find(v => v.tracking && v.tracking.startedAt && !v.tracking.endedAt);   // read only
     if (!running) {
         host.style.display = 'none'; host.innerHTML = '';
         if (_bannerInterval) { clearInterval(_bannerInterval); _bannerInterval = null; }
@@ -7060,7 +6966,7 @@ function renderVisitTrackerBanner() {
     if (!_bannerInterval) _bannerInterval = setInterval(_updateBannerClock, 1000);
 }
 function _updateBannerClock() {
-    const running = Store.getVisits().find(v => v.tracking && v.tracking.startedAt && !v.tracking.endedAt);
+    const running = Store.view.visits().find(v => v.tracking && v.tracking.startedAt && !v.tracking.endedAt);   // read only
     const el = document.getElementById('vtbClock');
     if (!running || !el) { renderVisitTrackerBanner(); return; }
     el.textContent = _fmtClock(_trackerElapsedSec(_getTracking(running)));
@@ -7535,7 +7441,7 @@ function bfDupSkip() {
     const { params, clean, collisions } = _bfPendingPattern;
     _bfPendingPattern = null;
     if (clean.length === 0) {
-        showToast('Nothing new to add — all candidate dates were duplicates', 'error');
+        showToast('Nothing new to add, all candidate dates were duplicates', 'error');
         return;
     }
     _bfDoPatternInsert(params, clean, []);
@@ -7668,7 +7574,7 @@ function bfQuickAdd() {
     _bfRenderSession();
     _bfRenderMileage();
     if (tipAttempted && !tipSaved) {
-        showToast(`Visit added, but tip failed to save — try again from client page`, 'error');
+        showToast(`Visit added, but tip failed to save, try again from client page`, 'error');
     } else if (tipSaved) {
         showToast(`Added · tip $${tipAmount.toFixed(2)} logged`);
     } else {
@@ -7822,10 +7728,10 @@ function bfUndoVisit(visitId) {
 }
 
 /* ------------------------------------------------------------------
-   DAILY MILEAGE — auto-calc using 60-min gap rule
+   DAILY MILEAGE — auto-calc using the home-return gap rule
    - Each client has a one-way `milesFromHome` value (set on client edit)
    - Each visit has a duration inferred from visitType
-   - Rule: if gap between consecutive visits ≥ 60 min, assume drove home between
+   - Rule: if gap between consecutive visits >= BF_HOME_RETURN_GAP_MIN, assume drove home between
    - Saves to Store.saveMileage() as one record per (date, driver)
    ------------------------------------------------------------------ */
 const BF_VISIT_DURATION = { 'meet-greet': 15, '30min': 30, '60min': 60 };
@@ -7841,7 +7747,15 @@ function _bfTimeToMin(t) {
 // Rule: visits assigned to 'kasey' or 'both' (the default) count for Kasey —
 // when both are working, they take Kasey's car, so the miles go on her tab.
 // Visits explicitly assigned to 'charlie' count only for Charlie.
+// Records created by the Stripe / Venmo / Rover imports are payments, not trips:
+// no client, no address, and one payment often covers several days of work.
+// They count toward income only, never toward a day's driving.
+function _isImportedPaymentRecord(v) {
+    return !!(v && !v.clientId && (v.roverBookingId || v.venmoTxnId || v.stripeChargeId));
+}
 function _visitCountsForDriver(visit, driver) {
+    if (_isImportedPaymentRecord(visit)) return false;
+    if (visit.status === 'cancelled') return false;
     const a = visit.assignedTo || 'both';
     if (driver === 'kasey') return a === 'kasey' || a === 'both';
     return a === 'charlie';
@@ -7859,7 +7773,7 @@ function _visitCountsForDriver(visit, driver) {
  * stored coords are wrong. Returns null if home address or all client
  * addresses are missing.
  */
-const BF_HOME_RETURN_GAP_MIN = 60; // a gap >= this (min, = 1 hour) between visits implies a drive home
+const BF_HOME_RETURN_GAP_MIN = 45; // a gap >= this many minutes between visits implies a drive home
 
 // Straight-line distance × 1.3 road factor (mi), matching the per-client estimate
 // the client form uses. Returns null if either point is missing.
@@ -8112,8 +8026,9 @@ function _bfRenderMileage() {
     });
 
     // For each date, check if both drivers' mileage is logged OR neither drove that day
+    const _idxForDates = Store.index();
     const candidateDates = [...datesWithRecentVisits].filter(date => {
-        const dayVisits = allVisits.filter(v => v.date === date);
+        const dayVisits = _idxForDates.visitsOn(date);   // read only
         const drivers = ['kasey', 'charlie'];
         // A date "needs" mileage if any driver drove visits that day AND mileage isn't logged for them
         return drivers.some(driver => {
@@ -8139,81 +8054,63 @@ function _bfRenderMileage() {
         return;
     }
 
+    const idx = Store.index();
     const rows = candidateDates.map(date => {
-        const dayVisits = allVisits.filter(v => v.date === date);
+        const dayVisits = idx.visitsOn(date);   // read only
         const isSession = sessionDates.has(date);
-        const drivers = ['kasey', 'charlie'];
+
+        // Only the drivers who actually drove that day, or already have a number.
+        const drivers = ['kasey', 'charlie'].filter(driver =>
+            dayVisits.some(v => _visitCountsForDriver(v, driver)) || existingByKey[`${date}|${driver}`]);
 
         const driverBlocks = drivers.map(driver => {
             const dv = dayVisits.filter(v => _visitCountsForDriver(v, driver));
             const key = `${date}|${driver}`;
             const existing = existingByKey[key];
-
-            let displayMiles = '';
-            let userEdited = false;
-            if (_bfMileageEdits[key] !== undefined) {
-                displayMiles = _bfMileageEdits[key];
-                userEdited = true;
-            } else if (existing) {
-                displayMiles = existing.miles;
-            }
-
-            const visitCount = dv.length;
-            const driverLabel = driver === 'kasey' ? 'Kasey' : 'Charlie';
-            const noVisits = visitCount === 0;
-            const alreadyLogged = !!existing && !userEdited;
-
-            const mapsUrl = visitCount > 0 ? _bfBuildDayMapsUrl(date, dv) : null;
+            const value = _bfMileageEdits[key] !== undefined ? _bfMileageEdits[key]
+                        : (existing ? existing.miles : '');
+            const who = driver === 'kasey' ? 'Kasey' : 'Charlie';
+            const mapsUrl = dv.length > 0 ? _bfBuildDayMapsUrl(date, dv) : null;
             const mapsBtn = mapsUrl
-                ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="padding: 3px 9px; text-decoration: none; font-size: 0.75em; margin-top: 5px; display: inline-block;">Google Maps route →</a>`
-                : '';
-
+                ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm bf-route-btn">Open route in Google Maps</a>`
+                : `<span class="bf-route-missing">No route: a client that day has no address</span>`;
             return `
                 <div class="bf-mileage-driver">
-                    <label>${driverLabel}${noVisits ? ' <span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0; font-size:0.9em;">· no visits</span>' : ` · ${visitCount} visit${visitCount === 1 ? '' : 's'}`}${alreadyLogged ? ' <span style="color:var(--success); font-weight:400; text-transform:none; letter-spacing:0; font-size:0.85em;">· logged</span>' : ''}</label>
+                    <label>${who} · ${dv.length} visit${dv.length === 1 ? '' : 's'}
+                        <span class="bf-saved-tag" style="display:${existing ? 'inline' : 'none'}; color:var(--success); font-weight:400; text-transform:none; letter-spacing:0; font-size:0.85em;">· saved</span>
+                    </label>
+                    ${mapsBtn}
                     <div class="bf-mileage-driver-row">
-                        <input type="number" min="0" step="0.1"
-                               class="${userEdited ? 'user-edited' : ''}"
-                               value="${displayMiles}"
-                               placeholder="0.0"
+                        <input type="number" min="0" step="0.1" inputmode="decimal"
+                               value="${value}" placeholder="miles from Google"
                                data-date="${date}" data-driver="${driver}"
                                oninput="bfMileageEdit('${date}', '${driver}', this.value)"
-                               ${noVisits && !existing ? 'disabled' : ''}>
+                               onchange="bfMileageAutosave('${date}', '${driver}', this)"
+                               onkeydown="bfMileageKey(event, this)">
                         <span class="bf-mileage-unit">mi</span>
                     </div>
-                    ${mapsBtn}
                 </div>
             `;
         }).join('');
 
-        // Status tag for the row header
-        const kLogged = !!existingByKey[`${date}|kasey`];
-        const cLogged = !!existingByKey[`${date}|charlie`];
-        const fullyLogged = kLogged && cLogged;
-        let statusText;
-        if (isSession) {
-            statusText = `<span class="bf-mileage-status" style="color: var(--accent);">session</span>`;
-        } else if (fullyLogged) {
-            statusText = `<span class="bf-mileage-status logged">logged · edit to replace</span>`;
-        } else {
-            statusText = `<span class="bf-mileage-status" style="color: var(--warn);">needs mileage</span>`;
-        }
+        const allLogged = drivers.length > 0 && drivers.every(d => existingByKey[`${date}|${d}`]);
+        const statusText = allLogged
+            ? `<span class="bf-mileage-status logged">saved · edit to change</span>`
+            : `<span class="bf-mileage-status" style="color: var(--warn);">needs mileage</span>`;
 
         return `
-            <div class="bf-mileage-row${fullyLogged && !isSession ? ' already-logged' : ''}">
+            <div class="bf-mileage-row${allLogged && !isSession ? ' already-logged' : ''}">
                 <div class="bf-mileage-row-head">
-                    <div class="bf-mileage-date">${date}</div>
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        ${statusText}
-                    </div>
+                    <div class="bf-mileage-date">${_bfPrettyDate(date)}</div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">${statusText}</div>
                 </div>
                 <div class="bf-mileage-drivers">${driverBlocks}</div>
             </div>
         `;
     });
     list.innerHTML = rows.join('');
-    actionsEl.style.display = 'flex';
-    _bfUpdateSaveBtnLabel();
+    // Each box saves itself, so there's no batch Save button to press.
+    actionsEl.style.display = 'none';
 }
 
 function _bfUpdateSaveBtnLabel() {
@@ -8266,7 +8163,7 @@ async function _bfGeocodioSingle(addressStr, apiKey) {
     try {
         const r = await fetch(url);
         console.log(`[geocodio] HTTP ${r.status}`);
-        if (r.status === 403) { showToast('Geocodio API key rejected — check settings', 'error'); return null; }
+        if (r.status === 403) { showToast('Geocodio API key rejected, check settings', 'error'); return null; }
         if (!r.ok) return null;
         const data = await r.json();
         const top = data?.results?.[0];
@@ -8396,7 +8293,7 @@ function _bfRenderSetupPanel() {
             <button class="btn btn-ghost btn-sm" onclick="_bfEditHomeAddress()">Edit</button>
         </div>
         <div style="padding: 10px 12px; background: rgba(196, 130, 92, 0.06); border-left: 2px solid var(--accent); border-radius: 4px; color: var(--text-dim); font-size: 0.85em; line-height: 1.5;">
-            For each day below, tap the <strong>Kasey route</strong> or <strong>Charlie route</strong> button to open that car's stops in Google Maps. Read the trip total, type it into the matching box, save.
+            For each day, tap <strong>Open route in Google Maps</strong>, read the trip total, and type it in. It saves as soon as you leave the box. Trips home are added for any gap of 45 minutes or more.
         </div>
     `;
 }
@@ -8446,7 +8343,7 @@ function _bfSaveHomeAddress() {
     const addr = (inp.value || '').trim();
     if (!addr) { showToast('Enter a home address', 'error'); return; }
     const ok = _bfSaveHomeSetting({ homeAddress: addr, homeCoords: null });
-    if (ok === false) { showToast('Save failed — check connection', 'error'); return; }
+    if (ok === false) { showToast('Save failed, check connection', 'error'); return; }
     showToast('Home address saved');
     _bfRenderMileage();
 }
@@ -8554,6 +8451,77 @@ function bfMissingDriverCancel() {
     _bfPendingMileageSave = null;
 }
 
+/* Mileage entry saves itself. Open the day's route in Google Maps, read the
+   total, type it in, move on. The value is written when the box loses focus
+   or on Enter; clearing the box removes that day's record. There is no
+   separate Save step to forget. */
+function _bfPrettyDate(ymdStr) {
+    try { return parseYmd(ymdStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); }
+    catch (e) { return ymdStr; }
+}
+function bfMileageAutosave(date, driver, inputEl) {
+    const key = `${date}|${driver}`;
+    const raw = String(inputEl.value || '').trim();
+    const who = driver === 'kasey' ? 'Kasey' : 'Charlie';
+    let records = Store.getMileage();
+    const had = records.find(r => r.date === date && r.driver === driver);
+
+    if (raw === '') {
+        delete _bfMileageEdits[key];
+        if (!had) return;
+        records = records.filter(r => !(r.date === date && r.driver === driver));
+        if (Store.saveMileage(records) === false) { showToast('Could not save, try again', 'error'); return; }
+        _bfMarkRowSaved(inputEl, false);
+        showToast(`Cleared ${who}, ${_bfPrettyDate(date)}`);
+        return;
+    }
+    const miles = Math.round(parseFloat(raw) * 10) / 10;
+    if (isNaN(miles) || miles < 0) { showToast('Miles has to be a number', 'error'); return; }
+    if (had && Math.abs((parseFloat(had.miles) || 0) - miles) < 0.05) { delete _bfMileageEdits[key]; return; }
+
+    const visitIds = Store.index().visitsOn(date)
+        .filter(v => _visitCountsForDriver(v, driver)).map(v => v.id);
+    const rec = {
+        id: had ? had.id : `mile_${date}_${driver}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        date, driver, miles,
+        notes: 'Google Maps route total, home to each visit and back',
+        source: 'google-maps',
+        purpose: 'business',
+        visitIds,
+        createdAt: had ? (had.createdAt || new Date().toISOString()) : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    records = records.filter(r => !(r.date === date && r.driver === driver)).concat([rec]);
+    if (Store.saveMileage(records) === false) { showToast('Could not save, try again', 'error'); return; }
+    delete _bfMileageEdits[key];
+    inputEl.classList.remove('user-edited');
+    _bfMarkRowSaved(inputEl, true);
+    showToast(`Saved ${miles} mi for ${who}, ${_bfPrettyDate(date)}`);
+}
+// Update the row in place so focus can move straight to the next box.
+function _bfMarkRowSaved(inputEl, saved) {
+    const block = inputEl.closest('.bf-mileage-driver');
+    if (!block) return;
+    const tag = block.querySelector('.bf-saved-tag');
+    if (tag) tag.style.display = saved ? 'inline' : 'none';
+    // Day header: saved once every driver on that day has a number.
+    const row = inputEl.closest('.bf-mileage-row');
+    const status = row && row.querySelector('.bf-mileage-status');
+    if (!status) return;
+    const allSaved = [...row.querySelectorAll('.bf-saved-tag')].every(t => t.style.display !== 'none');
+    status.textContent = allSaved ? 'saved · edit to change' : 'needs mileage';
+    status.classList.toggle('logged', allSaved);
+    status.style.color = allSaved ? '' : 'var(--warn)';
+}
+function bfMileageKey(e, inputEl) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    inputEl.blur();   // blur fires the change handler, which saves
+    const all = [...document.querySelectorAll('#bfMileageList input[data-date]')];
+    const next = all[all.indexOf(inputEl) + 1];
+    if (next) next.focus();
+}
+
 function _bfDoSaveMileage(toSave, allVisits) {
     let records = Store.getMileage();
     const dateDriversTouched = new Set();
@@ -8575,7 +8543,7 @@ function _bfDoSaveMileage(toSave, allVisits) {
     records = records.concat(toAdd);
 
     const ok = Store.saveMileage(records);
-    if (ok === false) { showToast('Could not save — try refreshing', 'error'); return; }
+    if (ok === false) { showToast('Could not save, try refreshing', 'error'); return; }
     _bfMileageEdits = {};
     _bfRenderMileage();
     showToast(`Saved mileage for ${toAdd.length} ${toAdd.length === 1 ? 'driver-day' : 'driver-days'}`);
