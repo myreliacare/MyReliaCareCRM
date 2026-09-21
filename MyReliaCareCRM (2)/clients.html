@@ -1,0 +1,2873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MyReliaCare">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1A1614">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <title>MyReliaCare CRM - Clients & Pets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@300;400;500;600;700&family=Cormorant+Unicase:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-deep: #1A1614; --bg-card: #2A2220; --bg-card-light: #3A3530;
+            --bg-input: #2F2825; --accent: #B59197; --accent-dark: #A47F85;
+            --accent-light: #D4C5C9; --text: #F5E8EB; --text-dim: #D4C5C9;
+            --text-faint: #8B7378; --border: #4A413E;
+            --danger: #A85A66; --success: #C9A66B; --warn: #C4825C;
+            --info: #ABBFA0; --personal: #ABBFA0;
+        }
+        body { font-family: 'Cormorant', serif; background: var(--bg-deep); min-height: 100vh; padding: 20px; color: var(--text); line-height: 1.6; font-size: 18px; }
+
+
+        h1, h2, h3 { font-family: 'Cormorant Unicase', serif; font-weight: 600; }
+
+        #passwordScreen { display: none; align-items: center; justify-content: center; min-height: 100vh; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, var(--bg-deep) 0%, #2A2220 100%); z-index: 9999; }
+        .password-container { background: var(--bg-card); padding: 50px 40px; border-radius: 16px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); max-width: 420px; width: 90%; border: 1px solid var(--border); }
+        .password-container h1 { color: var(--accent); margin-bottom: 8px; font-size: 2.4em; letter-spacing: 1px; }
+        .password-container p { color: var(--text-dim); margin-bottom: 24px; font-size: 1.05em; }
+        .password-input { width: 100%; padding: 12px 16px; font-size: 1.1em; font-family: 'Cormorant', serif; background: var(--bg-input); color: var(--text); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; }
+        .password-input:focus { outline: none; border-color: var(--accent); }
+        .password-btn { width: 100%; padding: 12px 20px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 1.1em; font-family: 'Cormorant', serif; font-weight: 600; cursor: pointer; }
+        @media (hover: hover) and (pointer: fine) { .password-btn:hover { background: var(--accent-dark); } }
+        .password-error { color: var(--danger); margin-top: 12px; display: none; }
+
+        #mainContent { display: none; }
+        .container { max-width: 1180px; margin: 0 auto; }
+
+        .header { display: flex; align-items: center; justify-content: space-between; background: linear-gradient(to bottom, #3A3530, var(--bg-card)); padding: 20px 30px; border-radius: 16px; margin-bottom: 24px; border: 1px solid var(--border); flex-wrap: wrap; gap: 20px; }
+        .header-brand { display: flex; align-items: center; gap: 16px; }
+        .header-logo-container { position: relative; width: 56px; height: 56px; border-radius: 12px; overflow: hidden; cursor: pointer; background: var(--bg-input); border: 1px solid var(--border); }
+        .header-logo { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .header-logo.loaded { display: block; }
+        .header-logo-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.7em; color: var(--text-faint); padding: 4px; text-align: center; }
+        .header-logo.loaded + .header-logo-placeholder { display: none; }
+        .header-title h1 { color: var(--accent); font-size: 1.8em; line-height: 1; letter-spacing: 0.5px; }
+        .header-title .tagline { font-size: 0.95em; color: var(--text-dim); font-style: italic; margin-top: 2px; }
+        .nav { display: flex; gap: 14px; flex-wrap: nowrap; align-items: center; }
+        .nav a { padding: 8px 18px; color: var(--text-dim); text-decoration: none; border-radius: 8px; transition: all 0.2s; font-size: 1.05em; white-space: nowrap; }
+        @media (hover: hover) and (pointer: fine) { .nav a:hover { background: var(--bg-input); color: var(--text); } }
+        .nav a.active { background: var(--accent); color: white; }
+        .logout-btn { background: transparent; color: var(--text-faint); border: 1px solid var(--border); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-family: 'Cormorant', serif; font-size: 0.9em; white-space: nowrap; }
+        @media (hover: hover) and (pointer: fine) { .logout-btn:hover { color: var(--danger); border-color: var(--danger); } }
+
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--bg-card); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent); }
+        .stat-card.clickable { cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
+        @media (hover: hover) and (pointer: fine) { .stat-card.clickable:hover { transform: translateY(-2px); border-color: var(--accent); } }
+        .stat-label { color: var(--text-faint); font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { color: var(--accent); font-size: 2em; font-weight: 600; margin-top: 4px; font-family: 'Cormorant Unicase', serif; }
+        @media (max-width: 600px) {
+            .stats-row { gap: 8px; }
+            .stat-card { padding: 12px 10px; }
+            .stat-label { font-size: 0.7em; letter-spacing: 0.5px; }
+            .stat-value { font-size: 1.4em; }
+        }
+
+        .card { background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; }
+        .card-title { color: var(--accent); font-size: 1.4em; margin-bottom: 16px; }
+
+        .toolbar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+
+        /* Client value report — sortable insights table */
+        .cvr-summary { display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg-input); border-radius: 8px; }
+        .cvr-summary-stat { display: flex; flex-direction: column; gap: 2px; }
+        .cvr-summary-num { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.35em; font-weight: 700; }
+        .cvr-summary-label { color: var(--text-faint); font-size: 0.72em; text-transform: uppercase; letter-spacing: 1.2px; }
+
+        /* NEW: Portfolio snapshot — 4 mini stat cards at top */
+        .cvr-snapshot { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
+        .cvr-snap-stat { background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .cvr-snap-num { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.3em; font-weight: 700; line-height: 1.1; }
+        .cvr-snap-label { color: var(--text-faint); font-size: 0.66em; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* NEW: Sections */
+        .cvr-section { margin-bottom: 22px; }
+        .cvr-section-title { font-family: 'Cormorant Unicase', serif; color: var(--text); font-size: 1.05em; margin: 0 0 4px 0; font-weight: 600; display: flex; align-items: baseline; gap: 8px; }
+        .cvr-section-count { color: var(--text-faint); font-size: 0.78em; font-weight: 400; font-family: 'Cormorant', serif; text-transform: none; letter-spacing: 0.5px; }
+        .cvr-section-hint { color: var(--text-faint); font-size: 0.82em; margin-bottom: 10px; font-style: italic; }
+        .cvr-cards { display: flex; flex-direction: column; gap: 6px; }
+
+        /* NEW: At-risk attention cards */
+        .cvr-card.attention {
+            background: var(--bg-input);
+            border-left: 3px solid var(--warn);
+            padding: 10px 12px 12px 12px;
+        }
+        .cvr-card-pill { font-size: 0.72em; font-weight: 600; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cvr-card-pill.warn { background: rgba(196, 130, 92, 0.18); color: var(--warn); }
+        .cvr-card-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .cvr-card-actions .btn { padding: 4px 11px; font-size: 0.82em; }
+
+        /* NEW: Compact rank list for Top Clients + New Clients */
+        .cvr-ranklist { display: flex; flex-direction: column; gap: 1px; background: var(--bg-input); border-radius: 8px; overflow: hidden; }
+        .cvr-rank-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer; transition: background 0.1s; -webkit-tap-highlight-color: transparent; }
+        @media (hover: hover) and (pointer: fine) { .cvr-rank-row:hover, .cvr-rank-row:active { background: var(--bg-card); } }
+        .cvr-rank-row:not(:last-child) { border-bottom: 1px solid rgba(74, 65, 62, 0.5); }
+        .cvr-rank-num { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-weight: 700; font-size: 1.05em; min-width: 18px; }
+        .cvr-rank-name { color: var(--text); font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cvr-rank-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0; }
+        .cvr-rank-rev { color: var(--success); font-weight: 500; font-variant-numeric: tabular-nums; }
+        .cvr-rank-sub { color: var(--text-faint); font-size: 0.78em; }
+
+        /* NEW: Filter row inside All Clients section */
+        .cvr-filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+        .cvr-filter-row .search-bar { flex: 1; min-width: 180px; }
+        .cvr-filter-check { color: var(--text-dim); font-size: 0.85em; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+        /* Base card style (used in All Clients section + extended by .attention variant) */
+        .cvr-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: background 0.12s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) and (pointer: fine) { .cvr-card:hover, .cvr-card:active { background: var(--bg-card); } }
+        .cvr-card.dormant { border-left: 3px solid var(--warn); padding-left: 9px; }
+        .cvr-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .cvr-card-name {
+            color: var(--accent);
+            font-weight: 500;
+            font-size: 1em;
+            font-family: 'Cormorant', serif;
+        }
+        .cvr-card-revenue {
+            color: var(--success);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+            flex-shrink: 0;
+        }
+        .cvr-card-meta {
+            color: var(--text-faint);
+            font-size: 0.85em;
+            margin-top: 3px;
+        }
+        .cvr-card-dormant { color: var(--warn); }
+        .cvr-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.92em; }
+        .cvr-table thead th {
+            text-align: left; padding: 8px 10px; color: var(--text-faint);
+            font-size: 0.72em; text-transform: uppercase; letter-spacing: 1.2px;
+            font-weight: 600; border-bottom: 1px solid var(--border); cursor: pointer;
+            user-select: none; white-space: nowrap;
+        }
+        @media (hover: hover) and (pointer: fine) { .cvr-table thead th:hover { color: var(--text); } }
+        .cvr-table thead th.sorted-asc::after { content: ' ▲'; color: var(--accent); font-size: 0.85em; }
+        .cvr-table thead th.sorted-desc::after { content: ' ▼'; color: var(--accent); font-size: 0.85em; }
+        .cvr-table tbody td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+        .cvr-table tbody tr:nth-child(odd) td { background: rgba(58, 53, 48, 0.35); }
+        .cvr-table tbody tr:last-child td { border-bottom: none; }
+        .cvr-table tbody tr.dormant td:first-child { border-left: 3px solid var(--warn); }
+        .cvr-table tbody tr.dormant td { color: var(--text-dim); }
+        .cvr-name-link { color: var(--accent); text-decoration: none; }
+        @media (hover: hover) and (pointer: fine) { .cvr-name-link:hover { text-decoration: underline; } }
+        .cvr-cell-num { text-align: right; color: var(--text); }
+        .cvr-cell-revenue { text-align: right; color: var(--success); font-weight: 500; }
+        .cvr-cell-tip { text-align: right; color: var(--accent-light); }
+        .cvr-cell-dormant-badge { color: var(--warn); font-size: 0.78em; font-style: italic; margin-left: 6px; }
+        .cvr-empty { padding: 40px; text-align: center; color: var(--text-faint); }
+        @media (max-width: 700px) {
+            .cvr-table { font-size: 0.85em; }
+            .cvr-table thead th, .cvr-table tbody td { padding: 7px 6px; }
+            /* Hide less-critical columns on mobile */
+            .cvr-table .cvr-col-avg, .cvr-table .cvr-col-tip { display: none; }
+
+            /* Portfolio snapshot: 2x2 grid on mobile */
+            .cvr-snapshot { grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 16px; }
+            .cvr-snap-stat { padding: 9px 10px; }
+            .cvr-snap-num { font-size: 1.15em; }
+            .cvr-snap-label { font-size: 0.62em; }
+
+            /* Sections tighten */
+            .cvr-section { margin-bottom: 18px; }
+            .cvr-section-title { font-size: 0.98em; }
+            .cvr-section-hint { font-size: 0.76em; margin-bottom: 8px; }
+
+            /* Attention card actions stay readable */
+            .cvr-card-actions .btn { padding: 5px 10px; font-size: 0.8em; }
+
+            /* Rank list */
+            .cvr-rank-row { padding: 8px 10px; gap: 8px; }
+            .cvr-rank-num { font-size: 0.95em; min-width: 16px; }
+            .cvr-rank-rev { font-size: 0.92em; }
+            .cvr-rank-sub { font-size: 0.74em; }
+
+            .cvr-card-meta { font-size: 0.82em; }
+        }
+        .search-bar { flex: 1; min-width: 240px; padding: 10px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; }
+        .search-bar:focus { outline: none; border-color: var(--accent); }
+
+        .btn { padding: 10px 20px; font-family: 'Cormorant', serif; font-size: 1.05em; font-weight: 600; border-radius: 8px; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--accent); color: white; }
+        @media (hover: hover) and (pointer: fine) { .btn-primary:hover { background: var(--accent-dark); } }
+        .btn-secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+        @media (hover: hover) and (pointer: fine) { .btn-secondary:hover { background: var(--accent); color: white; } }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+        @media (hover: hover) and (pointer: fine) { .btn-danger:hover { background: var(--danger); color: white; } }
+        .btn-ghost { background: var(--bg-input); color: var(--text-dim); border: 1px solid var(--border); }
+        @media (hover: hover) and (pointer: fine) { .btn-ghost:hover { color: var(--text); border-color: var(--accent); } }
+        .btn-sm { padding: 6px 14px; font-size: 0.95em; }
+
+        .clients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+        .client-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color 0.15s, transform 0.15s, background 0.15s; display: flex; flex-direction: column; gap: 10px; }
+        /* Only show hover highlight on devices with a real mouse pointer (no sticky hover on touch) */
+        @media (hover: hover) and (pointer: fine) {
+            .client-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        }
+        /* Brief feedback when actively pressed (works on both mouse + touch) */
+        .client-card:active { border-color: var(--accent); }
+        .client-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .client-card-name { font-family: 'Cormorant Unicase', serif; color: var(--accent); font-size: 1.3em; font-weight: 600; }
+        .client-card-pets { color: var(--text-faint); font-family: 'Cormorant', serif; font-style: italic; font-size: 0.85em; font-weight: 400; }
+        .client-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+        .badge { font-size: 0.78em; padding: 2px 8px; border-radius: 10px; background: var(--bg-card-light); color: var(--text-dim); }
+        .badge.success { background: rgba(201, 166, 107, 0.18); color: var(--success); }
+        .badge.warn { background: rgba(168, 90, 102, 0.18); color: var(--danger); }
+        .badge.info { background: rgba(181, 145, 151, 0.2); color: var(--accent-light); }
+        .badge.tip { background: rgba(201, 166, 107, 0.2); color: var(--success); border: 1px solid var(--success); font-weight: 600; }
+        .badge.muted { background: transparent; color: var(--text-faint); border: 1px dashed var(--border); }
+        .client-tips { font-size: 0.95em; color: var(--success); }
+        .client-info-row { color: var(--text-dim); font-size: 0.95em; display: flex; gap: 8px; align-items: center; }
+        .client-info-row strong { color: var(--text-faint); font-weight: 400; min-width: 60px; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; }
+        .client-pets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+        .pet-pill { background: var(--bg-card-light); color: var(--accent-light); padding: 3px 10px; border-radius: 12px; font-size: 0.88em; }
+        .next-visit { font-size: 0.95em; color: var(--accent); font-style: italic; }
+        .next-visit.none { color: var(--text-faint); }
+        .client-ltv { font-size: 0.95em; color: var(--text-dim); }
+        .client-ltv .ltv-detail { color: var(--text-faint); font-size: 0.9em; font-style: italic; }
+        .client-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); font-style: italic; }
+        .empty-state h3 { color: var(--accent-light); font-style: normal; margin-bottom: 8px; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            padding: 20px;
+            overflow: hidden;
+        }
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            max-width: 720px;
+            width: 100%;
+            max-height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+            overflow: hidden;
+        }
+        .modal-header { flex-shrink: 0; min-width: 0; }
+        .modal-header h2 { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+        .modal-body-scrollable { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
+        .modal-footer { flex-shrink: 0; }
+        @media (max-width: 700px) {
+            .modal-overlay {
+                padding: 40px 12px;
+                padding-top: max(40px, calc(env(safe-area-inset-top, 0px) + 24px));
+                padding-bottom: max(40px, calc(env(safe-area-inset-bottom, 0px) + 24px));
+            }
+            .modal {
+                max-height: calc(100vh - 80px);
+                max-height: calc(100dvh - 80px);
+                border-radius: 14px;
+            }
+            .modal-header { padding: 14px 16px !important; }
+            .modal-body { padding: 14px 16px !important; }
+            .modal-footer { padding: 14px 16px !important; }
+            .modal-header h2 { font-size: 1.15em !important; }
+        }
+        .modal.modal-wide { max-width: 900px; }
+        .modal-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { color: var(--accent); font-size: 1.5em; }
+        .modal-close { background: transparent; border: none; color: var(--text-faint); font-size: 1.6em; cursor: pointer; padding: 0 8px; line-height: 1; }
+        @media (hover: hover) and (pointer: fine) { .modal-close:hover { color: var(--danger); } }
+        .modal-body { padding: 24px 28px; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; }
+        .modal-footer { padding: 20px 28px; border-top: 1px solid var(--border); display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+
+        .form-group { margin-bottom: 16px; min-width: 0; }
+        .form-group label { display: block; color: var(--text-dim); margin-bottom: 6px; font-size: 1em; font-weight: 500; }
+        .form-group label .required { color: var(--accent); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Cormorant', serif; font-size: 1.05em; min-width: 0; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-row-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; }
+        @media (max-width: 700px) { .form-row, .form-row-3 { grid-template-columns: 1fr; } }
+        .form-section-title { color: var(--accent-light); font-size: 1.1em; margin: 24px 0 12px; font-family: 'Cormorant Unicase', serif; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+        .checkbox-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+        .checkbox-row label { display: flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
+        .checkbox-row input { width: auto; }
+
+        .time-window-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--bg-input); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
+        .time-window-days { display: flex; gap: 4px; flex-wrap: wrap; flex: 1 1 250px; }
+        .day-pill { display: inline-flex; align-items: center; padding: 4px 10px; background: var(--bg-card); color: var(--text-faint); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; user-select: none; font-size: 0.92em; }
+        .day-pill input { display: none; }
+        .day-pill.checked { background: var(--accent); color: white; border-color: var(--accent); }
+        .time-window-times { display: flex; gap: 6px; align-items: center; }
+        .time-window-times input { padding: 6px 10px; font-size: 0.95em; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: 'Cormorant', serif; width: 110px; }
+        .time-window-remove { background: transparent; color: var(--text-faint); border: none; cursor: pointer; font-size: 1.3em; padding: 4px 8px; line-height: 1; }
+        @media (hover: hover) and (pointer: fine) { .time-window-remove:hover { color: var(--danger); } }
+        .pet-entry { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .pet-entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .pet-entry-title { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.1em; }
+        .remove-pet-btn { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-family: 'Cormorant', serif; font-size: 0.9em; }
+        @media (hover: hover) and (pointer: fine) { .remove-pet-btn:hover { background: var(--danger); color: white; } }
+
+        .detail-section { margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .detail-section:last-child { border-bottom: none; }
+        .detail-section h3 { color: var(--accent-light); font-size: 1.25em; margin-bottom: 14px; font-family: 'Cormorant Unicase', serif; font-weight: 600; letter-spacing: 0.01em; }
+        .detail-row { display: flex; gap: 12px; margin-bottom: 8px; align-items: baseline; }
+        .detail-label { color: var(--accent-light); min-width: 130px; font-size: 0.78em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; }
+        .detail-value { color: var(--text); flex: 1; font-size: 0.98em; }
+        .pricing-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 6px; }
+        @media (max-width: 700px) { .pricing-mini-grid { grid-template-columns: 1fr 1fr; } }
+        .pricing-tile { background: var(--bg-input); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); }
+        .pricing-tile-label { color: var(--text-faint); font-size: 0.78em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+        .pricing-tile-value { color: var(--accent); font-size: 1.3em; font-weight: 600; font-family: 'Cormorant Unicase', serif; }
+
+        /* Home Access — most-scanned piece of info when arriving at a client's home.
+           Lives in its own callout block, more prominent than pricing tiles. */
+        .access-callout {
+            background: rgba(181, 145, 151, 0.13);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+        }
+        .access-callout-label {
+            color: var(--accent-light);
+            font-size: 0.82em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+        .access-callout-value {
+            color: var(--text);
+            font-size: 1.15em;
+            font-weight: 500;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .visit-history-row { display: grid; grid-template-columns: 130px 1fr 90px 90px; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; font-size: 0.95em; }
+        .visit-filter-bar {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+            padding: 10px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border);
+        }
+        .visit-filter-input, .visit-filter-select {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text); padding: 7px 10px; font-family: inherit; font-size: 0.92em;
+        }
+        .visit-filter-input { flex: 1 1 200px; min-width: 0; }
+        .visit-filter-select { flex: 0 1 auto; min-width: 0; }
+        .visit-filter-input:focus, .visit-filter-select:focus {
+            outline: none; border-color: var(--accent);
+        }
+        .visit-filter-status {
+            color: var(--text-faint); font-size: 0.85em;
+            padding: 4px 0 10px; font-style: italic;
+        }
+        @media (max-width: 700px) {
+            .visit-filter-bar { padding: 8px; gap: 6px; }
+            .visit-filter-input, .visit-filter-select { flex: 1 1 calc(50% - 4px); font-size: 0.9em; }
+        }
+        .visit-history-row:last-child { border-bottom: none; }
+        .visit-history-date { color: var(--text-dim); }
+        .visit-history-type { color: var(--text); }
+        .visit-history-price { color: var(--accent); text-align: right; }
+        .visit-history-status { font-size: 0.85em; text-align: right; }
+        .visit-history-status.completed { color: var(--success); }
+        .visit-history-status.scheduled { color: var(--accent-light); }
+        @media (max-width: 700px) {
+            .visit-history-header { display: none !important; }
+            .visit-history-row {
+                grid-template-columns: 1fr auto !important;
+                grid-template-rows: auto auto;
+                gap: 2px 12px !important;
+                padding: 10px 0 !important;
+            }
+            .visit-history-date { grid-column: 1; grid-row: 1; font-weight: 600; color: var(--text); }
+            .visit-history-price { grid-column: 2; grid-row: 1; text-align: right; font-weight: 600; }
+            .visit-history-type { grid-column: 1; grid-row: 2; font-size: 0.88em; color: var(--text-dim); }
+            .visit-history-status { grid-column: 2; grid-row: 2; text-align: right; font-size: 0.85em; }
+        }
+        .pet-detail-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .pet-detail-card h4 { color: var(--accent); font-family: 'Cormorant Unicase', serif; font-size: 1.2em; margin-bottom: 6px; font-weight: 600; }
+        .pet-detail-meta { color: var(--text-dim); font-size: 0.92em; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .pet-note { color: var(--text); font-size: 0.96em; margin-top: 12px; line-height: 1.55; }
+        .pet-note strong { display: block; color: var(--accent-light); font-weight: 700; font-size: 0.76em; text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 3px; }
+
+        /* Mobile: tighten label width so values get more space */
+        @media (max-width: 700px) {
+            .detail-row { flex-direction: column; gap: 2px; margin-bottom: 10px; }
+            .detail-label { min-width: auto; }
+        }
+
+        #toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--accent); color: var(--text); padding: 14px 22px; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); z-index: 2000; display: none; max-width: 320px; }
+        #toast.error { border-color: var(--danger); }
+        #toast.success { border-color: var(--success); }
+
+        #logoUpload { display: none; }
+        /* === THEMED FORM CONTROLS === */
+        input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], select { color-scheme: dark; }
+        input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"] { min-width: 0; text-align: left; }
+        @media (max-width: 768px) { input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"] { -webkit-appearance: none; appearance: none; width: 100%; } }
+        select {
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0 L10 0 L5 6 Z' fill='%23B59197'/></svg>");
+            background-repeat: no-repeat; background-position: right 12px center;
+            padding-right: 32px !important; cursor: pointer;
+        }
+        select:focus { border-color: var(--accent) !important; outline: none; }
+        select option, select optgroup {
+            background-color: var(--bg-input) !important;
+            color: var(--text) !important;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.7) sepia(0.3) saturate(1.5) hue-rotate(310deg);
+            cursor: pointer; opacity: 0.85; transition: opacity 0.15s;
+        }
+        @media (hover: hover) and (pointer: fine) { input[type="date"]::-webkit-calendar-picker-indicator:hover,
+        input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; } }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        @media (hover: hover) and (pointer: fine) { ::-webkit-scrollbar-thumb:hover { background: var(--accent); } }
+    
+        /* === MOBILE / HAMBURGER (appended at end so it wins the CSS cascade) === */
+        html, body { -webkit-tap-highlight-color: transparent; }
+        @media (max-width: 768px) {
+            html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior: none; }
+            body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+        }
+        /* iOS ignores user-scalable=no and zooms when focusing inputs under 16px — force 16px on touch screens to stop it */
+        @media (max-width: 768px) { input, select, textarea, .li-amount, .visit-price, .trc-mi-input, .mpb-mi-input { font-size: 16px !important; } }
+        body.menu-open { overflow: hidden; }
+        body.modal-open { overflow: hidden; }
+        @media (max-width: 700px) {
+            body.modal-open { position: fixed; left: 0; right: 0; width: 100%; }
+        }
+        .menu-toggle { display: none; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 1.4em; line-height: 1; cursor: pointer; font-family: monospace; }
+        @media (hover: hover) and (pointer: fine) { .menu-toggle:hover { background: var(--bg-input); } }
+        .menu-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 8998; }
+        .menu-backdrop.show { display: block; }
+        @media (min-width: 701px) { .menu-close { display: none; } }
+        @media (max-width: 700px) {
+            body { padding: max(64px, calc(env(safe-area-inset-top, 0px) + 60px)) 8px 8px 8px; font-size: 17px; }
+            .container { padding: 0; }
+            .card, .client-card, .invoice-row { padding: 14px; }
+            .btn { padding: 10px 16px; font-size: 1em; }
+            .menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+            nav.nav { display: none !important; position: fixed; top: 0; right: 0; bottom: 0; width: 78%; max-width: 300px; background: var(--bg-card); padding: 24px 18px; gap: 4px; z-index: 9000; border-left: 1px solid var(--border); box-shadow: -8px 0 24px rgba(0,0,0,0.4); flex-direction: column; align-items: stretch; overflow-y: auto; }
+            nav.nav.open { display: flex !important; }
+            .nav a { padding: 14px 16px; font-size: 1.15em; border-radius: 8px; margin-bottom: 4px; }
+            .nav .logout-btn { margin-top: auto; padding: 12px 16px; font-size: 1em; }
+            .menu-close { display: flex; align-items: center; justify-content: flex-end; font-size: 1.6em; color: var(--text-faint); background: transparent; border: none; padding: 4px 8px; margin-bottom: 14px; cursor: pointer; font-family: 'Cormorant', serif; }
+            .header { padding: 12px 14px !important; margin-bottom: 14px !important; gap: 10px !important; flex-wrap: nowrap !important; justify-content: center !important; }
+            /* Bottom tabs + Account pill replace the nav drawer — hamburger is redundant */
+            .menu-toggle { display: none !important; }
+            .header-brand { flex: 0 1 auto !important; min-width: 0; justify-content: center; }
+            .header-title h1 { margin: 0; }
+            .header-brand { flex: 1; min-width: 0; }
+            .header-logo-container { width: 44px !important; height: 44px !important; flex-shrink: 0; }
+            .header-title h1 { font-size: 1.4em !important; }
+            .header-title .tagline { font-size: 0.85em !important; }
+            .menu-toggle { flex-shrink: 0; }
+        }
+    
+        /* === Overflow safety net for mobile === */
+        @media (max-width: 700px) {
+            .container { max-width: 100%; overflow-x: hidden; }
+            .form-row, .form-row-3 { grid-template-columns: 1fr !important; gap: 8px !important; }
+            input, select, textarea { max-width: 100%; box-sizing: border-box; }
+            img { max-width: 100%; height: auto; }
+            pre, code { white-space: pre-wrap; word-break: break-word; }
+            /* Long words/URLs in client notes / addresses */
+            .client-card, .schedule-item, .invoice-row, .modal-body { word-wrap: break-word; overflow-wrap: break-word; }
+        }
+    
+        /* === Modal content NEVER scrolls horizontally === */
+        .modal-body { overflow-x: hidden; }
+        .modal { overflow: hidden; }
+
+        /* Tappable address — opens the Waze/Apple Maps chooser */
+        .clickable-address {
+            cursor: pointer;
+            color: var(--accent, #B59197);
+            border-bottom: 1px dotted rgba(181, 145, 151, 0.5);
+            padding-bottom: 1px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        @media (hover: hover) and (pointer: fine) { .clickable-address:hover {
+            color: #D4ADB3;
+            border-bottom-color: #D4ADB3;
+        } }
+        .clickable-address:focus {
+            outline: 2px solid var(--accent, #B59197);
+            outline-offset: 2px;
+        }
+        @media (max-width: 700px) {
+            /* Hard width clamp on all modal descendants */
+            .modal-body * { max-width: 100% !important; box-sizing: border-box !important; }
+            .modal-body input:not([type="checkbox"]):not([type="radio"]), .modal-body select, .modal-body textarea { width: 100% !important; }
+            .modal-body input[type="checkbox"], .modal-body input[type="radio"] { width: auto !important; flex: 0 0 auto !important; }
+            /* Stack form rows */
+            .modal-body .form-row, .modal-body .form-row-3 { grid-template-columns: 1fr !important; gap: 8px !important; }
+            /* Time window — stack everything vertically, shrink inputs */
+            .time-window-row { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+            .time-window-days { flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important; }
+            .time-window-times { flex-wrap: wrap; width: 100%; }
+            .time-window-times input { width: auto !important; flex: 1 1 0 !important; min-width: 0 !important; }
+            .pet-entry .form-row, .pet-entry .form-row-3 { grid-template-columns: 1fr !important; }
+            /* Calendar grid inside modals shouldn't overflow either */
+            .modal-body table, .modal-body .grid-anything { max-width: 100%; overflow-x: auto; }
+            /* Long URLs/words break */
+            .modal-body { word-wrap: break-word; overflow-wrap: anywhere; }
+            /* Inline buttons / badges shouldn't expand the row */
+            .status-badge, .badge, .paid-badge, .assignee-badge { flex-shrink: 0; max-width: none !important; }
+        }
+    
+        /* === Mobile: tighten inputs/sections inside modals === */
+        @media (max-width: 700px) {
+            .modal-body .form-group input:not([type="checkbox"]):not([type="radio"]),
+            .modal-body .form-group select,
+            .modal-body .form-group textarea {
+                padding: 8px 10px !important;
+                font-size: 1em !important;
+                min-width: 0 !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .modal-body .form-group label { font-size: 0.95em; margin-bottom: 4px; }
+            .modal-body .form-group { margin-bottom: 10px; }
+            .modal-body .form-row, .modal-body .form-row-3 { gap: 6px !important; }
+            /* Sections within modal — tighter padding so contents fit */
+            .modal-body .recurring-options,
+            .modal-body .pet-entry,
+            .modal-body .time-window-row,
+            .modal-body .visits-section { padding: 10px !important; }
+            .modal-body .day-checkboxes { gap: 4px; }
+            .modal-body .day-checkbox { padding: 5px 8px; font-size: 0.9em; }
+            /* Section titles a bit smaller */
+            .modal-body .form-section-title { font-size: 1em !important; margin: 10px 0 6px !important; }
+        }
+
+        /* === Mobile: nuke min-content widths so nothing pushes modal wider than viewport === */
+        @media (max-width: 700px) {
+            .modal-body, .modal-body * { min-width: 0 !important; }
+            .modal-body { overflow-wrap: normal; word-wrap: normal; }
+            /* Visit row: card-like layout with 2-col grid areas (date+time, type fullwidth, price+remove) */
+            .modal-body .visit-row {
+                grid-template-columns: 1fr 1fr !important;
+                grid-template-areas:
+                    "date time"
+                    "type type"
+                    "price remove"
+                    "hint hint" !important;
+                gap: 8px !important;
+                padding: 12px !important;
+                background: var(--bg-card-light) !important;
+                border: 1px solid var(--border) !important;
+                border-radius: 10px !important;
+                margin-bottom: 10px !important;
+            }
+            .modal-body .visit-row > .visit-date  { grid-area: date; }
+            .modal-body .visit-row > .visit-time  { grid-area: time; }
+            .modal-body .visit-row > .visit-type  { grid-area: type; }
+            .modal-body .visit-row > .visit-price { grid-area: price; }
+            .modal-body .visit-row > .visit-remove {
+                grid-area: remove !important;
+                grid-column: auto !important;
+                justify-self: end !important;
+                align-self: center !important;
+            }
+            .modal-body .visit-row > .window-hint { grid-area: hint; }
+            /* Make the modal itself can't escape the viewport */
+            .modal { max-width: calc(100vw - 24px) !important; }
+        }
+
+        /* === Compact form rows: stay 2-col on mobile for short fields like date+time === */
+        .form-row-compact { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 700px) {
+            .modal-body .form-row-compact { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+            /* Tighten textarea min-height on mobile */
+            .modal-body textarea { min-height: 60px !important; }
+            /* Date/time inputs: lock to a reasonable height instead of native bloated rendering */
+            .modal-body input[type="date"],
+            .modal-body input[type="time"],
+            .modal-body input[type="datetime-local"] {
+                min-height: 38px !important;
+                line-height: 1.2 !important;
+            }
+        }
+
+        /* Top chrome (refresh / account pill / search) scrolls away with the page on
+           mobile instead of staying fixed and bleeding over the content beneath it. */
+        @media (max-width: 700px) {
+            #signedInIndicator, #globalRefreshBtn, #globalSearchBtn, #indicatorMenu {
+                position: absolute !important;
+            }
+        }
+
+        /* === Mobile bottom tab bar (replaces drawer menu) === */
+        .bottom-tabs { display: none; }
+        @media (max-width: 700px) {
+            .bottom-tabs {
+                display: flex;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                background: var(--bg-card);
+                border-top: 1px solid var(--border);
+                padding: 4px 0;
+                padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+                z-index: 100;
+                box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+            }
+            .bottom-tabs a {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 2px;
+                padding: 6px 4px;
+                color: var(--text-faint);
+                text-decoration: none;
+                font-size: 0.78em;
+                font-family: 'Cormorant', serif;
+                letter-spacing: 0.5px;
+            }
+            .bottom-tabs a .tab-icon {
+                font-size: 1.4em;
+                line-height: 1;
+            }
+            .bottom-tabs a.active {
+                color: var(--accent-light);
+            }
+            .bottom-tabs a.active .tab-icon {
+                color: var(--accent);
+            }
+            /* Leave room for the tab bar above content */
+            body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; }
+            /* Hide the old hamburger drawer system */
+            .menu-toggle { display: none !important; }
+            .menu-close { display: none !important; }
+            nav.nav, nav.nav.open { display: none !important; }
+            .menu-backdrop { display: none !important; }
+            /* Restore body overflow if drawer was open before nav change */
+            body.menu-open { overflow: auto !important; position: static !important; }
+        }        @media (max-width: 700px) {
+        }
+
+        /* Tips list on client detail */
+        .tip-list { display: flex; flex-direction: column; gap: 6px; }
+        .tip-row {
+            display: grid;
+            grid-template-columns: 120px 90px 1fr auto;
+            gap: 12px;
+            align-items: center;
+            padding: 8px 10px;
+            background: var(--bg-input);
+            border-radius: 6px;
+        }
+        .tip-date { color: var(--text-dim); font-size: 0.95em; }
+        .tip-amount { color: var(--accent); font-weight: 600; font-size: 1.05em; }
+        .tip-note { color: var(--text-faint); font-style: italic; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tip-delete {
+            background: transparent;
+            color: var(--text-faint);
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 2px 8px;
+            line-height: 1;
+        }
+        @media (hover: hover) and (pointer: fine) { .tip-delete:hover { color: var(--danger); } }
+        @media (max-width: 700px) {
+            .tip-row {
+                grid-template-columns: 1fr auto auto !important;
+                grid-template-rows: auto auto;
+                gap: 4px 10px !important;
+            }
+            .tip-row .tip-date { grid-column: 1; grid-row: 1; }
+            .tip-row .tip-amount { grid-column: 2; grid-row: 1; }
+            .tip-row .tip-delete { grid-column: 3; grid-row: 1; justify-self: end; }
+            .tip-row .tip-note { grid-column: 1 / -1; grid-row: 2; }
+        }
+
+        /* Client card collapsed state: just name + pets + expand chevron */
+        .client-card { cursor: default; padding: 14px 18px !important; gap: 0 !important; }
+        @media (hover: hover) and (pointer: fine) {
+            .client-card:hover { transform: none; }
+        }
+        .client-card.expanded { background: var(--bg-card); }
+        .client-card-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            gap: 12px;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+        .client-card-headline { flex: 1; min-width: 0; }
+        .card-expand-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-faint);
+            font-size: 1.4em;
+            line-height: 1;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: system-ui, sans-serif;
+            flex-shrink: 0;
+            transition: color 0.15s;
+        }
+        @media (hover: hover) and (pointer: fine) { .card-expand-toggle:hover { color: var(--accent); background: var(--bg-input); } }
+        .client-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 12px;
+            margin-top: 10px;
+            border-top: 1px solid var(--border);
+            flex: 1;  /* fills remaining card height so .client-card-actions can sit at the bottom */
+        }
+        .client-card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .client-card.expanded .client-card-name { color: var(--accent-light); }
+        /* Push action buttons to the bottom of every expanded card */
+        .client-card-body .client-card-actions {
+            margin-top: auto;
+            padding-top: 12px;
+        }
+
+        /* === Relocated chrome: header refresh/search + Account tab (mobile) === */
+        .header-actions { display: none; align-items: center; gap: 8px; flex-shrink: 0; }
+        .header-icon-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-dim); display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; padding: 0; }
+        @media (hover: hover) and (pointer: fine) { .header-icon-btn:hover { border-color: var(--accent); color: var(--accent); } }
+        @media (max-width: 700px) {
+            #globalRefreshBtn, #globalSearchBtn, #signedInIndicator { display: none !important; }
+            #indicatorMenu { position: fixed !important; right: 12px !important; left: auto !important; top: auto !important; bottom: calc(74px + env(safe-area-inset-bottom)) !important; transform: none !important; z-index: 10001 !important; }
+            body { padding-top: calc(env(safe-area-inset-top, 0px) + 6px) !important; }
+            .header { justify-content: space-between !important; }
+            .header-actions { display: flex !important; }
+            .header-logo-container { width: 50px !important; height: 50px !important; border-radius: 50% !important; }
+            .header-logo { border-radius: 50% !important; }
+            .header-title h1 { font-size: 1.5em !important; }
+            .bottom-tabs .acct-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px 4px; color: var(--text-faint); background: none; border: none; font-family: 'Cormorant', serif; font-size: 0.78em; letter-spacing: 0.5px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+            .bottom-tabs .acct-tab .tab-icon { font-size: 1.5em; line-height: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="passwordScreen">
+    <div class="password-container">
+        <h1>MyReliaCare</h1>
+        <p>Enter password to access CRM</p>
+        <input type="password" id="passwordInput" class="password-input" placeholder="Password" autocomplete="new-password"
+               onkeydown="if(event.key==='Enter') checkPassword()">
+        <button onclick="checkPassword()" class="password-btn">Access CRM</button>
+        <p class="password-error" id="passwordError">Incorrect password. Please try again.</p>
+    </div>
+</div>
+
+<div id="mainContent">
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="header-brand" style="text-decoration: none; color: inherit;">
+                <div class="header-logo-container" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('logoUpload').click()" title="Click to change logo">
+                    <img id="headerLogo" class="header-logo" alt="MyReliaCare Logo">
+                    <div id="logoPlaceholder" class="header-logo-placeholder">+ Logo</div>
+                    <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo(event)" onclick="event.stopPropagation()">
+                </div>
+                <div class="header-title">
+                    <h1>MyReliaCare</h1>
+                </div>
+            </a>
+            <div class="header-actions">
+                <button type="button" class="header-icon-btn" onclick="location.reload()" title="Refresh" aria-label="Refresh"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg></button>
+                <button type="button" class="header-icon-btn" onclick="openGlobalSearch()" title="Search" aria-label="Search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+            </div>
+            <button class="menu-toggle" onclick="toggleMobileMenu()" aria-label="Open menu">≡</button>
+            <nav class="nav" id="mainNav">
+                <button class="menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
+                <a href="index.html">Dashboard</a>
+                <a href="clients.html" class="active">Clients & Pets</a>
+                <a href="invoices.html">Finances</a>
+                <button class="logout-btn" onclick="logout()">Sign Out</button>
+            </nav>
+        </div>
+        <div class="menu-backdrop" id="menuBackdrop" onclick="toggleMobileMenu()"></div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Total Clients</div>
+                <div class="stat-value" id="statClients">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Pets</div>
+                <div class="stat-value" id="statPets">0</div>
+            </div>
+            <div class="stat-card clickable" onclick="showActiveClientsModal()" id="statActiveCard">
+                <div class="stat-label">Active This Month</div>
+                <div class="stat-value" id="statActive">0</div>
+                <div class="stat-sub" id="statActiveSub" style="color: var(--text-faint); font-size: 0.78em; font-style: italic; margin-top: 2px;">tap to see who</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="toolbar">
+                <input type="text" id="searchBar" class="search-bar" placeholder="Search by name, phone, email, or pet…" oninput="renderClients()">
+                <button class="btn btn-ghost" onclick="openClientValueReport()" title="See client value report">Insights</button>
+                <button class="btn btn-primary" onclick="openClientModal()">+ Add Client</button>
+            </div>
+            <div id="clientsList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Client Value Report — sortable insights table -->
+<div class="modal-overlay" id="clientValueReportModal">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h2>Client Insights</h2>
+            <button class="modal-close" onclick="closeModal('clientValueReportModal')" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="cvr-snapshot" id="cvrSummary"></div>
+            <div id="cvrTableWrap"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="clientModal">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h2 id="clientModalTitle">Add Client</h2>
+            <button class="modal-close" onclick="closeModal('clientModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" id="cName" required></div>
+                <div class="form-group"><label>Preferred Contact</label>
+                    <select id="cPreferredContact">
+                        <option value="">—</option>
+                        <option>Phone</option><option>Text</option><option>Email</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Phone</label><input type="tel" id="cPhone"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="cEmail"></div>
+            </div>
+
+            <div class="form-group"><label>Address</label><input type="text" id="cAddress" placeholder="Street address"></div>
+            <div class="form-row-3">
+                <div class="form-group"><label>City</label><input type="text" id="cCity"></div>
+                <div class="form-group"><label>State</label><input type="text" id="cState" placeholder="KY"></div>
+                <div class="form-group"><label>Zip</label><input type="text" id="cZip"></div>
+            </div>
+
+            <div class="form-group"><label>Access Instructions</label><textarea id="cAccess" rows="2" placeholder="Gate code, lockbox, key location…"></textarea></div>
+
+            <div class="form-group">
+                <label>Miles from Home <span style="color: var(--text-faint); font-weight: 400; font-size: 0.85em; text-transform: none; letter-spacing: 0;">one-way · typing here OVERRIDES the auto-computed value everywhere</span></label>
+                <div style="display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap;">
+                    <input type="number" id="cMilesFromHome" min="0" step="0.1" placeholder="e.g. 4.2" style="flex: 1; min-width: 100px;">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="autofillMilesFromAddress()" id="cCaptureBtn" style="white-space: nowrap;">Auto-fill from address</button>
+                </div>
+                <div id="cCoordsStatus" style="color: var(--text-faint); font-size: 0.82em; margin-top: 4px; min-height: 1em;"></div>
+            </div>
+
+            <h3 class="form-section-title">Pricing</h3>
+            <p style="color: var(--text-faint); font-size: 0.92em; margin-bottom: 10px;">Per-visit pricing for this client. Auto-fills when scheduling visits.</p>
+            <div class="form-row">
+                <div class="form-group"><label>30 min Visit ($)</label><input type="number" id="cPrice30" min="0" step="0.01" placeholder="0"></div>
+                <div class="form-group"><label>1 hour Visit ($)</label><input type="number" id="cPrice60" min="0" step="0.01" placeholder="0"></div>
+            </div>
+            <div class="form-group">
+                <label>Default Payment Method <span class="bf-hint-inline" style="color: var(--text-faint); font-weight: normal; font-style: italic;">— pre-fills "Mark Paid" everywhere; can be overridden</span></label>
+                <select id="cDefaultPaymentMethod">
+                    <option value="">— none —</option>
+                    <option value="venmo">Venmo (1.9% + $0.10)</option>
+                    <option value="cashapp">CashApp (0%)</option>
+                    <option value="stripe">Stripe (2.9% + $0.30)</option>
+                    <option value="rover">Rover (paid via app)</option>
+                    <option value="cash">Cash (no fee)</option>
+                    <option value="other">Other (no fee tracked)</option>
+                </select>
+            </div>
+
+            <h3 class="form-section-title">Preferred Time Windows</h3>
+            <p style="color: var(--text-faint); font-size: 0.92em; margin-bottom: 10px;">When this client wants visits to happen. The dashboard uses these to suggest times when scheduling.</p>
+            <div id="timeWindowsContainer"></div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addTimeWindow()">+ Add window</button>
+
+            <h3 class="form-section-title">Pets</h3>
+            <div id="petsContainer"></div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addPetEntry()">+ Add Pet</button>
+
+            <h3 class="form-section-title">Emergency Contact</h3>
+            <div class="form-row-3">
+                <div class="form-group"><label>Name</label><input type="text" id="cEmergencyName"></div>
+                <div class="form-group"><label>Phone</label><input type="tel" id="cEmergencyPhone"></div>
+                <div class="form-group"><label>Relationship</label><input type="text" id="cEmergencyRel"></div>
+            </div>
+
+            <h3 class="form-section-title">Veterinarian</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Clinic Name</label><input type="text" id="cVetClinic"></div>
+                <div class="form-group"><label>Clinic Phone</label><input type="tel" id="cVetPhone"></div>
+            </div>
+            <div class="form-group"><label>Clinic Address</label><input type="text" id="cVetAddress"></div>
+
+            <h3 class="form-section-title">Other</h3>
+            <div class="form-group"><label>Notes</label><textarea id="cNotes" rows="3" placeholder="Anything important about the home, household, or client..."></textarea></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('clientModal')">Cancel</button>
+            <button class="btn btn-primary" id="saveClientBtn" onclick="saveClient()">Save Client</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h2 id="detailTitle">Client Details</h2>
+            <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+        </div>
+        <div class="modal-body" id="detailBody"></div>
+        <div class="modal-footer" id="detailFooter"></div>
+    </div>
+</div>
+
+<!-- Reusable themed confirm modal -->
+<!-- ========= CLIENT TIP MODAL ========= -->
+<div class="modal-overlay" id="clientTipModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Add Tip — <span id="clientTipClientName"></span></h2>
+            <button class="modal-close" onclick="closeModal('clientTipModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row form-row-compact">
+                <div class="form-group">
+                    <label>Amount <span class="required">*</span></label>
+                    <input type="number" id="clientTipAmount" min="0" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="clientTipDate">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>How was it paid?</label>
+                <select id="clientTipMethod" style="background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 11px; font-family: inherit; font-size: 0.95em; width: 100%;">
+                    <option value="">— not specified —</option>
+                    <option value="venmo">Venmo</option>
+                    <option value="cashapp">CashApp</option>
+                    <option value="stripe">Stripe / card</option>
+                    <option value="rover">Rover (via app)</option>
+                    <option value="cash">Cash</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Note (optional)</label>
+                <input type="text" id="clientTipNote" placeholder="e.g. Holiday tip, end of recurring series">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('clientTipModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveClientTip()">Add Tip</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal" style="max-width: 460px;">
+        <div class="modal-header">
+            <h2 id="confirmTitle">Confirm</h2>
+            <button class="modal-close" onclick="_confirmNo()">×</button>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage" style="color: var(--text-dim); white-space: pre-wrap; line-height: 1.5; margin: 0;"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="_confirmNo()">Cancel</button>
+            <button id="confirmYesBtn" class="btn btn-primary" onclick="_confirmYes()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Active Clients This Month modal -->
+<div class="modal-overlay" id="activeClientsModal">
+    <div class="modal" style="max-width: 560px;">
+        <div class="modal-header">
+            <h2 id="activeClientsTitle">Active Clients</h2>
+            <button class="modal-close" onclick="closeModal('activeClientsModal')">×</button>
+        </div>
+        <div class="modal-body modal-body-scrollable" id="activeClientsBody"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('activeClientsModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Firebase Cloud Sync -->
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
+
+
+<script src="firebase-sync.js"></script>
+
+<script>
+try {
+    document.documentElement.classList.remove('modal-open');
+    if (document.body) document.body.classList.remove('modal-open', 'menu-open');
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.height = '';
+    if (document.body) {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+    }
+} catch (e) {}
+
+function toggleMobileMenu() {
+    const nav = document.getElementById("mainNav");
+    const backdrop = document.getElementById("menuBackdrop");
+    const isOpen = nav.classList.toggle("open");
+    if (backdrop) backdrop.classList.toggle("show", isOpen);
+    document.body.classList.toggle("menu-open", isOpen);
+}
+window.toggleMobileMenu = toggleMobileMenu;
+
+// CORRECT_PASSWORD, STORAGE_KEYS, Store, checkPassword, logout, checkLoginState
+// are all defined in firebase-sync.js — no need to duplicate here.
+
+const VISIT_TYPES = {
+    'meet-greet': { label: 'Meet & Greet' },
+    '30min':      { label: '30 min Visit' },
+    '60min':      { label: '1 hour Visit' }
+};
+
+// === Visit history filtering (used inside client Details modal) ===
+window._visitFilter = { search: '', type: 'all', status: 'all', paid: 'all', dateRange: 'all', showAll: false };
+const VISIT_INITIAL_LIMIT = 50;  // initial cap on rendered rows; "Show all" reveals the rest
+
+function applyVisitFilter(visits) {
+    const f = window._visitFilter;
+    let result = visits;
+
+    if (f.type !== 'all') result = result.filter(v => v.visitType === f.type);
+    if (f.status !== 'all') result = result.filter(v => v.status === f.status);
+    if (f.paid === 'paid') result = result.filter(v => v.paid);
+    else if (f.paid === 'unpaid') result = result.filter(v => !v.paid);
+
+    if (f.dateRange !== 'all') {
+        const now = new Date();
+        let cutoff;
+        if (f.dateRange === 'ytd') {
+            cutoff = new Date(now.getFullYear(), 0, 1);
+        } else {
+            const days = parseInt(f.dateRange, 10);
+            cutoff = new Date(now);
+            cutoff.setDate(cutoff.getDate() - days);
+        }
+        const cutoffStr = cutoff.toISOString().slice(0, 10);
+        result = result.filter(v => (v.date || '') >= cutoffStr);
+    }
+
+    if (f.search) {
+        const q = f.search.toLowerCase();
+        result = result.filter(v => {
+            const typeLabel = (VISIT_TYPES[v.visitType] && VISIT_TYPES[v.visitType].label) || v.visitType || '';
+            const blob = [v.date, formatDateLong(v.date), typeLabel, v.visitType, v.notes, v.status, v.price]
+                .filter(Boolean).join(' ').toLowerCase();
+            return blob.includes(q);
+        });
+    }
+
+    return result;
+}
+
+function renderFilteredVisitList(allVisits) {
+    const filtered = applyVisitFilter(allVisits);
+    const showAll = window._visitFilter.showAll;
+    const rendered = showAll ? filtered : filtered.slice(0, VISIT_INITIAL_LIMIT);
+    const overflow = filtered.length - rendered.length;
+    const isFiltered = filtered.length !== allVisits.length;
+
+    let html = '';
+
+    // Status line — shows how many are visible
+    if (isFiltered || filtered.length > VISIT_INITIAL_LIMIT) {
+        html += `<div class="visit-filter-status">Showing ${rendered.length} of ${filtered.length}${isFiltered ? ' filtered' : ''} visits${isFiltered && filtered.length !== allVisits.length ? ' (of ' + allVisits.length + ' total)' : ''}</div>`;
+    }
+
+    if (filtered.length === 0) {
+        html += `<div class="empty-state" style="padding: 20px;">No visits match your filters</div>`;
+        return html;
+    }
+
+    html += rendered.map(v => {
+        const t = VISIT_TYPES[v.visitType] || { label: v.visitType };
+        return `
+        <div class="visit-history-row">
+            <div class="visit-history-date">${formatDateLong(v.date).replace(/, \d{4}$/, '')}</div>
+            <div class="visit-history-type">${escapeHtml(t.label)}${v.paid ? ' <span style="color: var(--success); font-size: 0.78em;">· paid</span>' : ''}</div>
+            <div class="visit-history-price">$${(v.price || 0).toFixed(2)}</div>
+            <div class="visit-history-status ${v.status}">${v.status}</div>
+        </div>`;
+    }).join('');
+
+    if (overflow > 0) {
+        html += `<div style="text-align: center; padding-top: 12px;">
+            <button class="btn btn-ghost btn-sm" onclick="updateVisitFilter('showAll', true)">Show all ${filtered.length} visits (+${overflow} more)</button>
+        </div>`;
+    }
+
+    return html;
+}
+
+window.updateVisitFilter = function(key, value) {
+    window._visitFilter[key] = value;
+    // When user changes any filter (other than showAll), reset the cap so they see fresh results
+    if (key !== 'showAll') window._visitFilter.showAll = false;
+    const container = document.getElementById('visitHistoryList');
+    if (!container) return;
+    const clientId = container.dataset.clientId;
+    if (!clientId) return;
+    const visits = Store.index().visitsFor(clientId).slice()   // read only
+        .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+    container.innerHTML = renderFilteredVisitList(visits);
+};
+
+let editingClientId = null;
+// Coords captured during the current client-edit session (from "Use my location" tap
+// or existing client.coords on edit). null = no coords yet. Merged into data on save.
+let _capturedCoords = null;
+
+// Compute miles between two lat/lng pairs using Haversine, then multiply by 1.3 to
+// approximate road distance from straight-line. Matches the formula used in index.html.
+function _hav(a, b) {
+    if (!a || !b) return null;
+    const toRad = (d) => d * Math.PI / 180;
+    const R = 3958.7613;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+    const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+// Reads home coords from the settings collection (set via index.html backfill workspace).
+// Settings are stored as a single record with id='global' and home fields flat on it.
+function _getHomeCoords() {
+    const settings = Store.getSettings ? Store.getSettings() : [];
+    const homeRec = (settings || []).find(s => s && s.id === 'global');
+    return homeRec?.homeCoords || null;
+}
+
+// Read the Geocodio API key from settings (stored by the backfill workspace
+// in index.html). Returns null if not set.
+function _getGeocodioKey() {
+    const settings = Store.getSettings ? Store.getSettings() : [];
+    const homeRec = (settings || []).find(s => s && s.id === 'global');
+    return (homeRec && homeRec.geocodioKey) || null;
+}
+
+// Geocode a single address via Geocodio. Returns {lat,lng,matched,accuracy} or null.
+async function _geocodioLookup(addr, apiKey) {
+    const url = `https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(addr)}&limit=1&api_key=${encodeURIComponent(apiKey)}`;
+    try {
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        const data = await r.json();
+        const top = data?.results?.[0];
+        if (!top) return null;
+        const lat = parseFloat(top.location?.lat);
+        const lng = parseFloat(top.location?.lng);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        return { lat, lng, matched: top.formatted_address || null, accuracy: typeof top.accuracy === 'number' ? top.accuracy : null };
+    } catch { return null; }
+}
+
+// Free fallback: Census geocoder. US-only, no key needed.
+async function _censusLookup(addr) {
+    const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(addr)}&benchmark=Public_AR_Current&format=json`;
+    try {
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        const data = await r.json();
+        const top = data?.result?.addressMatches?.[0];
+        if (!top) return null;
+        const lat = parseFloat(top.coordinates?.y);
+        const lng = parseFloat(top.coordinates?.x);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        return { lat, lng, matched: top.matchedAddress || null };
+    } catch { return null; }
+}
+
+// Read the live address fields from the form. Returns a string or null if too sparse.
+function _readFormAddress() {
+    const parts = [
+        document.getElementById('cAddress')?.value,
+        document.getElementById('cCity')?.value,
+        document.getElementById('cState')?.value,
+        document.getElementById('cZip')?.value,
+    ].map(s => (s || '').trim()).filter(Boolean);
+    return parts.length >= 2 ? parts.join(', ') : null;
+}
+
+// Captured coords for the current edit session — declared once near editingClientId above
+
+// Look up this client's coords from the address typed into the form, then
+// compute miles from home and fill the miles field. Falls back to GPS only
+// when no address has been entered (e.g. creating a new client at their door).
+async function autofillMilesFromAddress() {
+    const status = document.getElementById('cCoordsStatus');
+    const btn = document.getElementById('cCaptureBtn');
+    if (status) { status.textContent = ''; status.style.color = 'var(--text-faint)'; }
+
+    const home = _getHomeCoords();
+    if (!home) {
+        if (status) {
+            status.textContent = 'No home coords saved yet. Open the homepage backfill workspace and set your home address first.';
+            status.style.color = 'var(--danger)';
+        }
+        return;
+    }
+
+    const addr = _readFormAddress();
+
+    if (addr) {
+        // Geocode the typed address (this is what you want when editing from home)
+        if (btn) { btn.disabled = true; btn.textContent = 'Looking up address…'; }
+        const apiKey = _getGeocodioKey();
+        let result = apiKey ? await _geocodioLookup(addr, apiKey) : null;
+        if (!result) result = await _censusLookup(addr);
+        if (btn) { btn.disabled = false; btn.textContent = 'Auto-fill from address'; }
+
+        if (!result) {
+            if (status) {
+                status.textContent = "Couldn't find that address. Double-check the street/city/state/zip and try again.";
+                status.style.color = 'var(--danger)';
+            }
+            return;
+        }
+        _capturedCoords = { lat: result.lat, lng: result.lng };
+        const straight = _hav(home, _capturedCoords);
+        const oneway = Math.round(straight * 1.3 * 10) / 10;
+        document.getElementById('cMilesFromHome').value = oneway;
+        if (status) {
+            const matchedLine = result.matched ? ` Matched: ${result.matched}.` : '';
+            status.textContent = `Filled ${oneway} mi (one-way) from home.${matchedLine}`;
+            status.style.color = 'var(--success)';
+        }
+        return;
+    }
+
+    // No address typed — fall back to GPS (only useful if you're standing at the client's house)
+    if (!('geolocation' in navigator)) {
+        if (status) { status.textContent = "Type an address first, or allow location on your browser if you're at the client's house."; status.style.color = 'var(--danger)'; }
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = 'Getting GPS…'; }
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            _capturedCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            const straight = _hav(home, _capturedCoords);
+            const oneway = Math.round(straight * 1.3 * 10) / 10;
+            document.getElementById('cMilesFromHome').value = oneway;
+            if (status) {
+                status.textContent = `GPS captured. Filled ${oneway} mi from home (only accurate if you're at the client's location).`;
+                status.style.color = 'var(--success)';
+            }
+            if (btn) { btn.disabled = false; btn.textContent = 'Auto-fill from address'; }
+        },
+        (err) => {
+            if (btn) { btn.disabled = false; btn.textContent = 'Auto-fill from address'; }
+            let msg;
+            switch (err.code) {
+                case 1: msg = 'Permission denied. Allow location in your browser settings.'; break;
+                case 2: msg = 'Location unavailable. Are you indoors with no GPS signal?'; break;
+                case 3: msg = "Timed out. Try again."; break;
+                default: msg = "Couldn't get location.";
+            }
+            if (status) { status.textContent = msg; status.style.color = 'var(--danger)'; }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+}
+
+function uploadLogo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('Please select an image file', 'error');
+        event.target.value = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => { showToast('Could not read that file', 'error'); };
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = () => { showToast('That image could not be opened (try a JPEG or PNG)', 'error'); };
+        img.onload = () => {
+            // iPhone photos exceed the ~5MB localStorage quota when stored as data URL.
+            // Downscale to <=400px and re-encode as JPEG → 30-80KB.
+            const MAX = 400;
+            let w = img.naturalWidth || img.width;
+            let h = img.naturalHeight || img.height;
+            if (w > MAX || h > MAX) {
+                const scale = MAX / Math.max(w, h);
+                w = Math.max(1, Math.round(w * scale));
+                h = Math.max(1, Math.round(h * scale));
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const isPng = file.type === 'image/png';
+            const dataUrl = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.85);
+            try {
+                localStorage.setItem(STORAGE_KEYS.logo, dataUrl);
+                renderLogo();
+                showToast('Logo updated');
+            } catch (err) {
+                if (err && (err.name === 'QuotaExceededError' || err.code === 22)) {
+                    showToast('Image too large to save, try a smaller photo', 'error');
+                } else {
+                    showToast('Could not save logo', 'error');
+                }
+                console.error('[uploadLogo] save failed:', err);
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
+function renderLogo() {
+    const s = localStorage.getItem(STORAGE_KEYS.logo);
+    if (s) { const i = document.getElementById('headerLogo'); i.src = s; i.classList.add('loaded'); }
+}
+
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = type; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+}
+
+let _modalScrollY = 0;
+function openModal(id) {
+    const modal = document.getElementById(id);
+    const wasAlreadyActive = modal.classList.contains('active');
+    if (!document.querySelector('.modal-overlay.active')) {
+        _modalScrollY = window.scrollY || window.pageYOffset || 0;
+        if (window.matchMedia('(max-width: 700px)').matches) {
+            document.body.style.top = `-${_modalScrollY}px`;
+        }
+    }
+    document.body.classList.add('modal-open');
+    modal.classList.add('active');
+    // Reset modal-body scroll to top only on fresh opens — not when a function
+    // re-calls openModal to re-render an already-active modal in place.
+    if (!wasAlreadyActive) {
+        const body = modal.querySelector('.modal-body');
+        if (body) {
+            body.scrollTop = 0;
+            requestAnimationFrame(() => { body.scrollTop = 0; });
+        }
+    }
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    if (!document.querySelector('.modal-overlay.active')) {
+        document.body.classList.remove('modal-open');
+        const wasPinned = document.body.style.top !== '';
+        document.body.style.top = '';
+        if (wasPinned && _modalScrollY) {
+            window.scrollTo(0, _modalScrollY);
+        }
+        _modalScrollY = 0;
+    }
+}
+// click outside to close — drag-aware (prevents accidental close from iOS spurious clicks)
+let _modalCloseArmed = null;
+function _isOverlayTarget(el) { return el && el.classList && el.classList.contains('modal-overlay') && el.id; }
+document.addEventListener('mousedown', (e) => { _modalCloseArmed = _isOverlayTarget(e.target) ? e.target.id : null; });
+document.addEventListener('touchstart', (e) => { _modalCloseArmed = _isOverlayTarget(e.target) ? e.target.id : null; }, { passive: true });
+document.addEventListener('click', (e) => {
+    if (_modalCloseArmed && _isOverlayTarget(e.target) && e.target.id === _modalCloseArmed) closeModal(_modalCloseArmed);
+    _modalCloseArmed = null;
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => { if (m.id) closeModal(m.id); }); });
+
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+// Renders an address as a clickable element. Tap → small chooser modal → opens
+// Waze or Apple Maps with the address pre-filled for navigation.
+// Uses data-attribute + event delegation so it works on dynamically re-rendered cards.
+function renderClickableAddress(address) {
+    if (!address) return '';
+    return `<span class="clickable-address" data-address="${escapeHtml(address)}" role="button" tabindex="0" aria-label="Open ${escapeHtml(address)} in maps">${escapeHtml(address)}</span>`;
+}
+
+// Event delegation — attach once, works for all current and future addresses
+document.addEventListener('click', (e) => {
+    const el = e.target.closest('.clickable-address');
+    if (el && el.dataset.address) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.openInMaps(el.dataset.address);
+    }
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest && e.target.closest('.clickable-address');
+    if (el && el.dataset.address) {
+        e.preventDefault();
+        window.openInMaps(el.dataset.address);
+    }
+});
+
+function normalizeAddressForMaps(raw) {
+    if (!raw) return '';
+    // Collapse whitespace/newlines, fix spacing around commas, strip leading/trailing/double commas
+    let s = String(raw).replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').trim();
+    s = s.replace(/^,+|,+$/g, '').replace(/,\s*,/g, ',').trim();
+    // If a 5-digit zip is stranded mid-string, move it to the end.
+    const zipMatch = s.match(/\b(\d{5})(?:-\d{4})?\b/);
+    if (zipMatch) {
+        const zip = zipMatch[0];
+        const idx = s.lastIndexOf(zip);
+        const isAtEnd = idx + zip.length >= s.length - 2;
+        if (!isAtEnd) {
+            s = (s.slice(0, idx) + s.slice(idx + zip.length))
+                .replace(/\s+/g, ' ')
+                .replace(/\s*,\s*/g, ', ')
+                .replace(/,\s*,/g, ',')
+                .replace(/^,+|,+$/g, '')
+                .trim();
+            s = s + ' ' + zip;
+        }
+    }
+    return s;
+}
+window.openInMaps = function(address) {
+    if (!address) return;
+    const encoded = encodeURIComponent(normalizeAddressForMaps(address));
+    // Waze URL — opens Waze app on mobile via universal link, falls back to waze.com
+    const wazeUrl = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+    // Apple Maps — use the forgiving ?q= search (a strict ?address= fails on slightly-off
+    // formatting like a stray comma); ?q= lets Maps fuzzy-match the address.
+    const appleUrl = `https://maps.apple.com/?q=${encoded}`;
+
+    let el = document.getElementById('mapsChooserOverlay');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'mapsChooserOverlay';
+    el.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+        z-index: 10000; display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+    `;
+    el.innerHTML = `
+        <div style="background: #2A2220; border: 1px solid #4A413E; border-radius: 12px; padding: 20px; max-width: 340px; width: 100%; color: #F0E6E8; font-family: inherit;">
+            <p style="margin: 0 0 4px; color: #C0B0B4; font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.06em;">Navigate to</p>
+            <p style="margin: 0 0 18px; font-size: 1.02em; word-break: break-word;">${escapeHtml(address)}</p>
+            <div style="display: flex; gap: 10px;">
+                <a href="${wazeUrl}" target="_blank" rel="noopener noreferrer" data-app="waze" style="flex: 1; padding: 14px; background: var(--info); color: white; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600; font-family: inherit;">Waze</a>
+                <a href="${appleUrl}" target="_blank" rel="noopener noreferrer" data-app="apple" style="flex: 1; padding: 14px; background: var(--accent); color: white; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600; font-family: inherit;">Apple Maps</a>
+            </div>
+            <button id="mapsChooserCancel" style="display: block; width: 100%; padding: 10px; margin-top: 10px; background: transparent; color: #C0B0B4; border: 1px solid #4A413E; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.92em;">Cancel</button>
+        </div>
+    `;
+    // Close on outside click or Cancel
+    el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+    el.querySelector('#mapsChooserCancel').addEventListener('click', () => el.remove());
+    // After choosing an app, close the modal (link has already fired)
+    el.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => setTimeout(() => el.remove(), 150));
+    });
+    document.body.appendChild(el);
+};
+function formatPhone(p) {
+    if (!p) return '';
+    const digits = String(p).replace(/\D/g, '');
+    if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+    return p;
+}
+/* Memoized date formatting — see note in index.html. */
+const _DTF = {
+    long:  new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+    short: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+};
+const _dateMemo = { long: new Map(), short: new Map() };
+function _fmtYmd(str, style) {
+    if (!str) return '';
+    const memo = _dateMemo[style];
+    let out = memo.get(str);
+    if (out === undefined) {
+        const [y, m, d] = String(str).split('-').map(Number);
+        out = _DTF[style].format(new Date(y, m - 1, d));
+        if (memo.size > 3000) memo.clear();
+        memo.set(str, out);
+    }
+    return out;
+}
+function formatDateLong(s) { return _fmtYmd(s, 'long'); }
+function formatTime12(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function getClientStats(clientId) {
+    // Read-only: pulls from the shared index instead of deep-cloning every
+    // visit, invoice and client once per card. Nothing here mutates.
+    const idx = Store.index();
+    const visits = idx.visitsFor(clientId);
+    const invoices = idx.invoicesFor(clientId);
+    const clientRec = idx.client(clientId);
+    const today = new Date().toISOString().split('T')[0];
+    const upcoming = visits
+        .filter(v => v.date >= today && v.status !== 'completed' && v.status !== 'cancelled')
+        .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+    const nextVisit = upcoming[0] || null;
+    const earnedVisits = visits.filter(isVisitEarned);
+    const earnedVisitTotal = earnedVisits.reduce((s, v) => s + (v.price || 0), 0);
+    // Tips: pull from the client's tip-tab + any legacy per-visit tips on earned visits
+    const clientTipEntries = (clientRec && Array.isArray(clientRec.tips)) ? clientRec.tips : [];
+    const clientTipTotal = clientTipEntries.reduce((s, t) => s + (t.amount || 0), 0);
+    const legacyVisitTipTotal = earnedVisits.reduce((s, v) => s + (v.tip || 0), 0);
+    const totalTips = clientTipTotal + legacyVisitTipTotal;
+    const tippedCount = clientTipEntries.length + earnedVisits.filter(v => (v.tip || 0) > 0).length;
+    const avgTip = tippedCount > 0 ? totalTips / tippedCount : 0;
+    // LTV = earned visit prices + all tips, OR the paid-invoices total — whichever is higher
+    const paidInvoiceTotal = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.total || 0), 0);
+    const ltv = Math.max(earnedVisitTotal + totalTips, paidInvoiceTotal);
+    const thisMonthYM = new Date().toISOString().slice(0, 7);
+    const activeThisMonth = visits.some(v => (v.date || '').startsWith(thisMonthYM));
+    return { nextVisit, ltv, activeThisMonth, totalVisits: earnedVisits.length, totalTips, avgTip, tippedCount };
+}
+
+// Available for use in clients.html — check that visit is "earned"
+function isVisitEarned(v) {
+    if (v.status === 'completed') return true;
+    if (v.status === 'cancelled') return false;
+    const today = new Date().toISOString().split('T')[0];
+    return (v.date || '') < today;
+}
+
+function renderStats() {
+    const clients = Store.view.clients();   // read only
+    const totalPets = clients.reduce((s, c) => s + (c.pets?.length || 0), 0);
+    document.getElementById('statClients').textContent = clients.length;
+    document.getElementById('statPets').textContent = totalPets;
+    let active = 0;
+    clients.forEach(c => {
+        const s = getClientStats(c.id);
+        if (s.activeThisMonth) active++;
+    });
+    document.getElementById('statActive').textContent = active;
+}
+
+function showActiveClientsModal() {
+    const today = new Date();
+    const thisMonthYM = today.toISOString().slice(0, 7);
+    const monthLabel = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    const visits = Store.view.visits().filter(v => (v.date || '').startsWith(thisMonthYM));   // read only
+    const byClient = {};
+    visits.forEach(v => {
+        if (!v.clientId) return;
+        if (!byClient[v.clientId]) {
+            byClient[v.clientId] = { id: v.clientId, name: v.clientName || 'Unnamed', visits: 0, paid: 0, revenue: 0 };
+        }
+        byClient[v.clientId].visits += 1;
+        const price = parseFloat(v.price) || 0;
+        if (v.paid) {
+            byClient[v.clientId].paid += 1;
+            byClient[v.clientId].revenue += price;
+        }
+    });
+
+    const sorted = Object.values(byClient).sort((a, b) => b.revenue - a.revenue || b.visits - a.visits);
+
+    document.getElementById('activeClientsTitle').textContent = `Active Clients · ${monthLabel}`;
+    const body = document.getElementById('activeClientsBody');
+    if (sorted.length === 0) {
+        body.innerHTML = `<div style="text-align:center; color: var(--text-faint); padding: 20px; font-style: italic;">No active clients this month yet.</div>`;
+        openModal('activeClientsModal');
+        return;
+    }
+
+    const totalRevenue = sorted.reduce((s, c) => s + c.revenue, 0);
+    const totalVisits = sorted.reduce((s, c) => s + c.visits, 0);
+
+    body.innerHTML = `
+        <div style="background: var(--bg); padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center;">
+            <div><div style="color:var(--text-faint); font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Clients</div><div style="font-size:1.4em; color:var(--accent); font-weight:600;">${sorted.length}</div></div>
+            <div><div style="color:var(--text-faint); font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Visits</div><div style="font-size:1.4em; color:var(--accent); font-weight:600;">${totalVisits}</div></div>
+            <div><div style="color:var(--text-faint); font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Paid</div><div style="font-size:1.4em; color:var(--success); font-weight:600;">$${totalRevenue.toFixed(0)}</div></div>
+        </div>
+        ${sorted.map(c => {
+            const escName = (c.name || '').replace(/</g, '&lt;');
+            return `<div onclick="closeModal('activeClientsModal'); jumpToClient('${c.id}')" style="display:grid; grid-template-columns: 1fr auto; gap:10px; padding: 12px 14px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; align-items:center; cursor:pointer; transition: border-color 0.1s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div>
+                    <div style="color:var(--text); font-size:1.05em; font-weight:500;">${escName}</div>
+                    <div style="color:var(--text-faint); font-size:0.85em; margin-top:2px;">${c.visits} visit${c.visits === 1 ? '' : 's'}${c.paid > 0 ? ` · ${c.paid} paid` : ''}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:${c.revenue > 0 ? 'var(--success)' : 'var(--text-faint)'}; font-size:1.1em; font-weight:600; font-variant-numeric: tabular-nums;">$${c.revenue.toFixed(0)}</div>
+                </div>
+            </div>`;
+        }).join('')}
+    `;
+    openModal('activeClientsModal');
+}
+
+function jumpToClient(id) {
+    // Expand the client card inline and scroll to it
+    _expandedClients.add(id);
+    setTimeout(() => {
+        const card = document.querySelector(`.client-card[data-client-id="${id}"]`);
+        if (card) {
+            const cardBody = card.querySelector('.client-card-body');
+            const btn = card.querySelector('.card-expand-toggle');
+            if (cardBody) cardBody.style.display = '';
+            if (btn) btn.textContent = '▴';
+            card.classList.add('expanded');
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.transition = 'box-shadow 0.4s';
+            card.style.boxShadow = '0 0 0 2px var(--accent)';
+            setTimeout(() => { card.style.boxShadow = ''; }, 1600);
+        }
+    }, 200);
+}
+
+function renderClients() {
+    const list = document.getElementById('clientsList');
+    const search = document.getElementById('searchBar').value.toLowerCase().trim();
+    let clients = Store.view.clients().slice();   // read only, copied before sorting
+    if (search) {
+        clients = clients.filter(c => {
+            const blob = [c.name, c.email, c.phone, c.address, c.city,
+                ...(c.pets || []).map(p => `${p.name} ${p.breed || ''} ${p.species || ''}`)].join(' ').toLowerCase();
+            return blob.includes(search);
+        });
+    }
+    clients.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    if (clients.length === 0) {
+        const allClients = Store.view.clients();   // read only
+        list.innerHTML = `<div class="empty-state"><h3>${allClients.length === 0 ? 'No clients yet' : 'No matches'}</h3><p>${allClients.length === 0 ? 'Add your first client to get started.' : 'Try a different search term.'}</p></div>`;
+        renderStats(); return;
+    }
+    list.innerHTML = `<div class="clients-grid">${clients.map(renderClientCard).join('')}</div>`;
+    renderStats();
+}
+
+function renderClientCard(c) {
+    const stats = getClientStats(c.id);
+    const addressLine = [c.address, c.city, c.state, c.zip].filter(Boolean).join(', ');
+    const badges = [];
+    // Tip-related badges (Non-tipper now shows only in the client detail view)
+    if (stats.totalTips >= 100) badges.push('<span class="badge tip">Top Tipper</span>');
+    const petNames = (c.pets && c.pets.length) ? c.pets.map(p => p.name).filter(Boolean).join(', ') : '';
+    const isExpanded = _expandedClients.has(c.id);
+    let nextVisitHtml;
+    if (stats.nextVisit) {
+        const t = VISIT_TYPES[stats.nextVisit.visitType] || { label: 'Visit' };
+        nextVisitHtml = `<div class="next-visit">Next: ${formatDateLong(stats.nextVisit.date)} (${t.label})</div>`;
+    } else {
+        nextVisitHtml = `<div class="next-visit none">No upcoming visits</div>`;
+    }
+    const ltvLine = stats.ltv > 0
+        ? `<div class="client-ltv">Lifetime: $${stats.ltv.toFixed(0)}${stats.totalVisits > 0 ? ` <span class="ltv-detail">over ${stats.totalVisits} visit${stats.totalVisits === 1 ? '' : 's'}</span>` : ''}</div>`
+        : '';
+    const tipsLine = stats.totalTips > 0
+        ? `<div class="client-tips">Tips: $${stats.totalTips.toFixed(0)} <span class="ltv-detail">across ${stats.tippedCount} entr${stats.tippedCount === 1 ? 'y' : 'ies'} · avg $${stats.avgTip.toFixed(0)}</span></div>`
+        : '';
+    return `
+        <div class="client-card ${isExpanded ? 'expanded' : ''}" data-client-id="${c.id}">
+            <div class="client-card-header" onclick="toggleClientExpand('${c.id}', event)">
+                <div class="client-card-headline">
+                    <div class="client-card-name">${escapeHtml(c.name || '(unnamed)')}${petNames ? ` <span class="client-card-pets">— ${escapeHtml(petNames)}</span>` : ''}</div>
+                    ${badges.length ? `<div class="client-badges">${badges.join('')}</div>` : ''}
+                </div>
+                <button class="card-expand-toggle" aria-label="${isExpanded ? 'Collapse' : 'Expand'}">${isExpanded ? '▴' : '▾'}</button>
+            </div>
+            <div class="client-card-body" style="${isExpanded ? '' : 'display: none;'}">
+                <div class="client-card-content">
+                    ${addressLine ? `<div class="client-info-row">${renderClickableAddress(addressLine)}</div>` : ''}
+                    ${nextVisitHtml}
+                </div>
+                <div class="client-card-actions">
+                    <button class="btn btn-primary btn-sm" onclick="scheduleVisitFor('${c.id}')">Schedule</button>
+                    <button class="btn btn-ghost btn-sm" onclick="bookAgainFor('${c.id}')" title="Book the same recurring slot">Book again</button>
+                    <button class="btn btn-ghost btn-sm" onclick="openClientTipModal('${c.id}')">+ Tip</button>
+                    <button class="btn btn-ghost btn-sm" onclick="viewClient('${c.id}')">Details</button>
+                    <button class="btn btn-ghost btn-sm" onclick="editClient('${c.id}')">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteClient('${c.id}', event)">Delete</button>
+                </div>
+            </div>
+        </div>`;
+}
+
+// Track which client cards are expanded (in-memory, resets on reload)
+const _expandedClients = new Set();
+function toggleClientExpand(id, ev) {
+    if (ev) ev.stopPropagation();
+    if (_expandedClients.has(id)) _expandedClients.delete(id);
+    else _expandedClients.add(id);
+    // Smooth toggle without full re-render
+    const card = document.querySelector(`.client-card[data-client-id="${id}"]`);
+    if (card) {
+        const body = card.querySelector('.client-card-body');
+        const btn = card.querySelector('.card-expand-toggle');
+        const expanded = _expandedClients.has(id);
+        if (body) body.style.display = expanded ? '' : 'none';
+        if (btn) btn.textContent = expanded ? '▴' : '▾';
+        card.classList.toggle('expanded', expanded);
+    }
+}
+
+function scheduleVisitFor(clientId) {
+    location.href = `index.html?schedule=${encodeURIComponent(clientId)}`;
+}
+
+/* ============================================================
+   BOOK AGAIN — one-tap recurring booking
+   ============================================================
+   Detects the client's most common (day-of-week, time, visit type) pattern
+   from past visits, projects the next occurrence, and creates the visit on
+   confirm. If no pattern found, falls back to the full schedule modal. */
+/* ============================================================
+   CLIENT VALUE REPORT
+   ============================================================
+   Sortable table of per-client stats: visits, revenue, tips, last visit.
+   Highlights dormant clients (no visit in 21+ days). */
+let _cvrSortKey = 'revenue';
+let _cvrSortDir = 'desc';
+
+function openClientValueReport() {
+    openModal('clientValueReportModal');
+    setTimeout(() => renderClientValueReport(), 50);
+}
+
+function renderClientValueReport() {
+    const wrap = document.getElementById('cvrTableWrap');
+    const summaryEl = document.getElementById('cvrSummary');
+    if (!wrap || !summaryEl) return;
+
+    const clients = Store.view.clients();   // read only
+    const visits = Store.view.visits();   // read only
+    const todayStr = todayYmd();
+    const todayDate = new Date(todayStr + 'T00:00:00');
+
+    // Index visits by client
+    const visitsByClient = {};
+    visits.forEach(v => {
+        if (!visitsByClient[v.clientId]) visitsByClient[v.clientId] = [];
+        visitsByClient[v.clientId].push(v);
+    });
+
+    // Build per-client stats
+    const perClient = clients.map(c => {
+        const cv = visitsByClient[c.id] || [];
+        const earned = cv.filter(v => v.status === 'completed');
+        const revenue = earned.reduce((s, v) => s + (parseFloat(v.price) || 0), 0);
+        const tips = Array.isArray(c.tips)
+            ? c.tips.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0)
+            : 0;
+
+        // Last completed visit on or before today (never future)
+        const completedPast = earned.filter(v => v.date && v.date <= todayStr);
+        completedPast.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        const lastVisitDate = completedPast.length > 0 ? completedPast[0].date : null;
+        let daysSince = null;
+        if (lastVisitDate) {
+            const lv = new Date(lastVisitDate + 'T00:00:00');
+            daysSince = Math.max(0, Math.round((todayDate - lv) / (1000 * 60 * 60 * 24)));
+        }
+
+        // First visit ever (any status) — proxy for "when did this client become a client"
+        const allDated = cv.filter(v => v.date).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        const firstVisit = allDated.length > 0 ? allDated[0].date : null;
+        let daysSinceFirst = null;
+        if (firstVisit) {
+            const fv = new Date(firstVisit + 'T00:00:00');
+            daysSinceFirst = Math.max(0, Math.round((todayDate - fv) / (1000 * 60 * 60 * 24)));
+        }
+
+        // Has any upcoming scheduled visit
+        const hasUpcoming = cv.some(v => v.status === 'scheduled' && v.date && v.date > todayStr);
+
+        // Average days between completed visits (recent 6 months) — for frequency context
+        const recentEarned = completedPast.filter(v => v.date >= _addDaysYmd(todayStr, -180));
+        let avgGap = null;
+        if (recentEarned.length >= 2) {
+            const sortedAsc = recentEarned.slice().sort((a, b) => a.date.localeCompare(b.date));
+            const gaps = [];
+            for (let i = 1; i < sortedAsc.length; i++) {
+                const d1 = new Date(sortedAsc[i-1].date + 'T00:00:00');
+                const d2 = new Date(sortedAsc[i].date + 'T00:00:00');
+                gaps.push((d2 - d1) / (1000 * 60 * 60 * 24));
+            }
+            avgGap = gaps.reduce((a,b) => a+b, 0) / gaps.length;
+        }
+
+        const visitsCount = earned.length;
+        const avgRevenue = visitsCount > 0 ? revenue / visitsCount : 0;
+        const isDormant = daysSince != null && daysSince >= 21;
+        // "At risk" — has a history (3+ visits) + dormant + no upcoming. Real follow-up candidate.
+        const isAtRisk = visitsCount >= 3 && isDormant && !hasUpcoming;
+        // "Active" — completed visit in last 30d OR has upcoming
+        const isActive = hasUpcoming || (daysSince != null && daysSince <= 30);
+        // "New" — first visit in last 60d
+        const isNew = daysSinceFirst != null && daysSinceFirst <= 60;
+
+        return {
+            id: c.id,
+            name: c.name || 'Unnamed',
+            phone: c.phone || '',
+            visits: visitsCount,
+            revenue, avgRevenue, tips,
+            lastVisit: lastVisitDate, daysSince,
+            firstVisit, daysSinceFirst,
+            hasUpcoming, avgGap,
+            isDormant, isAtRisk, isActive, isNew,
+        };
+    });
+
+    // Compact date formatter ("May 24" or "May 24, 2025" if not current year)
+    const fmtShortDate = (ymd) => {
+        if (!ymd) return '';
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const [y, m, d] = ymd.split('-').map(Number);
+        if (!y || !m || !d) return ymd;
+        const thisYear = new Date().getFullYear();
+        return y === thisYear ? `${months[m-1]} ${d}` : `${months[m-1]} ${d}, ${y}`;
+    };
+
+    // ──────────── PORTFOLIO SNAPSHOT (top) ────────────
+    const totalRevenue = perClient.reduce((s, r) => s + r.revenue, 0);
+    const totalTips = perClient.reduce((s, r) => s + r.tips, 0);
+    const activeCount = perClient.filter(r => r.isActive).length;
+    const totalVisits = perClient.reduce((s, r) => s + r.visits, 0);
+    const avgClientValue = perClient.length > 0 ? totalRevenue / perClient.length : 0;
+    summaryEl.innerHTML = `
+        <div class="cvr-snap-stat"><span class="cvr-snap-num">${perClient.length}</span><span class="cvr-snap-label">Clients</span></div>
+        <div class="cvr-snap-stat"><span class="cvr-snap-num" style="color: var(--success);">${activeCount}</span><span class="cvr-snap-label">Active (30d)</span></div>
+        <div class="cvr-snap-stat"><span class="cvr-snap-num" style="color: var(--accent-light);">$${totalRevenue.toFixed(0)}</span><span class="cvr-snap-label">Lifetime rev</span></div>
+        <div class="cvr-snap-stat"><span class="cvr-snap-num">$${avgClientValue.toFixed(0)}</span><span class="cvr-snap-label">Avg/client</span></div>
+    `;
+
+    // ──────────── SECTIONS ────────────
+    let html = '';
+
+    // 1. NEEDS ATTENTION — at-risk clients
+    const atRisk = perClient.filter(r => r.isAtRisk)
+        .sort((a, b) => (b.daysSince || 0) - (a.daysSince || 0))
+        .slice(0, 8);
+    if (atRisk.length > 0) {
+        html += `<div class="cvr-section">
+            <h3 class="cvr-section-title">Needs attention <span class="cvr-section-count">${atRisk.length}</span></h3>
+            <div class="cvr-section-hint">Regular clients (3+ visits) with no completed visit in 21+ days and nothing scheduled.</div>
+            <div class="cvr-cards">`;
+        html += atRisk.map(r => {
+            const freqHint = r.avgGap != null
+                ? `Avg ${Math.round(r.avgGap)}d between visits · `
+                : '';
+            return `
+                <div class="cvr-card attention" data-cid="${r.id}">
+                    <div class="cvr-card-header">
+                        <span class="cvr-card-name">${escapeHtml(r.name)}</span>
+                        <span class="cvr-card-pill warn">${r.daysSince}d gap</span>
+                    </div>
+                    <div class="cvr-card-meta">${freqHint}${r.visits} visits · $${r.revenue.toFixed(0)} lifetime</div>
+                    <div class="cvr-card-actions">
+                        <button class="btn btn-primary btn-sm" data-action="book-again" data-cid="${r.id}">Book again</button>
+                        <button class="btn btn-ghost btn-sm" data-action="open-client" data-cid="${r.id}">Open</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        html += `</div></div>`;
+    }
+
+    // 2. TOP CLIENTS — top 5 by revenue
+    const topClients = perClient
+        .filter(r => r.revenue > 0)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+    if (topClients.length > 0) {
+        html += `<div class="cvr-section">
+            <h3 class="cvr-section-title">Top clients <span class="cvr-section-count">by revenue</span></h3>
+            <div class="cvr-ranklist">`;
+        html += topClients.map((r, i) => `
+            <div class="cvr-rank-row" data-cid="${r.id}">
+                <span class="cvr-rank-num">${i + 1}</span>
+                <span class="cvr-rank-name">${escapeHtml(r.name)}</span>
+                <span class="cvr-rank-stats">
+                    <span class="cvr-rank-rev">$${r.revenue.toFixed(0)}</span>
+                    <span class="cvr-rank-sub">${r.visits} visits</span>
+                </span>
+            </div>
+        `).join('');
+        html += `</div></div>`;
+    }
+
+    // 3. NEW CLIENTS — first visit in last 60 days
+    const newClients = perClient.filter(r => r.isNew)
+        .sort((a, b) => (b.firstVisit || '').localeCompare(a.firstVisit || ''))
+        .slice(0, 6);
+    if (newClients.length > 0) {
+        html += `<div class="cvr-section">
+            <h3 class="cvr-section-title">New clients <span class="cvr-section-count">last 60 days</span></h3>
+            <div class="cvr-ranklist">`;
+        html += newClients.map(r => `
+            <div class="cvr-rank-row" data-cid="${r.id}">
+                <span class="cvr-rank-name" style="flex: 1;">${escapeHtml(r.name)}</span>
+                <span class="cvr-rank-stats">
+                    <span class="cvr-rank-sub">first ${fmtShortDate(r.firstVisit)} · ${r.visits} visit${r.visits === 1 ? '' : 's'}</span>
+                </span>
+            </div>
+        `).join('');
+        html += `</div></div>`;
+    }
+
+    // 4. ALL CLIENTS — filterable list (existing card view)
+    html += `<div class="cvr-section">
+        <h3 class="cvr-section-title">All clients</h3>
+        <div class="cvr-filter-row">
+            <input type="text" id="cvrSearch" class="search-bar" placeholder="Filter by name…" oninput="renderClientValueReport()">
+            <label class="cvr-filter-check">
+                <input type="checkbox" id="cvrDormantOnly" onchange="renderClientValueReport()"> Dormant only (21+ days)
+            </label>
+        </div>
+        <div id="cvrAllList"></div>
+    </div>`;
+
+    wrap.innerHTML = html;
+
+    // Restore filter values (they exist before renderClientValueReport last set innerHTML)
+    // Actually they're freshly created — we need to restore from a closure or just leave empty.
+    // Use a module-level state for this:
+    if (typeof _cvrFilterState !== 'undefined') {
+        const si = document.getElementById('cvrSearch');
+        const di = document.getElementById('cvrDormantOnly');
+        if (si && _cvrFilterState.query) si.value = _cvrFilterState.query;
+        if (di) di.checked = !!_cvrFilterState.dormantOnly;
+    }
+
+    // Listen for filter changes and persist to state, then re-render All Clients section only
+    const searchInp = document.getElementById('cvrSearch');
+    const dormantInp = document.getElementById('cvrDormantOnly');
+    const renderAllList = () => {
+        const query = (searchInp?.value || '').trim().toLowerCase();
+        const filterDormant = !!(dormantInp && dormantInp.checked);
+        _cvrFilterState.query = query;
+        _cvrFilterState.dormantOnly = filterDormant;
+
+        let filtered = perClient.slice();
+        if (query) filtered = filtered.filter(r => r.name.toLowerCase().includes(query));
+        if (filterDormant) filtered = filtered.filter(r => r.isDormant);
+        // Sort: revenue desc by default for All Clients
+        filtered.sort((a, b) => b.revenue - a.revenue);
+
+        const listEl = document.getElementById('cvrAllList');
+        if (!listEl) return;
+        if (filtered.length === 0) {
+            listEl.innerHTML = '<div class="cvr-empty">No clients match those filters.</div>';
+            return;
+        }
+        listEl.innerHTML = filtered.map(r => {
+            const lastText = r.lastVisit
+                ? `${fmtShortDate(r.lastVisit)} · ${r.daysSince === 0 ? 'today' : r.daysSince + 'd ago'}`
+                : '<span style="font-style: italic;">no past visits</span>';
+            return `
+                <div class="cvr-card${r.isDormant ? ' dormant' : ''}" data-cid="${r.id}" data-action="open-client">
+                    <div class="cvr-card-header">
+                        <span class="cvr-card-name">${escapeHtml(r.name)}</span>
+                        <span class="cvr-card-revenue">$${r.revenue.toFixed(0)}</span>
+                    </div>
+                    <div class="cvr-card-meta">
+                        ${r.visits} visit${r.visits === 1 ? '' : 's'} · ${lastText}${r.isDormant ? ' · <span class="cvr-card-dormant">dormant</span>' : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+    // Override the oninput attribute behavior to use our local renderer instead of re-rendering everything
+    if (searchInp) searchInp.oninput = renderAllList;
+    if (dormantInp) dormantInp.onchange = renderAllList;
+    renderAllList();
+
+    // Wire up click delegation (only once — listener persists across re-renders since wrap doesn't get recreated)
+    if (!wrap._cvrClickWired) {
+        wrap._cvrClickWired = true;
+        wrap.addEventListener('click', (e) => {
+            const actionEl = e.target.closest('[data-action]');
+            if (actionEl) {
+                e.stopPropagation();
+                const action = actionEl.dataset.action;
+                const cid = actionEl.dataset.cid;
+                if (action === 'book-again') {
+                    closeModal('clientValueReportModal');
+                    setTimeout(() => bookAgainFor(cid), 100);
+                    return;
+                } else if (action === 'open-client') {
+                    closeModal('clientValueReportModal');
+                    window.location.href = 'clients.html?id=' + encodeURIComponent(cid);
+                    return;
+                }
+            }
+            // Plain card / rank row click (no [data-action]) → open client
+            const cardEl = e.target.closest('[data-cid]');
+            if (cardEl && cardEl.dataset.cid && !e.target.closest('button')) {
+                closeModal('clientValueReportModal');
+                window.location.href = 'clients.html?id=' + encodeURIComponent(cardEl.dataset.cid);
+            }
+        });
+    }
+}
+
+// Persisted filter state for the All Clients section
+let _cvrFilterState = { query: '', dormantOnly: false };
+
+function _cvrSort(key) {
+    if (_cvrSortKey === key) {
+        // Toggle direction
+        _cvrSortDir = _cvrSortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+        _cvrSortKey = key;
+        // Default direction: strings asc, numbers desc
+        _cvrSortDir = (key === 'name') ? 'asc' : 'desc';
+    }
+    renderClientValueReport();
+}
+
+function bookAgainFor(clientId) {
+    // Uses the client's MOST RECENT past visit as a template, scheduling another
+    // for the next occurrence of that day-of-week from today. Works for any
+    // client who's ever had a visit — no recurring pattern required.
+    const client = Store.getClients().find(c => c.id === clientId);
+    if (!client) { showToast('Client not found', 'error'); return; }
+
+    const allVisits = Store.getVisits().filter(v => v.clientId === clientId);
+    const todayStr = todayYmd();
+
+    // Pick the template: most recent past visit with time + visitType set.
+    // Prefer completed visits, but fall back to any past visit if no completed ones.
+    const usable = allVisits.filter(v =>
+        v.date && v.date <= todayStr && v.time && v.visitType
+    );
+    if (usable.length === 0) {
+        showToast('No past visits yet, opening the full scheduler', 'info');
+        setTimeout(() => scheduleVisitFor(clientId), 300);
+        return;
+    }
+    const completed = usable.filter(v => v.status === 'completed');
+    const pool = completed.length > 0 ? completed : usable;
+    pool.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const template = pool[0];
+
+    // Next occurrence of the template's day-of-week (strictly future)
+    const templateDow = new Date(template.date + 'T00:00:00').getDay();
+    const today = new Date(todayStr + 'T00:00:00');
+    const todayDow = today.getDay();
+    let daysUntil = (templateDow - todayDow + 7) % 7;
+    if (daysUntil === 0) daysUntil = 7;
+    const next = new Date(today);
+    next.setDate(today.getDate() + daysUntil);
+    const nextYmd = ymdFromDate(next);
+    const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][templateDow];
+
+    // Price from template, fall back to client defaults
+    let price = parseFloat(template.price);
+    if (isNaN(price) || price <= 0) {
+        if (template.visitType === '30min') price = parseFloat(client.price30) || 0;
+        else if (template.visitType === '60min') price = parseFloat(client.price60) || 0;
+        else price = 0;
+    }
+    const typeLabel = template.visitType === 'meet-greet' ? 'Meet & Greet'
+        : template.visitType === '60min' ? '60 min Visit'
+        : template.visitType === '30min' ? '30 min Visit'
+        : template.visitType;
+
+    // 24h "07:00" → "7:00 AM" for the confirm dialog
+    const fmtTime = (t) => {
+        if (!t || !/^\d{1,2}:\d{2}$/.test(t)) return t;
+        const [h, m] = t.split(':').map(Number);
+        const period = h >= 12 ? 'PM' : 'AM';
+        const h12 = ((h + 11) % 12) + 1;
+        return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+    };
+
+    const confirmMsg =
+        `Book ${typeLabel} for ${client.name}?\n\n` +
+        `${dayName}, ${nextYmd} at ${fmtTime(template.time)}\n` +
+        `Price: $${price.toFixed(2)}\n\n` +
+        `Same as their last visit on ${template.date}.\n` +
+        `OK to book · Cancel to use the full scheduler`;
+    if (!confirm(confirmMsg)) {
+        if (confirm('Open the full scheduler instead?')) scheduleVisitFor(clientId);
+        return;
+    }
+
+    const newVisit = {
+        id: 'visit_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        clientId: client.id,
+        clientName: client.name,
+        date: nextYmd,
+        time: template.time,
+        visitType: template.visitType,
+        price: price,
+        status: 'scheduled',
+        assignedTo: template.assignedTo || 'kasey',
+        address: template.address || '',
+        notes: '',
+        paid: false,
+        invoiced: false,
+        createdAt: new Date().toISOString(),
+    };
+
+    const visits = Store.getVisits();
+    visits.push(newVisit);
+    const ok = Store.saveVisits(visits);
+    if (ok !== false) {
+        showToast(`Booked ${typeLabel} for ${client.name} on ${nextYmd}`);
+    } else {
+        showToast('Save failed', 'error');
+    }
+}
+
+// Helpers that bookAgainFor depends on — defensive in case they aren't already global on clients.html
+function todayYmd() {
+    const d = new Date();
+    return ymdFromDate(d);
+}
+function ymdFromDate(d) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function _addDaysYmd(ymdStr, n) {
+    const d = new Date(ymdStr + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return ymdFromDate(d);
+}
+
+function openClientModal() {
+    editingClientId = null;
+    _capturedCoords = null;
+    document.getElementById('clientModalTitle').textContent = 'Add Client';
+    document.getElementById('saveClientBtn').textContent = 'Save Client';
+    ['cName','cPhone','cEmail','cAddress','cCity','cState','cZip','cAccess','cNotes',
+     'cMilesFromHome',
+     'cEmergencyName','cEmergencyPhone','cEmergencyRel','cVetClinic','cVetPhone','cVetAddress',
+     'cPrice30','cPrice60','cDefaultPaymentMethod'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('cPreferredContact').value = '';
+    document.getElementById('petsContainer').innerHTML = '';
+    document.getElementById('timeWindowsContainer').innerHTML = '';
+    const stat = document.getElementById('cCoordsStatus');
+    if (stat) { stat.textContent = ''; }
+    const btn = document.getElementById('cCaptureBtn');
+    if (btn) btn.textContent = 'Auto-fill from address';
+    openModal('clientModal');
+    setTimeout(() => document.getElementById('cName').focus(), 50);
+}
+
+function editClient(clientId) {
+    const c = Store.getClients().find(x => x.id === clientId);
+    if (!c) return;
+    editingClientId = clientId;
+    // Carry over any existing coords (from prior capture or geocoder run)
+    _capturedCoords = c.coords || c.coordsCache || null;
+    document.getElementById('clientModalTitle').textContent = 'Edit Client';
+    document.getElementById('saveClientBtn').textContent = 'Save Changes';
+    document.getElementById('cName').value = c.name || '';
+    document.getElementById('cPreferredContact').value = c.preferredContact || '';
+    document.getElementById('cPhone').value = c.phone || '';
+    document.getElementById('cEmail').value = c.email || '';
+    document.getElementById('cAddress').value = c.address || '';
+    document.getElementById('cCity').value = c.city || '';
+    document.getElementById('cState').value = c.state || '';
+    document.getElementById('cZip').value = c.zip || '';
+    document.getElementById('cAccess').value = c.accessInstructions || '';
+    document.getElementById('cMilesFromHome').value = (() => {
+        // Prefer manual override (if set), else legacy auto-computed milesFromHome
+        if (c.milesFromHomeOverride != null && c.milesFromHomeOverride !== '') return c.milesFromHomeOverride;
+        if (c.milesFromHome != null && c.milesFromHome !== '') return c.milesFromHome;
+        return '';
+    })();
+    // Show a status if we already have coords for this client
+    const stat = document.getElementById('cCoordsStatus');
+    const capBtn = document.getElementById('cCaptureBtn');
+    if (_capturedCoords && stat) {
+        stat.textContent = `Location on file: ${_capturedCoords.lat.toFixed(4)}, ${_capturedCoords.lng.toFixed(4)}`;
+        stat.style.color = 'var(--text-faint)';
+        if (capBtn) capBtn.textContent = 'Auto-fill from address';
+    } else {
+        if (stat) stat.textContent = '';
+        if (capBtn) capBtn.textContent = 'Auto-fill from address';
+    }
+    document.getElementById('cNotes').value = c.notes || '';
+    document.getElementById('cPrice30').value = c.pricing?.['30min'] || '';
+    document.getElementById('cPrice60').value = c.pricing?.['60min'] || '';
+    document.getElementById('cDefaultPaymentMethod').value = c.defaultPaymentMethod || '';
+    const em = c.emergencyContact || {};
+    document.getElementById('cEmergencyName').value = em.name || '';
+    document.getElementById('cEmergencyPhone').value = em.phone || '';
+    document.getElementById('cEmergencyRel').value = em.relationship || '';
+    const vet = c.vetInfo || {};
+    document.getElementById('cVetClinic').value = vet.clinic || '';
+    document.getElementById('cVetPhone').value = vet.phone || '';
+    document.getElementById('cVetAddress').value = vet.address || '';
+    document.getElementById('petsContainer').innerHTML = '';
+    (c.pets || []).forEach(p => addPetEntry(p));
+    document.getElementById('timeWindowsContainer').innerHTML = '';
+    (c.timeWindows || []).forEach(w => addTimeWindow(w));
+    closeModal('detailModal');
+    openModal('clientModal');
+}
+
+function addPetEntry(petData = null) {
+    const container = document.getElementById('petsContainer');
+    const idx = container.children.length;
+    const row = document.createElement('div');
+    row.className = 'pet-entry';
+    const v = (k) => petData && petData[k] ? escapeHtml(petData[k]) : '';
+    const sel = (k, opt) => petData && petData[k] === opt ? 'selected' : '';
+    row.innerHTML = `
+        <div class="pet-entry-header">
+            <div class="pet-entry-title">Pet ${idx + 1}</div>
+            <button type="button" class="remove-pet-btn" onclick="this.closest('.pet-entry').remove()">Remove</button>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" class="pet-name" value="${v('name')}"></div>
+            <div class="form-group"><label>Species</label>
+                <select class="pet-species">
+                    <option value="">—</option>
+                    <option ${sel('species','Dog')}>Dog</option>
+                    <option ${sel('species','Cat')}>Cat</option>
+                    <option ${sel('species','Bird')}>Bird</option>
+                    <option ${sel('species','Rabbit')}>Rabbit</option>
+                    <option ${sel('species','Other')}>Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row-3">
+            <div class="form-group"><label>Sex</label>
+                <select class="pet-sex">
+                    <option value="">—</option>
+                    <option ${sel('sex','Male')}>Male</option>
+                    <option ${sel('sex','Female')}>Female</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Breed</label><input type="text" class="pet-breed" value="${v('breed')}"></div>
+            <div class="form-group"><label>Age</label><input type="text" class="pet-age" value="${v('age')}" placeholder="e.g. 3 yrs"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Weight</label><input type="text" class="pet-weight" value="${v('weight')}" placeholder="e.g. 25 lbs"></div>
+            <div class="form-group"><label>Color/Markings</label><input type="text" class="pet-color" value="${v('color')}"></div>
+        </div>
+        <div class="form-group"><label>Behavior Notes</label><textarea class="pet-behavior" rows="2" placeholder="Temperament, anxiety triggers, special handling…">${v('behaviorNotes')}</textarea></div>
+        <div class="form-group"><label>Medical / Conditions</label><textarea class="pet-medical" rows="2" placeholder="Medications, allergies, chronic conditions…">${v('medicalNotes')}</textarea></div>
+        <div class="form-group"><label>Feeding Instructions</label><textarea class="pet-feeding" rows="2" placeholder="Food, amounts, meal times…">${v('feedingInstructions')}</textarea></div>
+        <div class="form-group"><label>Care Instructions</label><textarea class="pet-care" rows="2" placeholder="Potty schedule, exercise, daily routine…">${v('careInstructions')}</textarea></div>
+    `;
+    container.appendChild(row);
+}
+
+const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function addTimeWindow(windowData = null) {
+    const container = document.getElementById('timeWindowsContainer');
+    const row = document.createElement('div');
+    row.className = 'time-window-row';
+    const days = (windowData && windowData.days) || [];
+    const startTime = windowData?.startTime || '09:00';
+    const endTime = windowData?.endTime || '17:00';
+    const dayPills = DAYS_SHORT.map((d, i) => {
+        const checked = days.includes(i);
+        return `<label class="day-pill ${checked ? 'checked' : ''}">
+            <input type="checkbox" value="${i}" ${checked ? 'checked' : ''} onchange="this.closest('.day-pill').classList.toggle('checked', this.checked)">${d}
+        </label>`;
+    }).join('');
+    row.innerHTML = `
+        <div class="time-window-days">${dayPills}</div>
+        <div class="time-window-times">
+            <input type="time" class="tw-start" value="${startTime}">
+            <span style="color: var(--text-faint);">–</span>
+            <input type="time" class="tw-end" value="${endTime}">
+        </div>
+        <button type="button" class="time-window-remove" onclick="this.closest('.time-window-row').remove()" title="Remove">×</button>
+    `;
+    container.appendChild(row);
+}
+
+function collectTimeWindows() {
+    const windows = [];
+    document.querySelectorAll('#timeWindowsContainer .time-window-row').forEach(row => {
+        const days = Array.from(row.querySelectorAll('.day-pill input:checked')).map(i => parseInt(i.value));
+        const startTime = row.querySelector('.tw-start').value;
+        const endTime = row.querySelector('.tw-end').value;
+        if (days.length === 0 || !startTime || !endTime) return;
+        windows.push({ days, startTime, endTime });
+    });
+    return windows;
+}
+
+function saveClient() {
+    const name = document.getElementById('cName').value.trim();
+    if (!name) { showToast('Name is required', 'error'); return; }
+    const pets = [];
+    document.querySelectorAll('#petsContainer .pet-entry').forEach(p => {
+        const petName = p.querySelector('.pet-name').value.trim();
+        if (!petName) return;
+        pets.push({
+            name: petName,
+            species: p.querySelector('.pet-species').value,
+            sex: p.querySelector('.pet-sex').value,
+            breed: p.querySelector('.pet-breed').value.trim(),
+            age: p.querySelector('.pet-age').value.trim(),
+            weight: p.querySelector('.pet-weight').value.trim(),
+            color: p.querySelector('.pet-color').value.trim(),
+            behaviorNotes: p.querySelector('.pet-behavior').value.trim(),
+            medicalNotes: p.querySelector('.pet-medical').value.trim(),
+            feedingInstructions: p.querySelector('.pet-feeding').value.trim(),
+            careInstructions: p.querySelector('.pet-care').value.trim()
+        });
+    });
+    const pricing = {};
+    const p30 = parseFloat(document.getElementById('cPrice30').value);
+    const p60 = parseFloat(document.getElementById('cPrice60').value);
+    if (!isNaN(p30) && p30 > 0) pricing['30min'] = p30;
+    if (!isNaN(p60) && p60 > 0) pricing['60min'] = p60;
+    const data = {
+        name,
+        preferredContact: document.getElementById('cPreferredContact').value,
+        phone: document.getElementById('cPhone').value.trim(),
+        email: document.getElementById('cEmail').value.trim(),
+        address: document.getElementById('cAddress').value.trim(),
+        city: document.getElementById('cCity').value.trim(),
+        state: document.getElementById('cState').value.trim(),
+        zip: document.getElementById('cZip').value.trim(),
+        accessInstructions: document.getElementById('cAccess').value.trim(),
+        milesFromHomeOverride: (() => {
+            const v = parseFloat(document.getElementById('cMilesFromHome').value);
+            return (isNaN(v) || v < 0) ? null : v;
+        })(),
+        notes: document.getElementById('cNotes').value.trim(),
+        pricing, pets,
+        coords: _capturedCoords,
+        defaultPaymentMethod: document.getElementById('cDefaultPaymentMethod').value || null,
+        timeWindows: collectTimeWindows(),
+        emergencyContact: {
+            name: document.getElementById('cEmergencyName').value.trim(),
+            phone: document.getElementById('cEmergencyPhone').value.trim(),
+            relationship: document.getElementById('cEmergencyRel').value.trim()
+        },
+        vetInfo: {
+            clinic: document.getElementById('cVetClinic').value.trim(),
+            phone: document.getElementById('cVetPhone').value.trim(),
+            address: document.getElementById('cVetAddress').value.trim()
+        }
+    };
+    const clients = Store.getClients();
+    if (editingClientId) {
+        const idx = clients.findIndex(c => c.id === editingClientId);
+        if (idx >= 0) {
+            clients[idx] = { ...clients[idx], ...data };
+            Store.saveClients(clients);
+            updateClientNameInVisits(editingClientId, name);
+            showToast('Client updated');
+        }
+    } else {
+        const newClient = {
+            id: 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            createdDate: new Date().toISOString().split('T')[0],
+            ...data
+        };
+        clients.push(newClient);
+        Store.saveClients(clients);
+        showToast('Client added');
+    }
+    closeModal('clientModal');
+    renderClients();
+}
+
+function updateClientNameInVisits(clientId, newName) {
+    const visits = Store.getVisits();
+    let changed = false;
+    visits.forEach(v => { if (v.clientId === clientId && v.clientName !== newName) { v.clientName = newName; changed = true; } });
+    if (changed) Store.save(STORAGE_KEYS.visits, visits);
+}
+
+let _confirmCallback = null;
+function showConfirm(title, message, onConfirm, options = {}) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    const btn = document.getElementById('confirmYesBtn');
+    btn.textContent = options.confirmText || 'Confirm';
+    btn.className = 'btn ' + (options.danger ? 'btn-danger' : 'btn-primary');
+    _confirmCallback = onConfirm;
+    openModal('confirmModal');
+}
+function _confirmYes() {
+    const cb = _confirmCallback;
+    _confirmCallback = null;
+    closeModal('confirmModal');
+    if (cb) try { cb(); } catch(e) { console.error('Confirm callback error:', e); showToast('Something went wrong', 'error'); }
+}
+function _confirmNo() {
+    _confirmCallback = null;
+    closeModal('confirmModal');
+}
+
+// ---- Tip-tab management for a client ----
+let _clientTipEditId = null;
+// Payment method fee structure for tips (mirrors invoices.html PAYMENT_METHODS so
+// tip fees calculate the same way invoice fees do). Methods absent from this table
+// (cash, zelle, check, rover, other) have no processor fee.
+const _TIP_METHOD_FEES = {
+    venmo:   { pct: 0.019,  flat: 0.10 },  // Venmo: 1.9% + $0.10 (business)
+    cashapp: { pct: 0,      flat: 0    },  // Personal CashApp — no fee
+    stripe:  { pct: 0.029,  flat: 0.30 },  // Stripe: 2.9% + $0.30
+};
+function _calcTipFee(method, gross) {
+    const m = _TIP_METHOD_FEES[method];
+    if (!m || !gross || gross <= 0) return 0;
+    return Math.round(((gross * m.pct) + m.flat) * 100) / 100;
+}
+
+function openClientTipModal(clientId) {
+    const c = Store.getClients().find(x => x.id === clientId);
+    if (!c) return;
+    _clientTipEditId = clientId;
+    document.getElementById('clientTipClientName').textContent = c.name || 'Client';
+    document.getElementById('clientTipAmount').value = '';
+    document.getElementById('clientTipDate').value = new Date().toISOString().split('T')[0];
+    const methodEl = document.getElementById('clientTipMethod');
+    if (methodEl) methodEl.value = '';
+    document.getElementById('clientTipNote').value = '';
+    openModal('clientTipModal');
+}
+function saveClientTip() {
+    if (!_clientTipEditId) return;
+    const amount = parseFloat(document.getElementById('clientTipAmount').value);
+    if (!amount || amount <= 0) { showToast('Enter a tip amount', 'error'); return; }
+    const date = document.getElementById('clientTipDate').value || new Date().toISOString().split('T')[0];
+    const note = document.getElementById('clientTipNote').value.trim();
+    const method = (document.getElementById('clientTipMethod')?.value || '').trim() || null;
+    const paymentFee = method ? _calcTipFee(method, amount) : 0;
+    const netAmount = Math.round((amount - paymentFee) * 100) / 100;
+
+    const clients = Store.getClients();
+    const c = clients.find(x => x.id === _clientTipEditId);
+    if (!c) { showToast('Client not found', 'error'); return; }
+    if (!Array.isArray(c.tips)) c.tips = [];
+    c.tips.push({
+        id: 'tip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        date, amount, note,
+        paymentMethod: method,
+        paymentFee,
+        netAmount
+    });
+    const ok = Store.saveClients(clients);
+    if (ok === false) { showToast('Could not save', 'error'); return; }
+    closeModal('clientTipModal');
+    const id = _clientTipEditId;
+    _clientTipEditId = null;
+    viewClient(id);
+    renderClients();
+    showToast(`Added $${amount.toFixed(2)} tip${paymentFee > 0 ? ` (net $${netAmount.toFixed(2)})` : ''}`);
+}
+function deleteTip(clientId, tipId, ev) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+    showConfirm('Remove this tip?', 'This will subtract it from the client total.', () => {
+        const clients = Store.getClients();
+        const c = clients.find(x => x.id === clientId);
+        if (!c || !Array.isArray(c.tips)) return;
+        c.tips = c.tips.filter(t => t.id !== tipId);
+        const ok = Store.saveClients(clients);
+        if (ok === false) { showToast('Could not save', 'error'); return; }
+        viewClient(clientId);
+        renderClients();
+        showToast('Tip removed');
+    });
+}
+
+function deleteClient(clientId, ev) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+    const c = Store.getClients().find(x => x.id === clientId);
+    if (!c) { showToast('Client not found', 'error'); return; }
+    const visits = Store.index().visitsFor(clientId);   // read only
+    let msg = `Are you sure you want to delete "${c.name}"?`;
+    if (visits.length > 0) msg += `\n\nThis client has ${visits.length} visit${visits.length > 1 ? 's' : ''} on file. The visits will stay so your records remain accurate.`;
+    showConfirm('Delete client?', msg, () => {
+        // Re-load fresh at save time to avoid any stale-write race
+        const fresh = Store.getClients();
+        const updated = fresh.filter(x => x.id !== clientId);
+        const ok = Store.saveClients(updated);
+        if (!ok) { showToast('Could not save, try again', 'error'); return; }
+        closeModal('detailModal');
+        renderClients();
+        showToast('Client deleted');
+    }, { confirmText: 'Delete', danger: true });
+}
+
+function viewClient(clientId) {
+    const c = Store.index().client(clientId);   // read only
+    if (!c) return;
+    const visits = Store.index().visitsFor(clientId).slice()   // read only
+        .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+    const stats = getClientStats(clientId);
+    document.getElementById('detailTitle').textContent = c.name || '(unnamed)';
+    const addressLine = [c.address, c.city, c.state, c.zip].filter(Boolean).join(', ');
+    let html = '';
+    const pricing = c.pricing || {};
+    const PAY_LABELS = { venmo: 'Venmo', cashapp: 'CashApp', stripe: 'Stripe', rover: 'Rover', cash: 'Cash', other: 'Other' };
+    const payLabel = c.defaultPaymentMethod ? (PAY_LABELS[c.defaultPaymentMethod] || c.defaultPaymentMethod) : '—';
+    html += `
+        <div class="detail-section">
+            <h3>Pricing</h3>
+            <div class="pricing-mini-grid">
+                <div class="pricing-tile"><div class="pricing-tile-label">30 min Visit</div><div class="pricing-tile-value">${pricing['30min'] ? '$' + pricing['30min'].toFixed(2) : '—'}</div></div>
+                <div class="pricing-tile"><div class="pricing-tile-label">1 hour Visit</div><div class="pricing-tile-value">${pricing['60min'] ? '$' + pricing['60min'].toFixed(2) : '—'}</div></div>
+                <div class="pricing-tile"><div class="pricing-tile-label">Default Pay</div><div class="pricing-tile-value" style="font-size: 1.05em;">${payLabel}</div></div>
+            </div>
+        </div>`;
+
+    const tw = c.timeWindows || [];
+    if (tw.length > 0) {
+        html += `<div class="detail-section"><h3>Preferred Time Windows</h3>`;
+        tw.forEach(w => {
+            const dayLabels = (w.days || []).map(d => DAYS_SHORT[d]).join(', ');
+            html += `<div class="detail-row"><div class="detail-label">${escapeHtml(dayLabels)}</div><div class="detail-value">${formatTime12(w.startTime)} – ${formatTime12(w.endTime)}</div></div>`;
+        });
+        html += `</div>`;
+    }
+    html += `
+        <div class="detail-section">
+            <h3>Contact & Access</h3>
+            ${c.accessInstructions ? `
+                <div class="access-callout">
+                    <div class="access-callout-label">Home Access</div>
+                    <div class="access-callout-value">${escapeHtml(c.accessInstructions)}</div>
+                </div>
+            ` : ''}
+            ${c.phone ? `<div class="detail-row"><div class="detail-label">Phone</div><div class="detail-value">${escapeHtml(formatPhone(c.phone))}</div></div>` : ''}
+            ${c.email ? `<div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">${escapeHtml(c.email)}</div></div>` : ''}
+            ${c.preferredContact ? `<div class="detail-row"><div class="detail-label">Preferred</div><div class="detail-value">${escapeHtml(c.preferredContact)}</div></div>` : ''}
+            ${addressLine ? `<div class="detail-row"><div class="detail-label">Address</div><div class="detail-value">${renderClickableAddress(addressLine)}</div></div>` : ''}
+            ${(() => {
+                const hasOverride = c.milesFromHomeOverride != null && c.milesFromHomeOverride !== '';
+                const hasLegacy = c.milesFromHome != null && c.milesFromHome !== '';
+                if (!hasOverride && !hasLegacy) return '';
+                const eff = hasOverride ? c.milesFromHomeOverride : c.milesFromHome;
+                const tag = hasOverride ? ` <span style="color: var(--accent); font-size: 0.78em;">(manual)</span>` : '';
+                return `<div class="detail-row"><div class="detail-label">Miles from Home</div><div class="detail-value">${eff} mi (one-way)${tag}</div></div>`;
+            })()}
+        </div>`;
+    // Inbox items tagged to this client (reminders / tasks / notes from the
+    // home dashboard Inbox). Read-only here; click "Open Inbox" to edit.
+    const inboxItems = Store.view.quickNotes().filter(it => it && it.clientId === c.id && !it.done);   // read only
+    if (inboxItems.length > 0) {
+        inboxItems.sort((a, b) => {
+            const orderOf = (x) => x.type === 'reminder' ? 0 : x.type === 'task' ? 1 : 2;
+            if (orderOf(a) !== orderOf(b)) return orderOf(a) - orderOf(b);
+            if (a.type === 'reminder') return (a.surfaceDate || '9999').localeCompare(b.surfaceDate || '9999');
+            if (a.type === 'task') return (a.dueDate || '9999').localeCompare(b.dueDate || '9999');
+            return (b.createdAt || '').localeCompare(a.createdAt || '');
+        });
+        html += `<div class="detail-section"><h3>Inbox <span style="color:var(--text-faint); font-weight:400; font-size:0.7em;">(${inboxItems.length})</span></h3>`;
+        inboxItems.forEach(it => {
+            const typeLabel = it.type === 'reminder' ? 'REMIND' : it.type === 'note' ? 'NOTE' : 'TASK';
+            const tagColor = it.type === 'reminder' ? '#7ba2c4'
+                          : it.type === 'note' ? '#c4a77b'
+                          : 'var(--accent)';
+            const tagBg = it.type === 'reminder' ? 'rgba(123, 162, 196, 0.15)'
+                        : it.type === 'note' ? 'rgba(196, 167, 123, 0.15)'
+                        : 'rgba(181, 145, 151, 0.15)';
+            let dateLabel = '';
+            if (it.type === 'reminder' && it.surfaceDate) {
+                dateLabel = ` · ${it.surfaceDate}${it.recurrence ? ' (' + it.recurrence + ')' : ''}`;
+            } else if (it.type === 'task' && it.dueDate) {
+                dateLabel = ` · due ${it.dueDate}`;
+            } else if (it.type === 'note' && it.pinned) {
+                dateLabel = ` · pinned`;
+            }
+            html += `
+                <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; background: var(--bg-input); border-radius: 6px; margin-bottom: 6px;">
+                    <span style="background: ${tagBg}; color: ${tagColor}; font-size: 0.66em; font-weight: 700; letter-spacing: 1.2px; padding: 3px 7px; border-radius: 4px; flex-shrink: 0; line-height: 1.4;">${typeLabel}</span>
+                    <div style="flex: 1; color: var(--text); font-size: 0.95em; line-height: 1.4;">
+                        ${escapeHtml(it.text || '')}
+                        <span style="color: var(--text-faint); font-size: 0.85em;">${dateLabel}</span>
+                    </div>
+                </div>`;
+        });
+        html += `<div style="margin-top: 8px;"><a href="index.html" style="color: var(--accent); font-size: 0.85em; text-decoration: underline;">Open Inbox to edit →</a></div></div>`;
+    }
+    if ((c.pets || []).length > 0) {
+        html += `<div class="detail-section"><h3>Pets (${c.pets.length})</h3>`;
+        c.pets.forEach(p => {
+            const meta = [p.species, p.breed, p.sex, p.age, p.weight, p.color].filter(Boolean).join(' · ');
+            html += `
+                <div class="pet-detail-card">
+                    <h4>${escapeHtml(p.name)}</h4>
+                    ${meta ? `<div class="pet-detail-meta">${escapeHtml(meta)}</div>` : ''}
+                    ${p.behaviorNotes ? `<div class="pet-note"><strong>Behavior</strong>${escapeHtml(p.behaviorNotes)}</div>` : ''}
+                    ${p.medicalNotes ? `<div class="pet-note"><strong>Medical</strong>${escapeHtml(p.medicalNotes)}</div>` : ''}
+                    ${p.feedingInstructions ? `<div class="pet-note"><strong>Feeding</strong>${escapeHtml(p.feedingInstructions)}</div>` : ''}
+                    ${p.careInstructions ? `<div class="pet-note"><strong>Care</strong>${escapeHtml(p.careInstructions)}</div>` : ''}
+                </div>`;
+        });
+        html += `</div>`;
+    }
+    // Tips section
+    const tipEntries = Array.isArray(c.tips) ? c.tips.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')) : [];
+    const _completedCount = visits.filter(v => v.status === 'completed').length;
+    const _isNonTipper = _completedCount >= 3 && (stats.tippedCount || 0) === 0;
+    html += `
+        <div class="detail-section">
+            <h3>Tips — $${stats.totalTips.toFixed(0)} total${stats.tippedCount > 0 ? ` · ${stats.tippedCount} entries` : ''}${_isNonTipper ? ' <span class="badge muted">Non-tipper</span>' : ''}
+                <button class="btn btn-ghost btn-sm" style="float: right; margin-top: -4px;" onclick="openClientTipModal('${c.id}')">+ Add Tip</button>
+            </h3>
+            ${tipEntries.length === 0
+                ? `<div class="empty-state" style="padding: 12px;">No tips recorded yet</div>`
+                : `<div class="tip-list">${tipEntries.map(t => {
+                    const methodLabel = ({
+                        venmo: 'Venmo', cashapp: 'CashApp', stripe: 'Stripe',
+                        rover: 'Rover', cash: 'Cash', other: 'Other'
+                    })[t.paymentMethod] || '';
+                    const methodChip = methodLabel
+                        ? `<span style="font-size: 0.74em; color: var(--text-faint); background: var(--bg-input); border: 1px solid var(--border); padding: 1px 7px; border-radius: 10px; margin-left: 4px;">${methodLabel}</span>`
+                        : '';
+                    // Display fee/net: prefer stored values, fall back to computing on the fly
+                    // so historical tips with only a paymentMethod still surface their fee.
+                    const gross = parseFloat(t.amount) || 0;
+                    const fee = (t.paymentFee != null) ? parseFloat(t.paymentFee)
+                              : (t.paymentMethod ? _calcTipFee(t.paymentMethod, gross) : 0);
+                    const net = (t.netAmount != null) ? parseFloat(t.netAmount)
+                              : Math.round((gross - fee) * 100) / 100;
+                    const feeLine = fee > 0
+                        ? `<div style="font-size: 0.78em; color: var(--text-faint); margin-top: 2px;">fee $${fee.toFixed(2)} · net $${net.toFixed(2)}</div>`
+                        : '';
+                    return `
+                    <div class="tip-row" data-tip-id="${t.id}">
+                        <div class="tip-date">${formatDateLong(t.date).replace(/, \\d{4}$/, '')}</div>
+                        <div class="tip-amount">$${gross.toFixed(2)}${methodChip}${feeLine}</div>
+                        <div class="tip-note">${escapeHtml(t.note || '')}</div>
+                        <button class="tip-delete" onclick="deleteTip('${c.id}', '${t.id}', event)" title="Remove">×</button>
+                    </div>`;
+                }).join('')}</div>`
+            }
+        </div>
+    `;
+    if (visits.length > 0) {
+        // Build a set of types that actually appear in this client's visits, for the dropdown
+        const typesInUse = [...new Set(visits.map(v => v.visitType).filter(Boolean))].sort();
+        const typeOptions = typesInUse.map(t => {
+            const label = (VISIT_TYPES[t] && VISIT_TYPES[t].label) || t;
+            return `<option value="${escapeHtml(t)}">${escapeHtml(label)}</option>`;
+        }).join('');
+
+        // Reset filter state on every detail view open — each client starts fresh
+        window._visitFilter = { search: '', type: 'all', status: 'all', paid: 'all', dateRange: 'all', showAll: false };
+
+        html += `
+            <div class="detail-section">
+                <h3>Visit History — ${visits.length} total · Lifetime: $${stats.ltv.toFixed(2)}</h3>
+                <div class="visit-filter-bar">
+                    <input type="text" id="visitFilterSearch" placeholder="Search type, notes, date…" oninput="updateVisitFilter('search', this.value)" class="visit-filter-input">
+                    <select id="visitFilterType" onchange="updateVisitFilter('type', this.value)" class="visit-filter-select">
+                        <option value="all">All types</option>
+                        ${typeOptions}
+                    </select>
+                    <select id="visitFilterStatus" onchange="updateVisitFilter('status', this.value)" class="visit-filter-select">
+                        <option value="all">All statuses</option>
+                        <option value="completed">Completed</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                    <select id="visitFilterPaid" onchange="updateVisitFilter('paid', this.value)" class="visit-filter-select">
+                        <option value="all">Paid + unpaid</option>
+                        <option value="paid">Paid only</option>
+                        <option value="unpaid">Unpaid only</option>
+                    </select>
+                    <select id="visitFilterRange" onchange="updateVisitFilter('dateRange', this.value)" class="visit-filter-select">
+                        <option value="all">All time</option>
+                        <option value="30">Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="365">Last year</option>
+                        <option value="ytd">This year</option>
+                    </select>
+                </div>
+                <div class="visit-history-row visit-history-header" style="font-weight: 600; color: var(--text-faint); border-bottom-width: 2px;">
+                    <div>Date</div><div>Type</div><div style="text-align: right;">Price</div><div style="text-align: right;">Status</div>
+                </div>
+                <div id="visitHistoryList" data-client-id="${c.id}">${renderFilteredVisitList(visits)}</div>
+            </div>`;
+    } else {
+        html += `<div class="detail-section"><h3>Visit History</h3><div class="empty-state" style="padding: 20px;">No visits yet</div></div>`;
+    }
+    const em = c.emergencyContact || {};
+    const vet = c.vetInfo || {};
+    if (em.name || em.phone || vet.clinic || vet.phone) {
+        html += `<div class="detail-section"><h3>Emergency & Vet</h3>`;
+        if (em.name || em.phone) {
+            html += `<div class="detail-row"><div class="detail-label">Emergency</div><div class="detail-value">${escapeHtml(em.name || '—')}${em.phone ? ' · ' + escapeHtml(formatPhone(em.phone)) : ''}${em.relationship ? ' (' + escapeHtml(em.relationship) + ')' : ''}</div></div>`;
+        }
+        if (vet.clinic || vet.phone) {
+            html += `<div class="detail-row"><div class="detail-label">Vet</div><div class="detail-value">${escapeHtml(vet.clinic || '—')}${vet.phone ? ' · ' + escapeHtml(formatPhone(vet.phone)) : ''}</div></div>`;
+            if (vet.address) html += `<div class="detail-row"><div class="detail-label"></div><div class="detail-value">${renderClickableAddress(vet.address)}</div></div>`;
+        }
+        html += `</div>`;
+    }
+    if (c.notes) {
+        html += `<div class="detail-section"><h3>Notes</h3><div style="color: var(--text-dim); white-space: pre-wrap;">${escapeHtml(c.notes)}</div></div>`;
+    }
+    document.getElementById('detailBody').innerHTML = html;
+    document.getElementById('detailFooter').innerHTML = `
+        <button class="btn btn-danger" onclick="deleteClient('${c.id}', event)">Delete</button>
+        <button class="btn btn-ghost" onclick="closeModal('detailModal')">Close</button>
+        <button class="btn btn-secondary" onclick="openClientTipModal('${c.id}')">+ Tip</button>
+        <button class="btn btn-secondary" onclick="editClient('${c.id}')">Edit</button>
+        <button class="btn btn-primary" onclick="scheduleVisitFor('${c.id}')">Schedule Visit</button>
+    `;
+    openModal('detailModal');
+    // Always show the top of the details — never carry over the previous scroll position
+    const body = document.getElementById('detailBody');
+    if (body) body.scrollTop = 0;
+    const modal = document.querySelector('#detailModal .modal');
+    if (modal) modal.scrollTop = 0;
+}
+
+function init() {
+    renderLogo();
+    renderClients();
+    // If URL contains ?id=clientId, expand & scroll to that client
+    try {
+        const params = new URLSearchParams(location.search);
+        const id = params.get('id');
+        if (id) {
+            _expandedClients.add(id);
+            // Wait for render then scroll into view
+            setTimeout(() => {
+                const card = document.querySelector(`.client-card[data-client-id="${id}"]`);
+                if (card) {
+                    const body = card.querySelector('.client-card-body');
+                    const btn = card.querySelector('.card-expand-toggle');
+                    if (body) body.style.display = '';
+                    if (btn) btn.textContent = '▴';
+                    card.classList.add('expanded');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Brief highlight pulse
+                    card.style.transition = 'box-shadow 0.4s';
+                    card.style.boxShadow = '0 0 0 2px var(--accent)';
+                    setTimeout(() => { card.style.boxShadow = ''; }, 1600);
+                }
+                // Clean URL so refresh doesn't re-trigger
+                history.replaceState({}, '', location.pathname);
+            }, 100);
+        }
+    } catch {}
+}
+window.initApp = init;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('passwordInput');
+    if (inp) inp.focus();
+});
+</script>
+
+
+    <!-- Mobile bottom tab bar -->
+    <nav class="bottom-tabs">
+        <a href="index.html">
+            <span class="tab-icon">⌂</span>
+            <span class="tab-label">Dashboard</span>
+        </a>
+        <a href="clients.html" class="active">
+            <span class="tab-icon"><svg viewBox="0 0 24 24" fill="currentColor" style="width:1em;height:1em;display:block;" aria-hidden="true"><circle cx="6" cy="9" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="9" r="2"/><path d="M12 11c-3.5 0-6 3-6 6 0 1.6 1.1 3 3 3h6c1.9 0 3-1.4 3-3 0-3-2.5-6-6-6z"/></svg></span>
+            <span class="tab-label">Clients</span>
+        </a>
+        <a href="invoices.html">
+            <span class="tab-icon">$</span>
+            <span class="tab-label">Finances</span>
+        </a>
+        <button type="button" class="acct-tab" onclick="toggleAccountMenu(event)" aria-label="Account">
+            <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:1em;height:1em;display:block;" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.4 2.9-5.8 6.5-5.8s6.5 2.4 6.5 5.8"/></svg></span>
+            <span class="tab-label">Account</span>
+        </button>
+    
+    </nav>
+<script>
+/* App-like behavior: block pinch-zoom and double-tap zoom on iOS, where the
+   viewport meta's user-scalable=no is ignored. Page scrolling is unaffected. */
+(function(){
+  ['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+    document.addEventListener(ev, function(e){ e.preventDefault(); }, { passive: false });
+  });
+})();
+</script>
+<script>
+function toggleAccountMenu(ev){ if(ev)ev.stopPropagation(); var m=document.getElementById("indicatorMenu"); if(!m)return; m.style.display=(m.style.display==="block")?"none":"block"; }
+</script>
+</body>
+</html>
