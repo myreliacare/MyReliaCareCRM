@@ -81,15 +81,24 @@
         /* Cards */
         .card { background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; }
         /* ===== Redesigned Finances page ===== */
-        .fin-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+        .fin-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+        .fin-top-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .fin-top-actions .btn { min-height: 44px; }
+        .fin-period { margin-bottom: 16px; }
+        @media (max-width: 560px) {
+            .fin-header { flex-direction: column; align-items: stretch; gap: 10px; }
+            .fin-top-actions { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+            .fin-top-actions .btn { width: 100%; justify-content: center; }
+            .fin-period .income-range-tabs { width: 100%; justify-content: space-between; }
+        }
         .fin-title { font-family: 'Cormorant Unicase', serif; font-size: 1.7em; font-weight: 600; color: var(--accent); letter-spacing: 0.5px; }
         .fin-snapshot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
-        .fin-tile { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; width: 100%; text-align: left; font-family: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color 0.15s, background 0.15s; }
+        .fin-tile { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; width: 100%; text-align: left; font-family: inherit; font-size: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color 0.15s, background 0.15s; }
         .fin-tile:active { background: var(--bg-input); border-color: var(--accent); }
         .fin-tile-go { display: block; color: var(--accent); font-size: 0.95em; margin-top: 2px; }
         .os-summary { display: flex; flex-direction: column; gap: 3px; padding: 0 0 12px; margin-bottom: 8px; border-bottom: 1px solid var(--border); color: var(--text); }
         .os-note { color: var(--warn); font-size: 0.9em; }
-        .os-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 2px; background: none; border: none; border-bottom: 1px solid var(--border); color: inherit; font-family: inherit; font-size: 1em; text-align: left; cursor: pointer; }
+        .os-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 14px 2px; background: none; border: none; border-bottom: 1px solid var(--border); color: inherit; font-family: inherit; font-size: inherit; text-align: left; cursor: pointer; }
         .os-row:active { background: var(--bg-input); }
         .os-client { font-size: 1.05em; }
         .os-meta { color: var(--text-faint); font-size: 0.85em; margin-top: 2px; }
@@ -99,18 +108,18 @@
         .os-status { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-faint); margin-top: 2px; }
         .os-status.sent { color: var(--info); }
         .os-status.draft { color: var(--warn); }
-        .fin-tile-label { color: var(--text-faint); font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; }
+        .fin-tile-label { color: var(--text-faint); font-size: 0.82em; text-transform: uppercase; letter-spacing: 1px; }
         .fin-tile-value { font-family: 'Cormorant Unicase', serif; font-size: 1.5em; font-weight: 700; margin-top: 3px; line-height: 1; font-variant-numeric: tabular-nums; }
         .fin-tile-value.net { color: var(--info, #ABBFA0); }
         .fin-tile-value.gold { color: var(--success); }
         .fin-tile-value.terra { color: var(--warn); }
-        .fin-tile-sub { color: var(--text-faint); font-size: 0.78em; margin-top: 4px; }
+        .fin-tile-sub { color: var(--text-faint); font-size: 0.86em; margin-top: 5px; }
         .fin-accordion { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
         .fin-sec { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
         .fin-sec.open { border-color: var(--border-strong, #4A3F3B); }
         .fin-sec-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 16px; background: transparent; border: none; cursor: pointer; text-align: left; color: var(--text); font-family: inherit; }
         .fin-sec-title { font-family: 'Cormorant', serif; font-size: 1.25em; color: var(--text); display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-        .fin-sec-sum { font-size: 0.62em; color: var(--text-faint); font-family: inherit; letter-spacing: 0.3px; }
+        .fin-sec-sum { font-size: 0.8em; color: var(--text-faint); font-family: inherit; letter-spacing: 0.3px; }
         .fin-sec-chev { color: var(--text-faint); font-size: 1.5em; line-height: 1; transition: transform 0.18s ease; flex-shrink: 0; }
         .fin-sec.open .fin-sec-chev { transform: rotate(90deg); }
         .fin-sec-body { display: none; padding: 0 16px 16px; }
@@ -123,10 +132,14 @@
             .fin-header { margin-bottom: 16px; }
         }
         @media (max-width: 560px) {
-            .fin-tile-value { font-size: 1.25em; }
-            .fin-tile { padding: 11px 10px; }
-            .fin-snapshot { gap: 7px; }
-            .fin-tile-label { font-size: 0.66em; letter-spacing: 0.5px; }
+            /* Three across is too tight on a phone: labels wrap and the numbers
+               shrink. Net deposited takes its own row, the other two pair up. */
+            .fin-snapshot { grid-template-columns: 1fr 1fr; gap: 9px; }
+            .fin-snapshot .fin-tile:first-child { grid-column: 1 / -1; }
+            .fin-snapshot .fin-tile:first-child .fin-tile-value { font-size: 2em; }
+            .fin-tile { padding: 13px 14px; }
+            .fin-tile-value { font-size: 1.45em; }
+            .fin-tile-label { font-size: 0.78em; letter-spacing: 0.5px; }
         }
         #invoicesSection .empty-state { padding: 34px 16px; }
         .card-title { color: var(--accent); font-size: 1.4em; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -243,17 +256,17 @@
         .income-breakdown-card { margin-bottom: 18px; }
         .income-breakdown-title { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
         .income-range-tabs { display: inline-flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
-        .income-range-tab { background: transparent; border: none; padding: 6px 12px; color: var(--text-faint); font-family: inherit; font-size: 0.9em; cursor: pointer; border-radius: 6px; transition: all 0.15s; }
+        .income-range-tab { background: transparent; border: none; padding: 11px 14px; min-height: 44px; color: var(--text-faint); font-family: inherit; font-size: 1em; cursor: pointer; border-radius: 6px; transition: all 0.15s; }
         .income-range-tab.active { background: var(--bg-card); color: var(--accent); }
         .income-range-tab.irt-nav { padding: 6px 9px; font-size: 1.15em; line-height: 1; font-weight: 600; }
         .income-range-tab.irt-nav-dim { opacity: 0.3; }
         .income-breakdown-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-top: 14px; }
         .income-summary-cell { background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border); }
-        .income-summary-cell .label { color: var(--text-faint); font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .income-summary-cell .label { color: var(--text-faint); font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
         .income-summary-cell .value { color: var(--accent); font-size: 1.5em; font-weight: 600; font-family: 'Cormorant Unicase', serif; }
         .income-summary-cell.fee .value { color: var(--warn); }
         .income-summary-cell.net .value { color: var(--success); }
-        .income-summary-cell .sub { color: var(--text-faint); font-size: 0.8em; margin-top: 2px; }
+        .income-summary-cell .sub { color: var(--text-faint); font-size: 0.9em; margin-top: 2px; }
         .income-summary-cell.clickable { cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
         @media (hover: hover) and (pointer: fine) { .income-summary-cell.clickable:hover { transform: translateY(-2px); border-color: var(--accent); } }
 
@@ -339,17 +352,17 @@
             #incomeReport .ir-table th, #incomeReport .ir-table td { border-color: #999 !important; }
         }
         .income-method-list { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-        .income-method-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.95em; }
+        .income-method-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 10px; align-items: baseline; padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: 1em; }
 
         .income-method-table { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
-        .imr-title { color: var(--text-faint); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+        .imr-title { color: var(--text-faint); font-size: 0.9em; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
         .income-method-row {
             display: grid;
             grid-template-columns: 1.4fr 0.5fr 1fr 1fr 1fr;
             gap: 10px;
             align-items: center;
-            padding: 9px 12px;
-            font-size: 0.93em;
+            padding: 11px 12px;
+            font-size: 1em;
             font-variant-numeric: tabular-nums;
             border-bottom: 1px solid var(--border);
         }
@@ -357,7 +370,7 @@
         .income-method-row:nth-child(odd):not(.imr-header) { background: rgba(58, 53, 48, 0.35); }
         .income-method-row.imr-header {
             color: var(--text-faint);
-            font-size: 0.74em;
+            font-size: 0.85em;
             text-transform: uppercase;
             letter-spacing: 1.2px;
             font-weight: 600;
@@ -453,9 +466,9 @@
                 padding: 10px 12px;
                 border-radius: 8px;
             }
-            .income-summary-cell .label { font-size: 0.7em; margin-bottom: 2px; }
+            .income-summary-cell .label { font-size: 0.85em; margin-bottom: 3px; }
             .income-summary-cell .value { font-size: 1.2em; }
-            .income-summary-cell .sub { font-size: 0.72em; }
+            .income-summary-cell .sub { font-size: 0.85em; }
             .income-summary-cell.net {
                 order: -1;
                 grid-column: 1 / -1;
@@ -1183,6 +1196,13 @@
 
         <div class="fin-header">
             <span class="fin-title">Finances</span>
+            <div class="fin-top-actions">
+                <button class="btn btn-primary" onclick="openNewInvoiceModal()">+ New Invoice</button>
+                <button class="btn btn-ghost" onclick="openTaxPrep()">Tax Prep</button>
+            </div>
+        </div>
+
+        <div class="fin-period">
             <div class="income-range-tabs" id="incomeRangeTabs">
                 <button class="income-range-tab irt-nav" onclick="stepIncomeMonth(-1)" aria-label="Previous month">&lsaquo;</button>
                 <button class="income-range-tab active" data-range="month" id="incomeMonthTab" onclick="setIncomeRange('month')">This Month</button>
@@ -1259,10 +1279,7 @@
             </section>
         </div>
 
-        <div class="action-bar fin-bottom-actions">
-            <button class="btn btn-primary" onclick="openNewInvoiceModal()">+ New Invoice</button>
-            <button class="btn btn-ghost" onclick="openTaxPrep()">Tax Prep</button>
-        </div>
+
     </div>
 </div>
 
@@ -3335,11 +3352,6 @@ function renderIncomeBreakdown() {
             <div class="label">Fees</div>
             <div class="value">$${totalFee.toFixed(2)}</div>
             <div class="sub">${feePct.toFixed(2)}% of gross</div>
-        </div>
-        <div class="income-summary-cell net clickable" onclick="openIncomeReport()">
-            <div class="label">Net Deposited</div>
-            <div class="value">$${totalNet.toFixed(2)}</div>
-            <div class="sub">what hit your bank</div>
         </div>
     `;
 
