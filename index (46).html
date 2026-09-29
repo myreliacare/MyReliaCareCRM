@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>MyReliaCare Client Intake Form</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@300;400;500;600;700&family=Cormorant+Unicase:wght@600;700&display=swap" rel="stylesheet">
+<style>
+    *{ margin:0; padding:0; box-sizing:border-box; }
+
+    /* no bouncing past the top or bottom, and no sideways scrolling */
+    html{ background:#3A2A27; overscroll-behavior:none; }
+    body{ overscroll-behavior:none; overflow-x:clip; }
+
+    body{
+        font-family:'Cormorant', serif;
+        background:linear-gradient(135deg,#3A2A27 0%,#4A3633 100%);
+        background-attachment:fixed;
+        min-height:100vh;
+        color:#F5E8EB;
+        font-size:18px;
+        line-height:1.6;
+        font-weight:500;
+        padding:56px 0 60px;
+        -webkit-font-smoothing:antialiased;
+    }
+
+    h1,h2,h3{ font-family:'Cormorant Unicase', serif; font-weight:600; }
+
+    .wrap{ max-width:680px; margin:0 auto; padding:0 20px; }
+
+    /* ---------- header ---------- */
+    .masthead{ text-align:center; padding:34px 0 22px; }
+    .masthead.gone{ display:none; }
+    .masthead h1{
+        font-size:1.6em; color:#F5E8EB; letter-spacing:.3px;
+        line-height:1.32; max-width:34ch; margin:0 auto;
+    }
+    .masthead .mins{ color:#E3CDD1; font-size:1em; margin-top:16px; font-style:italic; }
+
+    .rule{ height:1px; background:rgba(200,162,169,.5); margin:26px 0 0; }
+    @media(max-width:420px){ .masthead h1{ font-size:1.35em; max-width:28ch; } }
+
+    /* ---------- progress ---------- */
+    .progress{
+        position:fixed; top:0; left:0; right:0; z-index:100;
+        background:#3A2A27;
+        padding:0 0 9px;
+        border-bottom:1px solid rgba(200,162,169,.28);
+    }
+    .bar{ display:flex; gap:0; }
+    .bar i{
+        flex:1 1 0; height:4px;
+        background:rgba(200,162,169,.2);
+        border-right:1px solid #3A2A27;
+        transition:background-color .2s ease;
+    }
+    .bar i:last-child{ border-right:0; }
+    .bar i.lit{ background:#C8A2A9; }
+
+    .steps{ display:flex; gap:0; margin-top:8px; padding:0 10px; }
+    .steps b{
+        flex:1 1 0; min-width:0; text-align:center;
+        font-family:'Cormorant Unicase',serif; font-weight:600;
+        font-size:.82em; letter-spacing:.2px; color:#C9AEB2;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .steps b.on{ color:#E8C4CB; }
+    .steps b.done{ color:#D2B6BB; }
+
+    @media(max-width:400px){ .steps b{ font-size:.74em; } }
+
+    /* ---------- panels ---------- */
+    .panel{ display:none; padding-top:30px; }
+    .panel.on{ display:block; }
+    .panel > h2{ font-size:1.45em; color:#E8C4CB; margin-bottom:6px; }
+    .panel > .lede{ color:#D8C4C7; font-size:.98em; margin-bottom:26px; }
+
+    fieldset{ border:0; margin-bottom:26px; min-width:0; }
+    /* questions read like every other field label */
+    legend{
+        font-family:'Cormorant',serif; font-size:1em; color:#F5E8EB;
+        margin-bottom:8px; padding:0;
+    }
+    /* section headings (vet, emergency contact, etc.) */
+    legend.sec{
+        font-family:'Cormorant Unicase',serif; color:#E3BFC6; margin-bottom:12px;
+    }
+    /* groups inside pet cards read like ordinary field labels */
+    fieldset.grp{ margin-bottom:0; }
+    fieldset.grp > legend{
+        font-family:'Cormorant',serif; font-size:1em; color:#F5E8EB; margin-bottom:6px;
+    }
+
+    fieldset.grp > legend.big{ font-size:1.2em; font-weight:600; color:#FFFFFF; margin-bottom:4px; }
+    label{ display:block; margin-bottom:6px; color:#F5E8EB; font-size:1em; }
+    /* example text reads as a hint, real answers read as answers */
+    ::placeholder{ color:#8C7A7D; opacity:1; font-style:italic; font-weight:400; }
+    input[type=text], input[type=tel], input[type=email], select, textarea{ font-weight:600; }
+    select.empty{ color:#8C7A7D; font-style:italic; font-weight:400; }
+    select option{ color:#3A2A27; font-style:normal; font-weight:500; }
+    .hint{ color:#E6D6D9; font-size:.95em; margin-top:5px; line-height:1.5; font-style:italic; }
+    #eFenceNote, #leashNote{ font-style:italic; }
+    .req{ color:#D4AEB5; }
+
+    input[type=text], input[type=tel], input[type=email], select, textarea{
+        width:100%; padding:11px 13px; margin-bottom:16px;
+        font-family:'Cormorant',serif; font-size:1.02em; font-weight:600; color:#3A2A27;
+        background:#F5EFE7; border:1px solid #E8D5D8; border-radius:7px;
+        caret-color:#3A2A27;
+        transition:border-color .12s ease, box-shadow .12s ease;
+    }
+    input:focus, select:focus, textarea:focus{
+        outline:none; border-color:#A37F85; box-shadow:0 0 0 3px rgba(200,162,169,.3);
+    }
+    textarea{ min-height:84px; resize:vertical; }
+    textarea.short{ min-height:58px; }
+    select{ appearance:none; background-image:none; width:auto; min-width:9em; max-width:100%; padding-right:30px; }
+
+    /* text inputs sized to the answer they expect */
+    input.w-xs{ width:7em; }
+    input.w-s{ width:11em; }
+    input.w-m{ width:15em; }
+    input.w-l{ width:19em; }
+    input.w-xs, input.w-s, input.w-m, input.w-l{ max-width:100%; }
+
+    .row{ display:flex; gap:14px; }
+    .row{ flex-wrap:wrap; column-gap:18px; }
+    /* pet cards: short questions pack side by side, long ones take the full row */
+    .byType{ display:flex; flex-wrap:wrap; column-gap:18px; align-items:flex-end; }
+    .byType > *{ flex:0 0 100%; }
+    .byType > .f{ flex:0 1 auto; max-width:100%; }
+    .row > div{ flex:0 1 auto; min-width:0; }
+
+    /* ---------- choice chips ---------- */
+    .chips{ display:flex; flex-wrap:wrap; gap:9px; margin-bottom:16px; }
+    .chips input{ position:absolute; opacity:0; width:0; height:0; }
+    .chips label{
+        margin:0; cursor:pointer; padding:8px 15px; border-radius:20px;
+        border:1px solid rgba(200,162,169,.55); color:#F2E6E8; font-size:.98em;
+        transition:background-color .12s ease, border-color .12s ease, color .12s ease;
+    }
+    .chips input:checked + label{ background:#C8A2A9; border-color:#C8A2A9; color:#3A2A27; }
+    .chips input:focus-visible + label{ box-shadow:0 0 0 3px rgba(200,162,169,.45); }
+
+    .check{ display:flex; gap:10px; align-items:flex-start; margin-bottom:11px; }
+    .check input{
+        appearance:none; -webkit-appearance:none; margin:6px 0 0; flex-shrink:0; cursor:pointer;
+        width:19px; height:19px; border:1.5px solid #C8A2A9; border-radius:5px; background:transparent;
+        transition:background-color .12s ease, border-color .12s ease;
+    }
+    .check input:hover{ border-color:#E8C4CB; }
+    .check input:checked{
+        background:#C8A2A9 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%233A2A27' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/13px no-repeat;
+        border-color:#C8A2A9;
+    }
+    .check input:focus-visible{ outline:2px solid #E8C4CB; outline-offset:2px; }
+    .check label{ cursor:pointer; }
+    .check label{ margin:0; font-size:1em; }
+
+    /* ---------- pet cards ---------- */
+    .pet{
+        background:rgba(200,162,169,.09);
+        border:1px solid rgba(200,162,169,.42);
+        border-radius:11px; padding:20px; margin-bottom:18px; position:relative;
+    }
+    .pet-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; }
+    .pet-top h3{ font-size:1.05em; color:#E8C4CB; }
+    .drop{
+        background:none; border:0; color:#E3CDD1; font-family:'Cormorant',serif;
+        font-size:.95em; cursor:pointer; text-decoration:underline; padding:2px 4px;
+    }
+    .drop:hover{ color:#E8C4CB; }
+
+    .addpet{
+        display:block; width:auto; padding:9px 22px; background:none; cursor:pointer;
+        border:1px dashed rgba(200,162,169,.6); border-radius:7px;
+        color:#E8D5D8; font-family:'Cormorant Unicase',serif; font-size:.92em;
+        transition:background-color .12s ease, border-color .12s ease;
+    }
+    .addpet:hover{ background:rgba(200,162,169,.12); border-color:#C8A2A9; }
+
+    /* ---------- notes ---------- */
+    .note{
+        background:rgba(200,162,169,.12); border-left:3px solid #C8A2A9;
+        border-radius:0 7px 7px 0; padding:13px 15px; margin-bottom:20px;
+        font-size:1em; color:#F2E6E8;
+    }
+
+    /* click-to-open explanation */
+    details.explain{ margin:4px 0 24px; }
+    details.explain summary{
+        cursor:pointer; list-style:none; display:inline-flex; align-items:center; gap:8px;
+        color:#E8C4CB; text-decoration:underline; text-underline-offset:3px;
+    }
+    details.explain summary::-webkit-details-marker{ display:none; }
+    details.explain summary::before{
+        content:''; width:7px; height:7px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor;
+        transform:rotate(-45deg); transition:transform .15s ease;
+    }
+    details.explain[open] summary::before{ transform:rotate(45deg); }
+    details.explain summary:focus-visible{ outline:2px solid #E8C4CB; outline-offset:3px; border-radius:3px; }
+    details.explain .note{ margin:12px 0 0; }
+    .er{ padding:16px 18px; }
+    .er p{ margin:0; }
+    .er .er-lead{ margin-bottom:10px; }
+    .er .er-lead + h4{ margin-top:10px; }
+    .er h4{
+        font-family:'Cormorant Unicase',serif; font-weight:600; font-size:.95em; color:#E8C4CB;
+        margin:16px 0 8px; letter-spacing:.3px;
+    }
+    .er-group{ margin-bottom:12px; }
+    .er-group:last-of-type{ margin-bottom:0; }
+    .erLabel{ font-weight:600; color:#FFFFFF; margin-bottom:4px; }
+    .er-steps{ list-style:none; counter-reset:step; padding:0; margin:0; }
+    .er-steps li{ counter-increment:step; position:relative; padding-left:30px; margin-bottom:5px; }
+    .er-steps li::before{
+        content:counter(step); position:absolute; left:0; top:3px;
+        width:20px; height:20px; border-radius:50%; background:#C8A2A9; color:#3A2A27;
+        font-size:.75em; font-weight:700; display:flex; align-items:center; justify-content:center;
+    }
+    .er .er-sub{ font-size:.92em; color:#E6D6D9; font-style:italic; margin-top:2px; }
+    .er-bills{ margin:0; }
+    .er-bills dt{ font-weight:600; color:#FFFFFF; }
+    .er-bills dd{ margin:0 0 10px; }
+    .er-bills dd:last-child{ margin-bottom:0; }
+
+    /* cancellation policy: hover card */
+    .linkish{
+        background:none; border:0; padding:0; font:inherit; color:#E8C4CB; cursor:pointer;
+        text-decoration:underline; text-underline-offset:2px;
+    }
+    .linkish:focus-visible{ outline:2px solid #E8C4CB; outline-offset:2px; border-radius:2px; }
+    .check.has-tip{ position:relative; }
+    .tip-card{
+        display:none; position:absolute; left:0; right:0; bottom:calc(100% + 10px); z-index:50;
+        background:#4A3633; color:#F5E8EB; border:1px solid rgba(200,162,169,.55); border-radius:10px;
+        padding:16px 18px; box-shadow:0 10px 30px rgba(0,0,0,.35); font-size:.95em; line-height:1.5; text-align:left;
+    }
+    .tip:hover .tip-card, .tip:focus-within .tip-card, .tip.open .tip-card{ display:block; }
+    .tip-card .cp-title{ display:block; font-family:'Cormorant Unicase',serif; font-size:1.15em; color:#E8C4CB; margin-bottom:8px; }
+    .tip-card .cp-intro{ display:block; margin-bottom:10px; color:#E6D6D9; }
+    .tip-card ul{ padding-left:18px; margin:0; }
+    .tip-card li{ margin-bottom:6px; }
+    .tip-card li:last-child{ margin-bottom:0; }
+    .tip-card strong{ color:#FFFFFF; font-weight:600; }
+
+    /* review screen */
+    .go.review{ background:none; color:#F2E6E8; border:1px solid rgba(200,162,169,.55); }
+    .go.review:hover{ background:rgba(200,162,169,.14); }
+    .rv-sec{ border:1px solid rgba(200,162,169,.35); border-radius:10px; padding:14px 18px; margin-bottom:16px; }
+    .rv-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+    .rv-head h3{ font-size:1.05em; color:#E8C4CB; }
+    .rv-sub{ font-weight:600; color:#FFFFFF; margin:12px 0 4px; }
+    .rv-sub:first-of-type{ margin-top:0; }
+    .rv-row{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:14px; padding:5px 0; border-top:1px solid rgba(200,162,169,.14); }
+    .rv-row:first-child{ border-top:0; }
+    .rv-q{ color:#E6D6D9; }
+    .rv-a{ color:#FFFFFF; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .rv-empty{ color:#C9AEB2; font-style:italic; }
+    @media(max-width:560px){ .rv-row{ grid-template-columns:1fr; gap:0; } }
+
+    /* pre-filled links */
+    .prefill-note{
+        max-width:34em; margin:14px auto 0; padding:10px 14px; border-radius:8px;
+        background:rgba(200,162,169,.14); border:1px solid rgba(200,162,169,.4); color:#F2E6E8; font-size:.95em;
+    }
+    .builder-bar{
+        position:fixed; left:0; right:0; bottom:0; z-index:200; display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+        justify-content:center; padding:10px 16px; background:#2E211F; border-top:1px solid rgba(200,162,169,.5);
+        font-size:.9em; color:#F2E6E8;
+    }
+    .builder-bar button{
+        padding:7px 18px; border:0; border-radius:7px; background:#C8A2A9; color:#3A2A27; cursor:pointer;
+        font-family:'Cormorant Unicase',serif; font-size:.95em;
+    }
+    .builder-bar input{ display:none; flex:1 1 100%; max-width:640px; margin:0; padding:6px 10px; font-size:.8em; }
+    body:has(.builder-bar){ padding-bottom:120px; }
+
+    /* code screen for pre-filled links */
+    .gate{ position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center; padding:16px;
+        background:linear-gradient(135deg,#3A2A27 0%,#4A3633 100%); }
+    .gate-card{ max-width:420px; width:100%; background:#4A3633; border:1px solid rgba(200,162,169,.5); border-radius:12px; padding:26px 24px; }
+    .gate-card h2{ font-size:1.4em; color:#E8C4CB; margin-bottom:8px; }
+    .gate-card p{ color:#F2E6E8; margin-bottom:14px; }
+    .gate-card input{ margin-bottom:6px; }
+    .gate-err{ color:#F0B8BE !important; font-size:.95em; min-height:1.4em; margin-bottom:10px !important; }
+    .gate-btns{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+    .gate-go{ padding:9px 24px; border:0; border-radius:7px; background:#C8A2A9; color:#3A2A27; cursor:pointer;
+        font-family:'Cormorant Unicase',serif; font-size:.95em; }
+    .gate-go:hover{ background:#D4AEB5; }
+    .builder-bar #linkCode{ display:block; width:11em; margin:0; padding:6px 10px; font-size:.9em; flex:0 0 auto; }
+    .send-note{ text-align:right; margin:28px 0 -20px; }
+    #linkMsg{ color:#F0D8DC; font-style:italic; }
+
+    /* ---------- nav ---------- */
+    .nav{ display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:34px; }
+    button.go{
+        flex:0 0 auto; padding:9px 26px; border:0; border-radius:7px; cursor:pointer;
+        font-family:'Cormorant Unicase',serif; font-size:.92em; letter-spacing:.4px;
+        transition:background-color .12s ease, color .12s ease, border-color .12s ease;
+    }
+    .go.next{ background:#C8A2A9; color:#3A2A27; }
+    .go.next:hover{ background:#D4AEB5; }
+    .go.back{ background:none; color:#E3CDD1; border:1px solid rgba(200,162,169,.55); margin-right:auto; }
+    .go.back:hover{ background:rgba(200,162,169,.14); }
+    button:focus-visible{ outline:2px solid #E8C4CB; outline-offset:2px; }
+
+    .err{ color:#F0B8BE; font-size:.92em; margin-top:14px; display:none; }
+
+    /* ---------- done ---------- */
+    #done{ display:none; text-align:center; padding:70px 0; }
+    #done .paw{ width:46px; height:46px; fill:#C8A2A9; margin:0 auto 14px; display:block; }
+    #done .home-link{
+        display:inline-block; margin-top:22px; padding:9px 26px; border-radius:7px; text-decoration:none;
+        background:#C8A2A9; color:#3A2A27; font-family:'Cormorant Unicase',serif; font-size:.92em; letter-spacing:.4px;
+        transition:background-color .12s ease;
+    }
+    #done .home-link:hover{ background:#D4AEB5; }
+    #done .home-link:focus-visible{ outline:2px solid #E8C4CB; outline-offset:2px; }
+    #done h2{ font-size:1.7em; color:#E8C4CB; margin-bottom:14px; }
+    #done p{ color:#E0D0D3; margin-bottom:10px; }
+
+
+
+    @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+
+<div class="progress">
+    <div class="bar" id="bar"><i></i><i></i><i></i><i></i></div>
+    <div class="steps">
+        <b class="on" data-s="1">You</b>
+        <b data-s="2">Pets</b>
+        <b data-s="3">Care</b>
+        <b data-s="4">Safety</b>
+    </div>
+</div>
+
+<div class="wrap">
+
+    <div class="masthead">
+        <h1>MyReliaCare Client Intake Form</h1>
+        <p class="mins">Takes about 5 minutes. Please complete it to the best of your ability. Some questions can be skipped if they&rsquo;re not applicable to your pets&rsquo; visits with us.</p>
+        <div class="rule"></div>
+    </div>
+
+    <form id="intake" action="https://formspree.io/f/meaozrzy" method="POST">
+        <input type="text" name="_gotcha" style="display:none !important" tabindex="-1" autocomplete="off">
+        <input type="hidden" name="_subject" value="New client intake form">
+        <input type="hidden" name="_replyto" id="replyto">
+        <input type="hidden" name="petSummary" id="petSummary">
+
+        <!-- ============ 1 ============ -->
+        <section class="panel on" data-panel="1">
+            <h2>Your details</h2>
+
+            <div class="row">
+                <div>
+                    <label for="first">First name <span class="req">*</span></label>
+                    <input type="text" id="first" name="firstName" class="w-m" required>
+                </div>
+                <div>
+                    <label for="last">Last name <span class="req">*</span></label>
+                    <input type="text" id="last" name="lastName" class="w-m" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <label for="phone">Phone <span class="req">*</span></label>
+                    <input type="tel" id="phone" class="w-s" name="phone" required>
+                </div>
+                <div>
+                    <label for="email">Email</label>
+                    <input type="email" id="email" class="w-l" name="email">
+                </div>
+            </div>
+
+            <label for="addr">Street address <span class="req">*</span></label>
+            <input type="text" id="addr" name="address" class="w-l" required>
+
+            <div class="row">
+                <div>
+                    <label for="city">City <span class="req">*</span></label>
+                    <input type="text" id="city" name="city" class="w-m" required>
+                </div>
+                <div>
+                    <label for="zip">Zip <span class="req">*</span></label>
+                    <input type="text" id="zip" name="zip" class="w-xs" inputmode="numeric" required>
+                </div>
+            </div>
+
+            <div class="nav">
+                <button type="button" class="go next" data-to="2">Continue</button>
+            </div>
+            <p class="err" aria-live="polite"></p>
+        </section>
+
+        <!-- ============ 2 ============ -->
+        <section class="panel" data-panel="2">
+            <h2>Your pets</h2>
+
+            <div id="pets"></div>
+            <button type="button" class="addpet" id="addPet">Add another pet</button>
+
+            <div class="nav">
+                <button type="button" class="go back" data-to="1">Back</button>
+                <button type="button" class="go next" data-to="3">Continue</button>
+            </div>
+            <p class="err" aria-live="polite"></p>
+        </section>
+
+        <!-- ============ 3 ============ -->
+        <section class="panel" data-panel="3">
+            <h2>Care details</h2>
+
+            <div id="dcBlock">
+                <label for="feeding">Feeding routine</label>
+                <textarea id="feeding" name="feeding" placeholder="What, how much, when, and where the food is kept."></textarea>
+            </div>
+
+
+            <div id="pottyBlock" style="margin-top:16px;">
+                <label for="potty">Potty and walk routine for your dogs</label>
+                <textarea id="potty" name="pottyRoutine" placeholder="How often, where they go, leash or yard, usual route."></textarea>
+            </div>
+
+            <fieldset id="multiDogBlock" style="display:none;">
+                <legend>How are your dogs together? <span class="req">*</span></legend>
+                <div class="chips">
+                    <input type="radio" id="m1" required name="dogsTogether" value="Fine together, no issues"><label for="m1">Fine together</label>
+                    <input type="radio" id="m2" name="dogsTogether" value="Play rough but it never escalates"><label for="m2">Play rough, never escalates</label>
+                    <input type="radio" id="m3" name="dogsTogether" value="Have had scuffles"><label for="m3">Have had scuffles</label>
+                    <input type="radio" id="m4" name="dogsTogether" value="Have to be kept separate"><label for="m4">Kept separate</label>
+                </div>
+                <div id="dogsTogetherMore" style="display:none;">
+                    <label for="dogsTogetherNotes">What does that look like <span class="req">*</span></label>
+                    <textarea id="dogsTogetherNotes" required name="dogsTogetherNotes" placeholder="What starts it, how often, whether anyone has been hurt, and how you handle it."></textarea>
+                </div>
+            </fieldset>
+
+            <fieldset id="multiCatBlock" style="display:none;">
+                <legend>How are your cats together? <span class="req">*</span></legend>
+                <div class="chips">
+                    <input type="radio" id="mc1" required name="catsTogether" value="Fine together"><label for="mc1">Fine together</label>
+                    <input type="radio" id="mc2" name="catsTogether" value="Occasional hissing or swatting"><label for="mc2">Occasional hissing</label>
+                    <input type="radio" id="mc3" name="catsTogether" value="They fight"><label for="mc3">They fight</label>
+                    <input type="radio" id="mc4" name="catsTogether" value="Kept in separate areas"><label for="mc4">Kept separate</label>
+                </div>
+                <div id="catsTogetherMore" style="display:none;">
+                    <label for="catsTogetherNotes">What does that look like <span class="req">*</span></label>
+                    <textarea id="catsTogetherNotes" required name="catsTogetherNotes" placeholder="Which rooms each one uses, what sets it off, and how you keep them apart."></textarea>
+                </div>
+            </fieldset>
+
+            <fieldset id="dogCatBlock" style="display:none;">
+                <legend>How are your dogs and cats together? <span class="req">*</span></legend>
+                <div class="chips">
+                    <input type="radio" id="dc1" required name="dogsAndCats" value="Fine together"><label for="dc1">Fine together</label>
+                    <input type="radio" id="dc2" name="dogsAndCats" value="Tolerate each other"><label for="dc2">Tolerate each other</label>
+                    <input type="radio" id="dc3" name="dogsAndCats" value="Dog chases the cat"><label for="dc3">Dog chases the cat</label>
+                    <input type="radio" id="dc4" name="dogsAndCats" value="Kept separate"><label for="dc4">Kept separate</label>
+                </div>
+                <div id="dogsAndCatsMore" style="display:none;">
+                    <label for="dogsAndCatsNotes">What does that look like <span class="req">*</span></label>
+                    <textarea id="dogsAndCatsNotes" required name="dogsAndCatsNotes" placeholder="What happens between them, whether anyone&rsquo;s been hurt, and how you keep them apart."></textarea>
+                </div>
+            </fieldset>
+
+            <div id="dogHandlingBlock" style="display:none;">
+                <fieldset>
+                    <legend>Is your yard fenced? <span class="req">*</span></legend>
+                    <div class="chips">
+                        <input type="radio" id="f1" required name="yardFence" value="Fully fenced"><label for="f1">Fully fenced</label>
+                        <input type="radio" id="f2" name="yardFence" value="Partly fenced"><label for="f2">Partly fenced</label>
+                        <input type="radio" id="f4" name="yardFence" value="Invisible or electric fence"><label for="f4">Invisible or electric</label>
+                        <input type="radio" id="f3" name="yardFence" value="No fence"><label for="f3">No fence</label>
+                    </div>
+
+                    <div id="fenceMore" style="display:none;">
+                        <label for="fenceNotes">Anything we should know about the fence or gates</label>
+                        <textarea id="fenceNotes" name="fenceNotes"></textarea>
+                    </div>
+                    <div class="note" id="eFenceNote" style="display:none;">If you&rsquo;re a new client, we&rsquo;ll go over the collar, the battery and the boundary with you at the meet &amp; greet.</div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>How do your dogs go out? <span class="req">*</span></legend>
+                    <div class="chips">
+                        <input type="radio" id="h1" required name="dogHandling" value="Loose in the yard"><label for="h1">Loose in the yard</label>
+                        <input type="radio" id="h2" name="dogHandling" value="On leash"><label for="h2">On leash</label>
+                        <input type="radio" id="h3" name="dogHandling" value="Both, depending on the dog"><label for="h3">Both, depends</label>
+                    </div>
+
+                    <div id="looseMore" style="display:none;">
+                        <label for="looseNotes">Off leash with no fence: tell us how that works <span class="req">*</span></label>
+                        <textarea id="looseNotes" name="looseNoFenceNotes" placeholder="Which dog, where they stay, and what keeps them close. An older dog who doesn&rsquo;t wander off, for example."></textarea>
+                    </div>
+
+                    <div class="note" id="leashNote" style="display:none;"></div>
+                </fieldset>
+            </div>
+
+
+            <fieldset>
+                <legend>While we&rsquo;re there, we can also</legend>
+                <div class="check"><input type="checkbox" id="e1" name="extras" value="Bring in mail"><label for="e1">Bring in mail</label></div>
+                <div class="check"><input type="checkbox" id="e6" name="extras" value="Bring in packages"><label for="e6">Bring in packages</label></div>
+                <div class="check"><input type="checkbox" id="e2" name="extras" value="Take trash out and bring cans back"><label for="e2">Take the trash out &amp; bring cans back in</label></div>
+                <div class="check"><input type="checkbox" id="e3" name="extras" value="Water houseplants"><label for="e3">Water houseplants</label></div>
+                <div class="check"><input type="checkbox" id="e4" name="extras" value="Water garden beds"><label for="e4">Water garden beds</label></div>
+                <div class="check"><input type="checkbox" id="e5" name="extras" value="Move lights or blinds"><label for="e5">Move lights or blinds</label></div>
+                <div id="extrasMore" style="display:none; margin-top:8px;">
+                    <label for="extrasNotes">Details</label>
+                    <textarea id="extrasNotes" name="extrasNotes" placeholder="Where the plants are and how much water, trash day, which lights or blinds and when."></textarea>
+                </div>
+            </fieldset>
+
+            <label for="quirks">Anything else you&rsquo;d like us to know</label>
+            <textarea id="quirks" name="quirks" placeholder="Parking, the property, scheduling notes, or anything else that isn&rsquo;t about your pets."></textarea>
+
+            <div class="nav">
+                <button type="button" class="go back" data-to="2">Back</button>
+                <button type="button" class="go next" data-to="4">Continue</button>
+            </div>
+            <p class="err" aria-live="polite"></p>
+        </section>
+
+        <!-- ============ 4 ============ -->
+        <section class="panel" data-panel="4">
+            <h2>If something goes wrong</h2>
+            <details class="explain">
+                <summary>What happens in an emergency</summary>
+                <div class="note er">
+                    <p class="er-lead">If we have a concern about your pet but don&rsquo;t believe it&rsquo;s life-threatening, we&rsquo;ll reach out to you first so we can decide together whether they should see a vet.</p>
+                    <p class="er-lead">If we believe your pet&rsquo;s life is in danger, getting them seen comes first. We&rsquo;re trained in pet first aid and will do what we can to keep them stable, and we&rsquo;ll call you on the way. If two of us are there, one of us calls you right away.</p>
+
+                    <h4>Where we&rsquo;d take them</h4>
+                    <p class="er-sub" style="margin:0 0 10px;">When there&rsquo;s time, we&rsquo;ll call around for the closest vet that can see your pet, which can also save you money. When every minute counts, this is our plan:</p>
+                    <div class="er-group" id="erDogCat">
+                        <div class="erLabel">Dogs &amp; cats</div>
+                        <ol class="er-steps">
+                            <li>Your vet, if they&rsquo;re open &amp; can see your pet</li>
+                            <li>Mission Vet Urgent Care</li>
+                            <li>MedVet Cincinnati</li>
+                        </ol>
+                        <p class="er-sub">Late at night, we go straight to MedVet Cincinnati.</p>
+                    </div>
+                    <div class="er-group" id="erExotic">
+                        <div class="erLabel">Birds, small animals, reptiles and amphibians</div>
+                        <ol class="er-steps">
+                            <li>Your vet, if they&rsquo;re open &amp; can see your pet</li>
+                            <li>VEG Cincinnati in Oakley, open 24/7 &amp; sees exotic pets</li>
+                        </ol>
+                    </div>
+                    <div class="er-group" id="erFish">
+                        <div class="erLabel">Fish</div>
+                        <p>If something&rsquo;s wrong with the tank or a fish looks sick, we&rsquo;ll contact you right away.</p>
+                    </div>
+                </div>
+            </details>
+            <fieldset>
+                <legend class="sec">Your veterinarian</legend>
+                <div class="row">
+                    <div>
+                        <label for="vet">Practice name <span class="req">*</span></label>
+                        <input type="text" id="vet" name="vetName" class="w-m" required>
+                    </div>
+                    <div>
+                        <label for="vetPhone">Phone</label>
+                        <input type="tel" id="vetPhone" name="vetPhone" class="w-s">
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Do your pets have pet insurance? <span class="req">*</span></legend>
+                <div class="chips">
+                    <input type="radio" id="ins1" name="petInsurance" value="Yes" required><label for="ins1">Yes</label>
+                    <input type="radio" id="ins3" name="petInsurance" value="Some of them"><label for="ins3">Some of them</label>
+                    <input type="radio" id="ins2" name="petInsurance" value="No"><label for="ins2">No</label>
+                </div>
+                <div id="insMore" style="display:none;">
+                    <p style="margin-bottom:8px;">Which ones? <span class="req">*</span></p>
+                    <div id="insPets"></div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend class="sec">Emergency contact</legend>
+                <p class="hint" style="margin-top:-6px; margin-bottom:12px;">Someone local who could step in if we can&rsquo;t reach you.</p>
+                <div class="row">
+                    <div>
+                        <label for="ecName">Name <span class="req">*</span></label>
+                        <input type="text" id="ecName" name="emergencyName" class="w-m" required>
+                    </div>
+                    <div>
+                        <label for="ecPhone">Phone <span class="req">*</span></label>
+                        <input type="tel" id="ecPhone" name="emergencyPhone" class="w-s" required>
+                    </div>
+                </div>
+                <label for="ecRel">How they know you</label>
+                <input type="text" id="ecRel" name="emergencyRelation" class="w-m" placeholder="Sister, neighbor, friend">
+            </fieldset>
+
+
+            <fieldset>
+                <legend class="sec">Treatment authorization</legend>
+                <p class="hint" style="margin-top:-6px; margin-bottom:14px;">We know this is an uncomfortable question to think about, and we haven&rsquo;t needed it so far. It only matters if your pet needs care right away and we can&rsquo;t reach you or your emergency contact. Your answer tells the vet what they can go ahead with in the meantime.</p>
+                <p style="margin-bottom:8px;">If we can&rsquo;t reach either of you, the vet can go ahead with: <span class="req">*</span></p>
+                <div class="chips">
+                    <input type="radio" id="cap1" name="treatmentCap" value="Up to a set amount" required><label for="cap1">Up to an amount I choose</label>
+                    <input type="radio" id="cap2" name="treatmentCap" value="Whatever is needed to stabilize"><label for="cap2">Whatever is needed to stabilize</label>
+                </div>
+                <div id="capAmountMore" style="display:none;">
+                    <label for="capAmount">Amount <span class="req">*</span></label>
+                    <input type="text" id="capAmount" name="treatmentAmount" class="w-s" inputmode="decimal" placeholder="$">
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend class="sec">Photos &amp; terms</legend>
+                <div class="check">
+                    <input type="checkbox" id="photoOk" name="photoPermission" value="Yes">
+                    <label for="photoOk">It&rsquo;s okay to share photos and short clips of my pets on your social media.</label>
+                </div>
+                <p class="hint" style="margin-top:-4px; padding-left:27px;">We never share anything that could identify you or your home.</p>
+                <div class="check has-tip" style="margin-top:14px;">
+                    <input type="checkbox" id="agree" name="agreedTerms" value="Yes" required>
+                    <label for="agree">I agree to the <a href="https://myreliacare.com/Terms_Privacy_Page.html" target="_blank" rel="noopener" style="color:#E8C4CB;">Terms of Service</a> &amp; <span class="tip"><button type="button" class="linkish" id="openCancel" aria-describedby="cancelCard" aria-expanded="false">Cancellation Policy</button><span class="tip-card" id="cancelCard" role="tooltip"><strong class="cp-title">Cancellation Policy</strong><span class="cp-intro">When you book with us, we save that time for your pet, which often means turning down other requests for the same slot. A late cancellation usually leaves that time empty and unpaid, since it&rsquo;s too late to fill. This policy covers that loss while still giving you some flexibility.</span><ul>
+            <li><strong>24 hours or more before a visit:</strong> no charge.</li>
+            <li><strong>Your first 3 late cancellations are free,</strong> with a full refund if you&rsquo;ve already paid. That includes last-minute ones. We count by booking, so a single visit or a whole week of visits each counts as one.</li>
+            <li><strong>After your 3 free ones:</strong> under 24 hours&rsquo; notice is charged 50% of that day&rsquo;s services, and under 12 hours is charged in full.</li>
+        </ul></span></span>. <span class="req">*</span></label>
+                </div>
+            </fieldset>
+
+            <p class="hint send-note">Your answers come straight to us and are never shared or sold.</p>
+            <div class="nav">
+                <button type="button" class="go back" data-to="3">Back</button>
+                <button type="button" class="go review" data-to="5">Review my answers</button>
+                <button type="submit" class="go next">Send it over</button>
+            </div>
+            <p class="err" aria-live="polite"></p>
+        </section>
+
+        <!-- ============ review ============ -->
+        <section class="panel" data-panel="5">
+            <h2>Review your answers</h2>
+            <p class="lede">Check everything over. Use Edit to go back and change anything.</p>
+            <div id="reviewBody"></div>
+            <p class="hint send-note">Your answers come straight to us and are never shared or sold.</p>
+            <div class="nav">
+                <button type="button" class="go back" data-to="4">Back</button>
+                <button type="submit" class="go next">Send it over</button>
+            </div>
+            <p class="err" aria-live="polite"></p>
+        </section>
+    </form>
+
+    <div id="done">
+        <svg class="paw" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <ellipse cx="32" cy="42" rx="13" ry="11"/>
+            <ellipse cx="16" cy="27" rx="6" ry="8" transform="rotate(-20 16 27)"/>
+            <ellipse cx="26" cy="17" rx="6" ry="8.5" transform="rotate(-6 26 17)"/>
+            <ellipse cx="38" cy="17" rx="6" ry="8.5" transform="rotate(6 38 17)"/>
+            <ellipse cx="48" cy="27" rx="6" ry="8" transform="rotate(20 48 27)"/>
+        </svg>
+        <h2>Got it!</h2>
+        <p>We&rsquo;ll look this over &amp; let you know if we have any questions.</p>
+        <p>Thank you for trusting us with your pets!</p>
+        <a class="go next home-link" href="https://myreliacare.com">Back to MyReliaCare</a>
+    </div>
+
+</div>
+
+<script>
+(function(){
+    var form  = document.getElementById('intake');
+    var pets  = document.getElementById('pets');
+    var segs  = document.querySelectorAll('#bar i');
+    var LAST  = 4;
+    var REVIEW = 5;
+
+    /* TESTING: true lets you click through without filling anything in. Set to false before going live. */
+    var TEST_MODE = false;
+    /* add ?test to the address to click through without filling anything in (sending still works) */
+    if (/[?&]test\b/.test(location.search)) TEST_MODE = true;
+    if (TEST_MODE) form.noValidate = true;
+    var step  = 1, petNo = 0;
+
+    /* Show or hide a block. Hidden blocks are disabled so they don't submit. */
+    function toggle(el, on){
+        el.style.display = on ? 'block' : 'none';
+        el.querySelectorAll('input,select,textarea').forEach(function(f){ f.disabled = !on; });
+    }
+    function checkedVal(name){
+        var r = document.querySelector('input[name="' + name + '"]:checked');
+        return r ? r.value : '';
+    }
+
+    /* ---------- species-specific fields ---------- */
+    function fields(i, type){
+        var box = document.getElementById('bt' + i);
+        if (!box) return;
+
+        /* keep typed answers that exist on both cards (breed, age, health, etc.) */
+        var keep = {};
+        box.querySelectorAll('input[type=text],select,textarea').forEach(function(f){
+            if (f.value) keep[f.name] = f.value;
+        });
+
+        function txt(id,name,label,ph){
+            var need = ['Breed','Age','Weight'].indexOf(name) > -1;
+            var w = { Breed:'w-m', Age:'w-xs', Weight:'w-xs', LitterBoxes:'w-xs', LitterWhere:'w-l',
+                      Enclosure:'w-l', TempRange:'w-m', Humidity:'w-m', TankSize:'w-xs', Color:'w-m' }[name] || 'w-m';
+            return '<div class="f"><label for="'+id+i+'">'+label+(need?' <span class="req">*</span>':'')+'</label>' +
+                   '<input type="text" class="'+w+'" id="'+id+i+'" name="pet'+i+name+'"'+(ph?' placeholder="'+ph+'"':'')+(need?' required':'')+'></div>';
+        }
+        function area(id,name,label,ph){
+            var need = false;
+            return '<div class="full"><label for="'+id+i+'">'+label+(need?' <span class="req">*</span>':'')+'</label>' +
+                   '<textarea id="'+id+i+'" name="pet'+i+name+'"'+(ph?' placeholder="'+ph+'"':'')+(need?' required':'')+'></textarea></div>';
+        }
+        function sel(id,name,label,opts){
+            var need = ['Fixed','Rabies','IndoorOutdoor','Housing','Handling','OutOfCage','WaterType'].indexOf(name) > -1;
+            return '<div class="f"><label for="'+id+i+'">'+label+(need?' <span class="req">*</span>':'')+'</label><select id="'+id+i+'" name="pet'+i+name+'"'+(need?' required':'')+'>' +
+                   '<option value="">Choose one</option>' +
+                   opts.map(function(o){ return '<option>'+o+'</option>'; }).join('') + '</select></div>';
+        }
+        function box2(a,b){ return a + b; }
+        function multi(name,label,opts){
+            return '<fieldset class="grp"><legend>'+label+'</legend><div class="chips">' +
+                opts.map(function(o,k){
+                    var id = name.toLowerCase()+i+'_'+k;
+                    return '<input type="checkbox" id="'+id+'" name="pet'+i+name+'" value="'+o+'">' +
+                           '<label for="'+id+'">'+o+'</label>';
+                }).join('') + '</div></fieldset>';
+        }
+        function chk(id,name,label,flag){
+            return '<div class="check"><input type="checkbox" id="'+id+i+'" name="pet'+i+name+'" value="Yes"'+
+                   (flag?' data-flag="'+i+'"':'')+'><label for="'+id+i+'">'+label+'</label></div>';
+        }
+        function group(label, inner){
+            return '<fieldset class="grp" style="margin-top:10px;"><legend class="big">'+label+'</legend>'+inner+'</fieldset>';
+        }
+        var YNU = ['Yes','No','Not sure'];
+
+        var h = '';
+
+        if (type === 'Dog') {
+            h += box2( txt('pb','Breed','Breed'), txt('pa','Age','Age') );
+            h += txt('pw','Weight','Weight (lbs)');
+            h += sel('psex','Sex','Sex',['Male','Female']);
+            h += txt('pcol','Color','Color or markings');
+            h += sel('pf','Fixed','Spayed or neutered?',YNU);
+            h += sel('pr','Rabies','Rabies vaccination current?',YNU);
+            h += sel('pc','Crate','Crated when alone?',['No','Yes','Sometimes']);
+            h += sel('prole','Role','Is this pet any of the following?',['Pet only','Service animal','Emotional support animal','Working or guard dog','Breeding or show animal']);
+            h += area('ph','Health','Health conditions &amp; medications','Arthritis, seizures, allergies. For any meds: name, dose, timing, and how they take it best.');
+            h += group('Check anything that applies',
+                chk('pb1','BitPerson','Has bitten or snapped at a person (not being playful)', true) +
+                chk('pb2','HurtAnimal','Has injured another pet', true) +
+                chk('pb3','Guards','Guards food, toys, or a spot in the house', true) +
+                chk('pb4','Reactive','Barks or lunges at other dogs, people, or cars on walks', true) +
+                chk('pb5','Fearful','Nervous or fearful with people they don&rsquo;t know', true) +
+                chk('pb6','Escape','Has gotten out, or tries to', true) +
+                chk('pb7','AloneTrouble','Struggles being alone: barking, pacing, chewing, getting sick', true) +
+                chk('pb8','HandlingIssue','Difficult to leash, collar, or handle', true));
+        }
+
+        else if (type === 'Cat') {
+            h += box2( txt('pb','Breed','Breed'), txt('pa','Age','Age') );
+            h += txt('pw','Weight','Weight (lbs)');
+            h += sel('psex','Sex','Sex',['Male','Female']);
+            h += txt('pcol','Color','Color or markings');
+            h += box2( sel('pf','Fixed','Spayed or neutered?',YNU), sel('pr','Rabies','Rabies vaccination current?',YNU) );
+            h += sel('pio','IndoorOutdoor','Indoor or outdoor?',['Indoor only','Indoor with supervised outdoor time','Indoor and outdoor']);
+            h += box2( txt('plb','LitterBoxes','How many litter boxes?'), txt('plw','LitterWhere','Where are the litter boxes?','Laundry room, upstairs bath') );
+            h += sel('phide','Hides','How are they with people they don&rsquo;t know?',['Friendly right away','Warms up slowly','Hides the whole time','Depends on the day']);
+            h += area('ph','Health','Health conditions &amp; medications','Kidney issues, thyroid, allergies. For any meds: name, dose, timing, and how they take it best.');
+            h += group('Check anything that applies',
+                chk('pc1','BitPerson','Has bitten or scratched hard enough to break skin', true) +
+                chk('pc2','PettingLimit','Swats or nips once they&rsquo;ve had enough petting', true) +
+                chk('pc3','NoPickUp','Doesn&rsquo;t like being picked up or handled', true) +
+                chk('pc4','Guards','Guards food or gets pushy at mealtime', true) +
+                chk('pc5','Escape','Waits by the door, or has gotten out before', true) +
+                chk('pc6','OutsideBox','Sometimes goes outside the litter box', true) +
+                chk('pc7','KeepApart','Has to be kept away from another pet in the house', true));
+        }
+
+        else if (type === 'Small animal') {
+            h += box2( txt('pb','Breed','What kind?','Rabbit, guinea pig, ferret'), txt('pa','Age','Age') );
+            h += sel('psex','Sex','Sex',['Male','Female','Not sure']);
+            h += txt('pcol','Color','Color or markings');
+            h += sel('phou','Housing','Where do they live?',['In a cage or hutch','Free roam in one room','Free roam of the house','Pen or enclosure']);
+            h += sel('phand','Handling','Should we handle them?',['Yes, they are used to it','Only if needed','No, hands off please']);
+            h += multi('FeedType','Feeding (choose all that apply)',
+                ['Pellets','Hay','Fresh veg or greens','Fruit or treats','Ferret food']);
+            h += area('pcare','CareNotes','Daily care','How much and when, plus water bottle or bowl, bedding, and anything to check.');
+            h += area('ph','Health','Health conditions &amp; medications','Dental issues, mites. For any meds: name, dose, timing, and how they take it best.');
+            h += group('Check anything that applies', chk('pbite','BiteHistory','Nips or bites when handled', true) + chk('pesc','Escape','Gets out of the enclosure', true));
+        }
+
+        else if (type === 'Bird') {
+            h += box2( txt('pb','Breed','What kind?','Parakeet, cockatiel, conure'), txt('pa','Age','Age') );
+            h += sel('psex','Sex','Sex',['Male','Female','Not sure']);
+            h += txt('pcol','Color','Color or markings');
+            h += sel('pout','OutOfCage','Out of the cage while we&rsquo;re there?',['No, keep them in','Yes, supervised','Only if they come out on their own']);
+            h += sel('pcov','Covered','Cage covered at night?',['No','Yes']);
+            h += multi('FeedType','Feeding (choose all that apply)',
+                ['Seed or pellets','Fresh veg or fruit','Nuts or treats','Egg food or soft food']);
+            h += area('pcare','CareNotes','Daily care','How much and when, plus cage paper, misting, and the light schedule.');
+            h += area('ph','Health','Health conditions &amp; medications','Feather plucking, respiratory issues. For any meds: name, dose, timing, and how they take it best.');
+            h += group('Check anything that applies', chk('pbite','BiteHistory','Bites or lunges at hands', true) + chk('pesc','Escape','Has flown out of the cage or the house', true));
+        }
+
+        else if (type === 'Reptile or amphibian') {
+            h += box2( txt('pb','Breed','What kind?','Bearded dragon, gecko, python'), txt('pa','Age','Age') );
+            h += sel('psex','Sex','Sex',['Male','Female','Not sure']);
+            h += txt('pcol','Color','Color or markings');
+            h += sel('phand','Handling','Should we handle them?',['No, hands off please','Only if needed','Yes, they are used to it']);
+            h += txt('penc','Enclosure','Enclosure','Size and where it is in the house');
+            h += box2( txt('ptemp','TempRange','Temperature to keep','Warm side / cool side, &deg;F'), txt('phum','Humidity','Humidity','The range you keep') );
+            h += area('plight','Lighting','Lighting and heating schedule','When the UVB and heat go on and off, and anything that stays on.');
+            h += multi('FeedType','Feeding (choose all that apply)',
+                ['No feeding on our visits','Greens or veg','Prepared or pelleted food','Insects','Frozen or thawed prey','Live prey']);
+            h += area('pcare','CareNotes','Feeding and daily care','What, how much and how often, plus water, misting, and spot cleaning.');
+            h += area('ph','Health','Health conditions &amp; medications','Shedding issues, appetite changes. For any meds: name, dose, timing, and how they take it best.');
+            h += group('Check anything that applies', chk('pbite','BiteHistory','Bites or is defensive when approached', true));
+        }
+
+        else if (type === 'Fish') {
+            h += box2( sel('pwat','WaterType','Fresh or salt?',['Freshwater','Saltwater','Brackish']), txt('ptank','TankSize','Tank size (gallons)') );
+            h += multi('FeedType','Feeding (choose all that apply)',
+                ['Flakes','Pellets','Frozen','Live','Algae wafers','Nothing while we visit']);
+            h += area('pcare','CareNotes','Feeding amounts and what to check','How much and how often, plus anything to look at: filter running, heater, water level.');
+            h += area('ph','Health','Anything going on with your fish or setup right now','Recent illness, treatment in progress, a fish to keep an eye on.');
+        }
+
+        box.innerHTML = h;
+
+        box.querySelectorAll('input[type=text],select,textarea').forEach(function(f){
+            var v = keep[f.name];
+            if (v == null) return;
+            if (f.tagName === 'SELECT') {
+                if ([].some.call(f.options, function(o){ return o.value === v; })) f.value = v;
+            } else {
+                f.value = v;
+            }
+        });
+
+        if (box.querySelector('[data-flag]')) {
+            /* reassurance goes above the checkboxes, before anyone starts checking */
+            var note = '<p class="hint" style="margin-top:0; margin-bottom:10px;">Knowing these ahead of time helps us plan visits that keep everyone safe, your pet included. None of them automatically disqualifies your pet, and if we have questions, we&rsquo;ll reach out.</p>';
+            var list = box.querySelector('[data-flag]').closest('fieldset.grp, .checks');
+            if (list.tagName === 'FIELDSET') list.querySelector('legend').insertAdjacentHTML('afterend', note);
+            else list.insertAdjacentHTML('beforebegin', note);
+            var wrap = document.createElement('div');
+            wrap.style.marginTop = '14px';
+            wrap.innerHTML =
+                '<label for="pfd'+i+'">Anything you&rsquo;d like to add about that</label>' +
+                '<textarea id="pfd'+i+'" name="pet'+i+'IncidentNotes" placeholder="What set it off, how often, and what helps. As much or as little as you want."></textarea>';
+            box.appendChild(wrap);
+            toggle(wrap, false);
+            box.querySelectorAll('[data-flag]').forEach(function(c){
+                c.addEventListener('change', function(){
+                    toggle(wrap, !!box.querySelector('[data-flag]:checked'));
+                });
+            });
+        }
+
+        /* last question on every card: anything else about this pet */
+        var other = {
+            'Dog': ['Anything else we should know about them?', 'Favorite spots, things that scare them, how they greet strangers, what they do when you leave.'],
+            'Cat': ['Anything else we should know about them?', 'Favorite hiding spots, things that scare them, how they like to be approached.'],
+            'Fish': ['Anything else we should know about your fish or setup?', 'A fish that&rsquo;s been off lately, equipment quirks, anything about the setup.']
+        }[type] || ['Anything else we should know about them?', 'Quirks, routines, or anything that helps them feel comfortable.'];
+        box.insertAdjacentHTML('beforeend',
+            '<div class="full" style="margin-top:14px;"><label for="pot'+i+'">'+other[0]+'</label>' +
+            '<textarea id="pot'+i+'" name="pet'+i+'Other" placeholder="'+other[1]+'"></textarea></div>');
+        if (keep['pet'+i+'Other']) document.getElementById('pot'+i).value = keep['pet'+i+'Other'];
+    }
+
+    /* ---------- pet card ---------- */
+    function addPet(){
+        petNo++;
+        var i = petNo;
+        var d = document.createElement('div');
+        d.className = 'pet';
+        d.dataset.pet = i;
+        d.innerHTML =
+            '<div class="pet-top"><h3>Pet ' + (pets.querySelectorAll('.pet').length + 1) + '</h3>' +
+            (i > 1 ? '<button type="button" class="drop">Remove</button>' : '') + '</div>' +
+
+            '<label for="pn'+i+'">Name <span class="req">*</span></label>' +
+            '<input type="text" class="w-m" id="pn'+i+'" name="pet'+i+'Name" required>' +
+
+            '<fieldset class="grp"><legend>What are they? <span class="req">*</span></legend>' +
+            '<div class="chips species">' +
+              ['Dog','Cat','Small animal','Bird','Reptile or amphibian','Fish'].map(function(s,k){
+                  var id='sp'+i+'_'+k;
+                  return '<input type="radio" id="'+id+'" name="pet'+i+'Type" value="'+s+'"'+(k===0?' required':'')+'>'+
+                         '<label for="'+id+'">'+s+'</label>';
+              }).join('') +
+            '</div></fieldset>' +
+
+            '<div class="byType" id="bt'+i+'"></div>';
+
+        pets.appendChild(d);
+        d.querySelectorAll('.species input').forEach(function(r){
+            r.addEventListener('change', function(){
+                d.querySelector('label[for="pn'+i+'"]').innerHTML =
+                    (r.value === 'Fish' ? 'Name, or what you call the tank' : 'Name') + ' <span class="req">*</span>';
+                fields(i, r.value); syncConditional();
+            });
+        });
+
+        var rm = d.querySelector('.drop');
+        if (rm) rm.addEventListener('click', function(){ d.remove(); renumber(); syncConditional(); });
+    }
+
+    function renumber(){
+        pets.querySelectorAll('.pet').forEach(function(c,k){
+            c.querySelector('h3').textContent = 'Pet ' + (k+1);
+        });
+    }
+
+    /* Field names match the card numbers the client saw. Cards stay in order,
+       so renaming front to back never collides. */
+    function renameForSubmit(){
+        pets.querySelectorAll('.pet').forEach(function(c,k){
+            c.querySelectorAll('[name]').forEach(function(f){
+                f.name = f.name.replace(/^pet\d+/, 'pet' + (k+1));
+            });
+        });
+    }
+
+    /* ---------- show questions only when they apply ---------- */
+    function syncConditional(){
+        var types = [].map.call(pets.querySelectorAll('.species input:checked'), function(r){ return r.value; });
+        var dogTotal = types.filter(function(t){ return t === 'Dog'; }).length;
+        var catTotal = types.filter(function(t){ return t === 'Cat'; }).length;
+        var hasDog = dogTotal > 0;
+        var hasDogOrCat = hasDog || catTotal > 0;
+
+        toggle(document.getElementById('multiDogBlock'), dogTotal > 1);
+        toggle(document.getElementById('multiCatBlock'), catTotal > 1);
+        toggle(document.getElementById('dogHandlingBlock'), hasDog);
+        toggle(document.getElementById('pottyBlock'), hasDog);
+        // feeding for other species is captured on their own card
+        toggle(document.getElementById('dcBlock'), hasDogOrCat);
+
+        var dt = checkedVal('dogsTogether');
+        toggle(document.getElementById('dogsTogetherMore'),
+            dogTotal > 1 && (dt === 'Have had scuffles' || dt === 'Have to be kept separate'));
+
+        var ct = checkedVal('catsTogether');
+        toggle(document.getElementById('catsTogetherMore'),
+            catTotal > 1 && (ct === 'They fight' || ct === 'Kept in separate areas'));
+
+        toggle(document.getElementById('dogCatBlock'), hasDog && catTotal > 0);
+        var dc = checkedVal('dogsAndCats');
+        toggle(document.getElementById('dogsAndCatsMore'),
+            hasDog && catTotal > 0 && (dc === 'Dog chases the cat' || dc === 'Kept separate'));
+
+        toggle(document.getElementById('extrasMore'), !!document.querySelector('input[name=extras]:checked'));
+
+        /* insurance: list the pets from step 2 when only some are covered */
+        var insBox = document.getElementById('insPets');
+        var wasChecked = [].map.call(insBox.querySelectorAll('input:checked'), function(x){ return x.value; });
+        insBox.innerHTML = [].map.call(pets.querySelectorAll('.pet'), function(c, k){
+            var nm = (c.querySelector('input[name$="Name"]').value || '').trim() || ('Pet ' + (k+1));
+            var id = 'insp' + k;
+            return '<div class="check"><input type="checkbox" id="' + id + '" name="insuredPets" value="' + esc(nm) + '"' +
+                   (wasChecked.indexOf(nm) > -1 ? ' checked' : '') + '><label for="' + id + '">' + esc(nm) + '</label></div>';
+        }).join('');
+        toggle(document.getElementById('insMore'), checkedVal('petInsurance') === 'Some of them');
+
+        var cap = checkedVal('treatmentCap');
+        toggle(document.getElementById('capAmountMore'), cap === 'Up to a set amount');
+        document.getElementById('capAmount').required = cap === 'Up to a set amount';
+
+        /* emergency plan: show only the parts that fit this household */
+        var hasExotic = types.some(function(t){ return t === 'Small animal' || t === 'Bird' || t === 'Reptile or amphibian'; });
+        var hasFish = types.indexOf('Fish') > -1;
+        var none = types.length === 0;
+        var groups = [
+            ['erDogCat', hasDogOrCat || none],
+            ['erExotic', hasExotic || none],
+            ['erFish', hasFish]
+        ];
+        var shown = groups.filter(function(g){ return g[1]; }).length;
+        groups.forEach(function(g){
+            var el = document.getElementById(g[0]);
+            el.style.display = g[1] ? 'block' : 'none';
+            el.querySelector('.erLabel').style.display = shown > 1 ? 'block' : 'none';
+        });
+
+        /* fence */
+        var fence = checkedVal('yardFence');
+        var electric = fence === 'Invisible or electric fence';
+        var physical = fence === 'Fully fenced' || fence === 'Partly fenced';
+        toggle(document.getElementById('fenceMore'), hasDog && (physical || electric));
+        document.getElementById('fenceNotes').placeholder = electric
+            ? 'Where the boundary runs, where the collar is kept, how the battery is checked, and whether your dog ever tests it.'
+            : 'Gate latch sticks, a gap behind the shed, a dog who can clear four feet.';
+        document.getElementById('eFenceNote').style.display = (hasDog && electric) ? 'block' : 'none';
+
+        /* off leash with no fence needs an explanation */
+        var how = checkedVal('dogHandling');
+        var offLeash = how === 'Loose in the yard' || how === 'Both, depending on the dog';
+        var looseNoFence = hasDog && fence === 'No fence' && offLeash;
+        toggle(document.getElementById('looseMore'), looseNoFence);
+        document.getElementById('looseNotes').required = looseNoFence;
+
+        /* group size */
+        var note = document.getElementById('leashNote');
+        var msg = '';
+        if (dogTotal > 4) {
+            msg = 'With ' + dogTotal + ' dogs this becomes a two-person visit, quoted individually. We&rsquo;ll send you a price first.';
+        } else if (dogTotal > 3 && how !== 'Loose in the yard') {
+            msg = 'Leashed walks generally cap at 3 dogs, though size and leash manners matter. With ' + dogTotal +
+                  ' we may suggest an extended visit or a second person. We&rsquo;ll talk it through before booking.';
+        }
+        note.innerHTML = msg;
+        note.style.display = msg ? 'block' : 'none';
+    }
+
+    document.querySelectorAll('input[name=yardFence],input[name=dogHandling],input[name=dogsTogether],input[name=catsTogether],input[name=dogsAndCats],input[name=extras],input[name=treatmentCap],input[name=petInsurance]')
+        .forEach(function(r){ r.addEventListener('change', syncConditional); });
+
+    /* ---------- steps ---------- */
+    function show(n){
+        document.querySelectorAll('.panel').forEach(function(p){
+            p.classList.toggle('on', +p.dataset.panel === n);
+        });
+        document.querySelectorAll('.steps b').forEach(function(b){
+            var s = +b.dataset.s;
+            b.classList.toggle('on', s === n);
+            b.classList.toggle('done', s < n);
+        });
+        segs.forEach(function(s,k){ s.classList.toggle('lit', k < n); });
+        document.querySelector('.masthead').classList.toggle('gone', n > 1);
+        step = n;
+        if (typeof queueSave === 'function') queueSave();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function valid(n){
+        if (TEST_MODE) return true;
+        var panel = document.querySelector('.panel[data-panel="' + n + '"]');
+        var bad = null;
+        panel.querySelectorAll('[required]').forEach(function(f){
+            if (!bad && !f.checkValidity()) bad = f;
+        });
+        if (!bad && n === LAST && checkedVal('petInsurance') === 'Some of them' &&
+            !document.querySelector('#insPets input:checked')) bad = document.querySelector('#insPets input');
+        var msg = panel.querySelector('.err');
+        if (bad) {
+            msg.textContent = (n === 2)
+                ? 'A few pet details still need filling in.'
+                : 'A few fields still need filling in.';
+            msg.style.display = 'block';
+            bad.focus();
+            return false;
+        }
+        msg.style.display = 'none';
+        return true;
+    }
+
+    document.addEventListener('click', function(e){
+        var b = e.target.closest('.go, .rv-edit');
+        if (!b || b.type === 'submit') return;
+        var to = +b.dataset.to;
+        if (to > step && !valid(step)) return;
+        if (to === 3 || to === 4) syncConditional();
+        if (to === REVIEW) buildReview();
+        show(to);
+    });
+
+    /* Enter moves to the next step instead of trying to submit early */
+    form.addEventListener('keydown', function(e){
+        if (e.key !== 'Enter' || step === LAST) return;
+        var t = e.target;
+        if (t.tagName !== 'INPUT' || t.type === 'checkbox' || t.type === 'radio') return;
+        e.preventDefault();
+        var next = document.querySelector('.panel[data-panel="' + step + '"] .go.next');
+        if (next) next.click();
+    });
+
+    document.getElementById('addPet').addEventListener('click', function(){ addPet(); syncConditional(); });
+
+    /* ---------- review ---------- */
+    function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    function clean(t){ return t.replace(/\s*\*\s*$/, '').replace(/\s+/g, ' ').trim(); }
+    function labelFor(f){
+        var l = f.id && document.querySelector('label[for="' + f.id + '"]');
+        if (!l) return '';
+        var c = l.cloneNode(true);
+        c.querySelectorAll('.req, .tip-card').forEach(function(x){ x.remove(); });
+        return clean(c.textContent);
+    }
+    function groupQuestion(f){
+        var fs = f.closest('fieldset');
+        var lg = fs && fs.querySelector(':scope > legend');
+        if (!lg) return '';
+        var c = lg.cloneNode(true);
+        c.querySelectorAll('.req').forEach(function(x){ x.remove(); });
+        var q = clean(c.textContent);
+        /* treatment question sits in a line above the choices */
+        if (f.name === 'treatmentCap') q = 'If we can\u2019t reach you, the vet can go ahead with';
+        if (f.name === 'photoPermission') q = 'Photos & short clips on social media';
+        if (f.name === 'insuredPets') q = 'Which pets are insured';
+        return q;
+    }
+    /* collect answered questions from a container, in page order */
+    function answers(root){
+        var rows = [], seen = {};
+        root.querySelectorAll('input, select, textarea').forEach(function(f){
+            if (f.disabled || !f.name || f.type === 'hidden' || f.name === '_gotcha' || f.name === 'agreedTerms') return;
+            if (f.closest('.species')) return;
+            if (f.type === 'radio' || f.type === 'checkbox'){
+                if (seen[f.name]) return;
+                seen[f.name] = true;
+                var picked = [].filter.call(root.querySelectorAll('[name="' + f.name + '"]'), function(x){ return x.checked && !x.disabled; });
+                if (f.name === 'photoPermission'){ rows.push([groupQuestion(f), picked.length ? 'Yes' : 'No']); return; }
+                if (!picked.length) return;
+                var chips = f.closest('.chips');
+                var q = chips ? groupQuestion(f) : (groupQuestion(f) || labelFor(f));
+                var vals = picked.map(function(x){ return chips ? labelFor(x) : labelFor(x); });
+                rows.push([q, vals.join(f.type === 'checkbox' && !chips ? '\n' : ', ')]);
+                return;
+            }
+            var v = f.tagName === 'SELECT' ? (f.value ? f.options[f.selectedIndex].text : '') : f.value.trim();
+            if (!v) return;
+            var named = { vetName:'Vet', vetPhone:'Vet phone', emergencyName:'Emergency contact', emergencyPhone:'Emergency contact phone' };
+            rows.push([named[f.name] || labelFor(f), v]);
+        });
+        return rows;
+    }
+    function rowsHTML(rows){
+        if (!rows.length) return '<p class="rv-empty">Nothing filled in.</p>';
+        return rows.map(function(r){
+            return '<div class="rv-row"><div class="rv-q">' + esc(r[0]) + '</div><div class="rv-a">' + esc(r[1]) + '</div></div>';
+        }).join('');
+    }
+    function section(title, n, inner){
+        return '<div class="rv-sec"><div class="rv-head"><h3>' + title + '</h3>' +
+               '<button type="button" class="linkish rv-edit" data-to="' + n + '">Edit</button></div>' + inner + '</div>';
+    }
+    function buildReview(){
+        var p = function(n){ return document.querySelector('.panel[data-panel="' + n + '"]'); };
+        var petHTML = [].map.call(pets.querySelectorAll('.pet'), function(c, k){
+            var t = c.querySelector('.species input:checked');
+            return '<div class="rv-sub">Pet ' + (k+1) + (t ? ': ' + esc(t.value) : '') + '</div>' + rowsHTML(answers(c));
+        }).join('');
+        document.getElementById('reviewBody').innerHTML =
+            section('Your details', 1, rowsHTML(answers(p(1)))) +
+            section('Your pets', 2, petHTML) +
+            section('Care details', 3, rowsHTML(answers(p(3)))) +
+            section('If something goes wrong', 4, rowsHTML(answers(p(4))));
+    }
+
+    /* ---------- submit ---------- */
+    function showDone(){
+        form.style.display = 'none';
+        document.querySelector('.progress').style.display = 'none';
+        document.querySelector('.masthead').style.display = 'none';
+        document.body.style.paddingTop = '0';
+        document.getElementById('done').style.display = 'block';
+        window.scrollTo({ top:0 });
+    }
+
+    form.addEventListener('submit', function(e){
+        e.preventDefault();
+        try { submitForm(e); }
+        catch (err) {
+            console.error(err);
+            var msg = document.querySelector('.panel.on .err');
+            msg.textContent = 'Something went wrong before sending. Text us at (859) 346-0605.' + (TEST_MODE ? ' (Details: ' + err.message + ')' : '');
+            msg.style.display = 'block';
+        }
+    });
+
+    function submitForm(e){
+        if (!valid(LAST)) return;
+        document.getElementById('replyto').value = document.getElementById('email').value;
+        var who = (document.getElementById('first').value + ' ' + document.getElementById('last').value).trim();
+        form.querySelector('[name=_subject]').value = 'Intake: ' + (who || 'no name given');
+        var names = [].map.call(pets.querySelectorAll('.pet'), function(c){
+            var n = c.querySelector('input[type=text]').value || 'unnamed';
+            var t = c.querySelector('.species input:checked');
+            return n + ' (' + (t ? t.value : '?') + ')';
+        });
+        document.getElementById('petSummary').value = names.join(', ');
+        var crm = crmPayload();   /* built before field names get renumbered */
+        renameForSubmit();
+
+        var btn = e.submitter || form.querySelector('button[type=submit]');
+        btn.disabled = true; btn.textContent = 'Sending\u2026';
+        /* Formspree rejects a blank email, so leave it out when the client skipped it */
+        var data = new FormData(form);
+        if (!document.getElementById('email').value.trim()) { data.delete('email'); data.delete('_replyto'); }
+        /* never leave the client stuck on "Sending..." */
+        var ctrl = window.AbortController ? new AbortController() : null;
+        var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 20000);
+        var sig = ctrl ? ctrl.signal : undefined;
+
+        /* 1) email copy through Formspree */
+        var toEmail = fetch(form.action, { method:'POST', body:data, headers:{ Accept:'application/json' }, signal:sig })
+            .then(function(r){
+                if (r.ok) return 'email';
+                return r.json().catch(function(){ return {}; }).then(function(d){
+                    throw new Error('email: ' + ((d.errors && d.errors.map(function(x){ return x.message; }).join(' ')) || d.error || ('status ' + r.status)));
+                });
+            });
+        /* 2) straight into the CRM's intake inbox */
+        var toCrm = sendToCrm(crm, sig);
+
+        Promise.allSettled([toEmail, toCrm]).then(function(res){
+            clearTimeout(timer);
+            var ok = res.filter(function(x){ return x.status === 'fulfilled'; });
+            res.forEach(function(x){ if (x.status === 'rejected') console.error('Form send problem:', x.reason); });
+            if (ok.length) { clearDraft(); showDone(); return; }
+            var why = res.map(function(x){
+                var e = x.reason; if (e && e.name === 'AbortError') return 'no response after 20 seconds';
+                return e && e.message;
+            }).filter(Boolean).join(' / ');
+            btn.disabled = false; btn.textContent = 'Send it over';
+            var msg = document.querySelector('.panel.on .err');
+            msg.textContent = 'That didn’t go through. Try again, or text us at (859) 346-0605.' +
+                (TEST_MODE && why ? ' (Details: ' + why + ')' : '');
+            msg.style.display = 'block';
+        });
+    }
+
+    /* ---------- CRM intake inbox ----------
+       Each submission is added to the "intakes" collection of the CRM's Firebase project.
+       Firestore security rules let the public add to it, never read, change or delete. */
+    var CRM = {
+        project: 'myreliacare-crm',
+        key: 'AIzaSyB0woIciG-MMUjdqLMCSegF5LiqQSv-7Wo'
+    };
+    function sendToCrm(payload, sig){
+        var url = 'https://firestore.googleapis.com/v1/projects/' + CRM.project +
+                  '/databases/(default)/documents/intakes?key=' + CRM.key;
+        var body = { fields: {
+            status:    { stringValue: 'new' },
+            createdAt: { timestampValue: new Date().toISOString() },
+            payload:   { stringValue: JSON.stringify(payload) }
+        } };
+        return fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body), signal:sig })
+            .then(function(r){
+                if (r.ok) return 'crm';
+                return r.json().catch(function(){ return {}; }).then(function(d){
+                    throw new Error('crm: ' + ((d.error && d.error.message) || ('status ' + r.status)));
+                });
+            });
+    }
+
+    /* Shape the answers the way the CRM stores clients and pets (one CRM field per answer) */
+    var PET_MAP = {
+        Name:'name', Breed:'breed', Age:'age', Weight:'weight', Sex:'sex', Color:'color',
+        Fixed:'fixed', Rabies:'rabies', Role:'role', Crate:'crate',
+        IndoorOutdoor:'indoorOutdoor', LitterBoxes:'litterBoxes', LitterWhere:'litterWhere', Hides:'strangers',
+        Housing:'housing', Handling:'handling', OutOfCage:'outOfCage', Covered:'covered',
+        Enclosure:'enclosure', TempRange:'tempRange', Humidity:'humidity', Lighting:'lighting',
+        WaterType:'waterType', TankSize:'tankSize', FeedType:'foodTypes',
+        IncidentNotes:'flagNotes', Health:'medicalNotes', Other:'behaviorNotes'
+    };
+    function crmPayload(){
+        var val = function(id){ var el = document.getElementById(id); return el && !el.disabled ? el.value.trim() : ''; };
+        var pick = function(name){
+            var els = [].filter.call(form.querySelectorAll('[name="' + name + '"]'), function(x){ return !x.disabled; });
+            if (!els.length) return '';
+            if (els[0].type === 'radio') { var r = els.filter(function(x){ return x.checked; })[0]; return r ? r.value : ''; }
+            if (els[0].type === 'checkbox') return els.filter(function(x){ return x.checked; }).map(function(x){ return x.value; }).join(', ');
+            return els[0].value.trim();
+        };
+
+        var petList = [].map.call(pets.querySelectorAll('.pet'), function(c){
+            var typeEl = c.querySelector('.species input:checked');
+            var type = typeEl ? typeEl.value : '';
+            var pet = { species: type, flags: [] };
+            var multi = {};
+            c.querySelectorAll('[name]').forEach(function(f){
+                if (f.disabled || f.closest('.species')) return;
+                var key = f.name.replace(/^pet\d+/, '');
+                if (f.type === 'checkbox'){
+                    if (!f.checked) return;
+                    if (f.hasAttribute('data-flag')) pet.flags.push(labelFor(f));
+                    else (multi[key] = multi[key] || []).push(f.value);
+                    return;
+                }
+                var v = f.value.trim();
+                if (!v) return;
+                if (key === 'CareNotes') {
+                    if (type === 'Fish' || type === 'Reptile or amphibian') pet.feedingInstructions = v;
+                    else pet.careInstructions = v;
+                    return;
+                }
+                if (PET_MAP[key]) pet[PET_MAP[key]] = v;
+            });
+            Object.keys(multi).forEach(function(k){ if (PET_MAP[k]) pet[PET_MAP[k]] = multi[k].join(', '); });
+            if (pet.weight && /^\d+(\.\d+)?$/.test(pet.weight)) pet.weight += ' lbs';
+            return pet;
+        });
+
+        var today = new Date();
+        var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+        var household = {
+            feeding: pick('feeding'), potty: pick('pottyRoutine'),
+            dogsTogether: pick('dogsTogether'), dogsTogetherNotes: pick('dogsTogetherNotes'),
+            catsTogether: pick('catsTogether'), catsTogetherNotes: pick('catsTogetherNotes'),
+            dogsAndCats: pick('dogsAndCats'), dogsAndCatsNotes: pick('dogsAndCatsNotes'),
+            yardFence: pick('yardFence'), fenceNotes: pick('fenceNotes'),
+            dogHandling: pick('dogHandling'), offLeashNotes: pick('looseNoFenceNotes'),
+            extras: pick('extras'), extrasNotes: pick('extrasNotes'),
+            insurance: pick('petInsurance'), insuredPets: pick('insuredPets'),
+            treatment: pick('treatmentCap'), treatmentAmount: pick('treatmentAmount'),
+            photos: document.getElementById('photoOk').checked ? 'Yes' : 'No',
+            termsAgreed: document.getElementById('agree').checked ? today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate()) : ''
+        };
+        Object.keys(household).forEach(function(k){ if (!household[k]) delete household[k]; });
+
+        return {
+            v: 2,
+            submittedAt: today.toISOString(),
+            client: {
+                firstName: val('first'), lastName: val('last'),
+                name: (val('first') + ' ' + val('last')).trim(),
+                phone: val('phone'), email: val('email'),
+                address: val('addr'), city: val('city'), zip: val('zip')
+            },
+            emergencyContact: { name: val('ecName'), phone: val('ecPhone'), relationship: val('ecRel') },
+            vetInfo: { clinic: val('vet'), phone: val('vetPhone') },
+            household: household,
+            notes: val('quirks'),
+            pets: petList
+        };
+    }
+
+    /* cancellation policy: hover on desktop, tap to open on phones */
+    var tip = document.querySelector('.tip');
+    var tipBtn = document.getElementById('openCancel');
+    tipBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        var open = !tip.classList.contains('open');
+        tip.classList.toggle('open', open);
+        tipBtn.setAttribute('aria-expanded', open);
+    });
+    document.addEventListener('click', function(e){
+        if (!tip.contains(e.target)) { tip.classList.remove('open'); tipBtn.setAttribute('aria-expanded', 'false'); }
+    });
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') { tip.classList.remove('open'); tipBtn.blur(); }
+    });
+    /* the policy sits inside the agree label, so tapping it must not tick the box */
+    document.getElementById('cancelCard').addEventListener('click', function(e){ e.preventDefault(); });
+
+    /* grey out selects still on "Choose one" */
+    function markSelects(){
+        form.querySelectorAll('select').forEach(function(x){ x.classList.toggle('empty', !x.value); });
+    }
+    form.addEventListener('change', function(e){ if (e.target.tagName === 'SELECT') markSelects(); });
+    new MutationObserver(markSelects).observe(pets, { childList:true, subtree:true });
+
+    addPet();
+    syncConditional();
+
+    /* ---------- pre-filled links ----------
+       Open the form with ?build at the end of the address to fill in what you already know,
+       then use "Copy client link". The client's link carries those answers after a #. */
+    var SKIP = { _gotcha:1, _subject:1, _replyto:1, petSummary:1, agreedTerms:1 };
+    function fire(el){ el.dispatchEvent(new Event('change', { bubbles:true })); }
+
+    function collect(){
+        var data = { f:{}, p:[] };
+        [].forEach.call(form.elements, function(f){
+            if (!f.name || SKIP[f.name] || /^pet\d+/.test(f.name) || f.type === 'submit' || f.type === 'button') return;
+            if (f.type === 'radio'){ if (f.checked) data.f[f.name] = f.value; return; }
+            if (f.type === 'checkbox'){
+                if (f.checked){ (data.f[f.name] = data.f[f.name] || []).push(f.value); }
+                return;
+            }
+            if (f.value.trim()) data.f[f.name] = f.value;
+        });
+        pets.querySelectorAll('.pet').forEach(function(c){
+            var pre = 'pet' + c.dataset.pet, pet = {};
+            c.querySelectorAll('[name]').forEach(function(f){
+                var key = f.name.slice(pre.length);
+                if (f.type === 'radio'){ if (f.checked) pet[key] = f.value; return; }
+                if (f.type === 'checkbox'){ if (f.checked) (pet[key] = pet[key] || []).push(f.value); return; }
+                if (f.value.trim()) pet[key] = f.value;
+            });
+            data.p.push(pet);
+        });
+        return data;
+    }
+
+    function setField(f, v){
+        if (f.type === 'radio' || f.type === 'checkbox'){
+            var want = [].concat(v);
+            f.checked = want.indexOf(f.value) > -1;
+            if (f.checked) fire(f);
+        } else {
+            f.value = v;
+        }
+    }
+
+    function applyData(data){
+        (data.p || []).forEach(function(pet, k){
+            if (k > 0) addPet();
+            var cards = pets.querySelectorAll('.pet');
+            var c = cards[cards.length - 1], pre = 'pet' + c.dataset.pet;
+            if (pet.Type){
+                var r = c.querySelector('.species input[value="' + pet.Type + '"]');
+                if (r){ r.checked = true; fire(r); }
+            }
+            Object.keys(pet).forEach(function(key){
+                if (key === 'Type') return;
+                c.querySelectorAll('[name="' + pre + key + '"]').forEach(function(f){ setField(f, pet[key]); });
+            });
+        });
+        syncConditional();
+        Object.keys(data.f || {}).forEach(function(name){
+            form.querySelectorAll('[name="' + name + '"]').forEach(function(f){ setField(f, data.f[name]); });
+        });
+        syncConditional();
+    }
+
+
+    /* ---------- locked, expiring links ----------
+       Answers are encrypted with the passcode you choose in builder mode (AES-GCM, key from PBKDF2).
+       Without the code the link is unreadable, and after LINK_DAYS it won't open at all. */
+    var LINK_DAYS = 14;
+    var te = new TextEncoder(), td = new TextDecoder();
+    function b64u(bytes){ var s = ''; bytes.forEach(function(b){ s += String.fromCharCode(b); }); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+    function unb64u(str){ str = str.replace(/-/g,'+').replace(/_/g,'/'); while (str.length % 4) str += '='; var s = atob(str), out = new Uint8Array(s.length); for (var k = 0; k < s.length; k++) out[k] = s.charCodeAt(k); return out; }
+    function keyFrom(code, salt){
+        return crypto.subtle.importKey('raw', te.encode(code.trim().toLowerCase()), 'PBKDF2', false, ['deriveKey'])
+            .then(function(base){
+                return crypto.subtle.deriveKey({ name:'PBKDF2', salt:salt, iterations:250000, hash:'SHA-256' },
+                    base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+            });
+    }
+    function lock(obj, code){
+        var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+        return keyFrom(code, salt).then(function(key){
+            return crypto.subtle.encrypt({ name:'AES-GCM', iv:iv }, key, te.encode(JSON.stringify(obj)));
+        }).then(function(ct){
+            var c = new Uint8Array(ct), all = new Uint8Array(28 + c.length);
+            all.set(salt, 0); all.set(iv, 16); all.set(c, 28);
+            return b64u(all);
+        });
+    }
+    function unlock(str, code){
+        var all = unb64u(str);
+        return keyFrom(code, all.slice(0,16)).then(function(key){
+            return crypto.subtle.decrypt({ name:'AES-GCM', iv:all.slice(16,28) }, key, all.slice(28));
+        }).then(function(pt){ return JSON.parse(td.decode(pt)); });
+    }
+
+    /* ---------- keep answers through a refresh ----------
+       Saved only in this browser, cleared when the form is sent, and dropped after DRAFT_DAYS. */
+    var DRAFT_KEY = 'mrcIntakeDraft', DRAFT_DAYS = 14;
+    var building = /[?&]build\b/.test(location.search);
+    var linkTok = (location.hash.match(/[#&]e=([^&]+)/) || [])[1] || '';
+    function saveDraft(){
+        if (building) return;
+        var d = collect();
+        var empty = !Object.keys(d.f).length && d.p.every(function(x){ return !Object.keys(x).length; });
+        if (empty) { clearDraft(); return; }
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ l: linkTok, t: Date.now(), step: step === REVIEW ? LAST : step, d: d })); } catch (e) {}
+    }
+    function clearDraft(){ try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+    function loadDraft(){
+        try {
+            var x = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+            if (!x || !x.d || Date.now() - x.t > DRAFT_DAYS * 864e5) { clearDraft(); return null; }
+            return x;
+        } catch (e) { return null; }
+    }
+    var saveTimer;
+    function queueSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveDraft, 300); }
+
+    var draft = building ? null : loadDraft();
+    /* a different pre-filled link means a different client: don't mix answers */
+    if (draft && linkTok && draft.l !== linkTok) draft = null;
+    if (draft){
+        applyData(draft.d);
+        markSelects();
+        /* a saved draft already includes anything from a pre-filled link */
+    }
+
+    /* client side: ask for the code, then fill the form */
+    var m = !draft && location.hash.match(/[#&]e=([^&]+)/);
+    if (m){
+        var gate = document.createElement('div');
+        gate.className = 'gate';
+        gate.innerHTML =
+            '<form class="gate-card" autocomplete="off">' +
+                '<h2>Your form is ready</h2>' +
+                '<p>We&rsquo;ve filled in what you&rsquo;ve already told us. Enter the code we sent you to open it.</p>' +
+                '<label for="gateCode">Code</label>' +
+                '<input type="text" id="gateCode" class="w-s" autocapitalize="off" spellcheck="false">' +
+                '<p class="gate-err" aria-live="polite"></p>' +
+                '<div class="gate-btns"><button type="submit" class="gate-go">Open my form</button>' +
+                '<button type="button" class="linkish gate-skip">Start a blank form instead</button></div>' +
+            '</form>';
+        document.body.appendChild(gate);
+        var gErr = gate.querySelector('.gate-err'), gBtn = gate.querySelector('.gate-go');
+        var closeGate = function(){ gate.remove(); history.replaceState(null, '', location.pathname + location.search); };
+        gate.querySelector('.gate-skip').addEventListener('click', closeGate);
+        gate.querySelector('form').addEventListener('submit', function(e){
+            e.preventDefault();
+            var code = document.getElementById('gateCode').value;
+            if (!code.trim()){ gErr.textContent = 'Enter the code from our message.'; return; }
+            gBtn.disabled = true; gBtn.textContent = 'Opening…'; gErr.textContent = '';
+            unlock(m[1], code).then(function(pack){
+                if (!pack.exp || Date.now() > pack.exp){
+                    gErr.textContent = 'This link has expired. Text us at (859) 346-0605 for a new one, or start a blank form.';
+                    gBtn.disabled = false; gBtn.textContent = 'Open my form';
+                    return;
+                }
+                gate.remove();
+                applyData(pack.d);
+                markSelects();
+                saveDraft();
+                var note = document.createElement('p');
+                note.className = 'prefill-note';
+                note.textContent = 'We’ve filled in what you’ve already told us. Look it over and fill in the rest.';
+                document.querySelector('.masthead .mins').insertAdjacentElement('afterend', note);
+            }).catch(function(){
+                gErr.textContent = 'That code didn’t work. Check the code in our message and try again.';
+                gBtn.disabled = false; gBtn.textContent = 'Open my form';
+            });
+        });
+        setTimeout(function(){ document.getElementById('gateCode').focus(); }, 50);
+    }
+
+    /* your side: builder bar */
+    if (/[?&]build\b/.test(location.search)){
+        form.noValidate = true;
+        TEST_MODE = true;   /* lets you move between steps without filling everything */
+        /* nothing gets sent from builder mode */
+        form.querySelectorAll('button[type=submit]').forEach(function(x){ x.style.display = 'none'; });
+        var bar = document.createElement('div');
+        bar.className = 'builder-bar';
+        bar.innerHTML = '<span>Builder mode: fill in what you know, set a code, then</span>' +
+            '<input type="text" id="linkCode" placeholder="Code for this link" aria-label="Code for this link" autocomplete="off">' +
+            '<button type="button" id="copyLink">Copy client link</button>' +
+            '<span id="linkMsg"></span>' +
+            '<input type="text" id="builtLink" readonly aria-label="Client link">';
+        document.body.appendChild(bar);
+        document.getElementById('copyLink').addEventListener('click', function(){
+            var btn = this, msg = document.getElementById('linkMsg');
+            var code = document.getElementById('linkCode').value;
+            if (code.trim().length < 4){ msg.textContent = 'Use a code of at least 4 characters.'; return; }
+            msg.textContent = '';
+            var pack = { d: collect(), exp: Date.now() + LINK_DAYS * 864e5 };
+            lock(pack, code).then(function(enc){
+                var url = location.origin + location.pathname + '#e=' + enc;
+                var box = document.getElementById('builtLink');
+                box.value = url; box.style.display = 'block'; box.select();
+                var ok = function(){ btn.textContent = 'Copied!'; msg.textContent = 'Expires ' + new Date(pack.exp).toLocaleDateString(); setTimeout(function(){ btn.textContent = 'Copy client link'; }, 2000); };
+                if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, function(){ document.execCommand('copy'); ok(); });
+                else { document.execCommand('copy'); ok(); }
+            }).catch(function(err){ msg.textContent = 'Couldn’t make the link: ' + err.message; });
+        });
+    }
+
+    form.addEventListener('input', queueSave);
+    form.addEventListener('change', queueSave);
+    new MutationObserver(queueSave).observe(pets, { childList:true });
+
+    markSelects();
+    show(draft && draft.step ? draft.step : 1);
+})();
+</script>
+
+</body>
+</html>

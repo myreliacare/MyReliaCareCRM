@@ -240,6 +240,36 @@
         .client-card-name { font-family: 'Cormorant Unicase', serif; color: var(--accent); font-size: 1.3em; font-weight: 600; }
         .client-card-pets { color: var(--text-faint); font-family: 'Cormorant', serif; font-style: italic; font-size: 0.85em; font-weight: 400; }
         .client-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+        .pet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0 14px; }
+        .pet-grid .wide { grid-column: 1 / -1; }
+        .pet-flag-list { display: grid; gap: 4px; }
+        .pet-flag { display: flex !important; gap: 8px; align-items: flex-start; color: var(--text) !important; font-weight: 400 !important; }
+        .pet-flag input { margin-top: 5px; width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; }
+        .intake-count { display: inline-block; min-width: 1.5em; margin-left: 6px; padding: 0 7px; border-radius: 10px; background: var(--accent); color: white; font-size: 0.8em; line-height: 1.5em; text-align: center; }
+        .intake-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; background: var(--bg-card-light); }
+        .intake-card-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+        .intake-card-name { font-weight: 600; font-size: 1.1em; }
+        .intake-meta { color: var(--text-faint); font-size: 0.9em; }
+        .intake-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .intake-row { display: grid; grid-template-columns: 28px minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.2fr); gap: 10px; align-items: start; padding: 8px 0; border-top: 1px solid var(--border); }
+        .intake-row:first-of-type { border-top: 0; }
+        .intake-row input[type=checkbox] { margin-top: 5px; width: 18px; height: 18px; accent-color: var(--accent); }
+        .intake-row .lbl { color: var(--text-dim); }
+        .intake-row .old { color: var(--text-faint); white-space: pre-wrap; overflow-wrap: anywhere; }
+        .intake-row .new { color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+        .intake-colhead { display: grid; grid-template-columns: 28px minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.2fr); gap: 10px; color: var(--text-faint); font-size: 0.85em; text-transform: uppercase; letter-spacing: .05em; }
+        .intake-kv { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 10px; padding: 5px 0; border-top: 1px solid var(--border); }
+        .intake-kv:first-of-type { border-top: 0; }
+        .intake-kv .v { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .intake-note { color: var(--text-faint); font-style: italic; font-size: 0.95em; margin-bottom: 12px; }
+        @media (max-width: 700px) {
+            .intake-row { grid-template-columns: 28px minmax(0,1fr); }
+            .intake-row .old, .intake-row .new { grid-column: 2; }
+            .intake-row .old::before { content: 'Now: '; color: var(--text-faint); }
+            .intake-row .new::before { content: 'Form: '; color: var(--text-faint); }
+            .intake-colhead { display: none; }
+            .intake-kv { grid-template-columns: 1fr; gap: 0; }
+        }
         .badge { font-size: 0.78em; padding: 2px 8px; border-radius: 10px; background: var(--bg-card-light); color: var(--text-dim); }
         .badge.success { background: rgba(201, 166, 107, 0.18); color: var(--success); }
         .badge.warn { background: rgba(168, 90, 102, 0.18); color: var(--danger); }
@@ -856,6 +886,7 @@
         <div class="card">
             <div class="toolbar">
                 <input type="text" id="searchBar" class="search-bar" placeholder="Search by name, phone, email, or pet…" oninput="renderClients()">
+                <button class="btn btn-ghost" onclick="openIntakeInbox()" title="New intake forms from clients">Intakes <span class="intake-count" id="intakeCount" style="display:none;">0</span></button>
                 <button class="btn btn-ghost" onclick="openClientValueReport()" title="See client value report">Insights</button>
                 <button class="btn btn-primary" onclick="openClientModal()">+ Add Client</button>
             </div>
@@ -885,26 +916,19 @@
             <button class="modal-close" onclick="closeModal('clientModal')">×</button>
         </div>
         <div class="modal-body">
-            <div class="form-row">
-                <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" id="cName" required></div>
-                <div class="form-group"><label>Preferred Contact</label>
-                    <select id="cPreferredContact">
-                        <option value="">—</option>
-                        <option>Phone</option><option>Text</option><option>Email</option>
-                    </select>
-                </div>
-            </div>
+            <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" id="cName" required></div>
+            <input type="hidden" id="cPreferredContact">
             <div class="form-row">
                 <div class="form-group"><label>Phone</label><input type="tel" id="cPhone"></div>
                 <div class="form-group"><label>Email</label><input type="email" id="cEmail"></div>
             </div>
 
             <div class="form-group"><label>Address</label><input type="text" id="cAddress" placeholder="Street address"></div>
-            <div class="form-row-3">
+            <div class="form-row">
                 <div class="form-group"><label>City</label><input type="text" id="cCity"></div>
-                <div class="form-group"><label>State</label><input type="text" id="cState" placeholder="KY"></div>
                 <div class="form-group"><label>Zip</label><input type="text" id="cZip"></div>
             </div>
+            <input type="hidden" id="cState" value="KY">
 
             <div class="form-group"><label>Access Instructions</label><textarea id="cAccess" rows="2" placeholder="Gate code, lockbox, key location…"></textarea></div>
 
@@ -957,10 +981,14 @@
                 <div class="form-group"><label>Clinic Name</label><input type="text" id="cVetClinic"></div>
                 <div class="form-group"><label>Clinic Phone</label><input type="tel" id="cVetPhone"></div>
             </div>
-            <div class="form-group"><label>Clinic Address</label><input type="text" id="cVetAddress"></div>
+            <input type="hidden" id="cVetAddress">
+
+            <h3 class="form-section-title">Household</h3>
+            <p style="color: var(--text-faint); font-size: 0.92em; margin-bottom: 10px;">Answers from the intake form. Only what applies to this household needs filling in.</p>
+            <div id="householdFields"></div>
 
             <h3 class="form-section-title">Other</h3>
-            <div class="form-group"><label>Notes</label><textarea id="cNotes" rows="3" placeholder="Anything important about the home, household, or client..."></textarea></div>
+            <div class="form-group"><label>Notes</label><textarea id="cNotes" rows="3" placeholder="Parking, the property, scheduling notes, anything not about the pets..."></textarea></div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('clientModal')">Cancel</button>
@@ -1020,6 +1048,18 @@
             <button class="btn btn-ghost" onclick="closeModal('clientTipModal')">Cancel</button>
             <button class="btn btn-primary" onclick="saveClientTip()">Add Tip</button>
         </div>
+    </div>
+</div>
+
+<!-- Intake inbox: submissions from myreliacare.com/intake -->
+<div class="modal-overlay" id="intakeModal">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h2 id="intakeTitle">Intake Forms</h2>
+            <button class="modal-close" onclick="closeModal('intakeModal')" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body modal-body-scrollable" id="intakeBody"></div>
+        <div class="modal-footer" id="intakeFooter"></div>
     </div>
 </div>
 
@@ -2221,6 +2261,8 @@ function openClientModal() {
      'cEmergencyName','cEmergencyPhone','cEmergencyRel','cVetClinic','cVetPhone','cVetAddress',
      'cPrice30','cPrice60','cDefaultPaymentMethod'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('cPreferredContact').value = '';
+    document.getElementById('cState').value = 'KY';
+    renderHouseholdFields({});
     document.getElementById('petsContainer').innerHTML = '';
     document.getElementById('timeWindowsContainer').innerHTML = '';
     const stat = document.getElementById('cCoordsStatus');
@@ -2245,7 +2287,7 @@ function editClient(clientId) {
     document.getElementById('cEmail').value = c.email || '';
     document.getElementById('cAddress').value = c.address || '';
     document.getElementById('cCity').value = c.city || '';
-    document.getElementById('cState').value = c.state || '';
+    document.getElementById('cState').value = c.state || 'KY';
     document.getElementById('cZip').value = c.zip || '';
     document.getElementById('cAccess').value = c.accessInstructions || '';
     document.getElementById('cMilesFromHome').value = (() => {
@@ -2277,6 +2319,7 @@ function editClient(clientId) {
     document.getElementById('cVetClinic').value = vet.clinic || '';
     document.getElementById('cVetPhone').value = vet.phone || '';
     document.getElementById('cVetAddress').value = vet.address || '';
+    renderHouseholdFields(c.household || {});
     document.getElementById('petsContainer').innerHTML = '';
     (c.pets || []).forEach(p => addPetEntry(p));
     document.getElementById('timeWindowsContainer').innerHTML = '';
@@ -2290,47 +2333,28 @@ function addPetEntry(petData = null) {
     const idx = container.children.length;
     const row = document.createElement('div');
     row.className = 'pet-entry';
-    const v = (k) => petData && petData[k] ? escapeHtml(petData[k]) : '';
-    const sel = (k, opt) => petData && petData[k] === opt ? 'selected' : '';
+    row._orig = petData ? JSON.parse(JSON.stringify(petData)) : {};
+    const species = normalizeSpecies(petData && petData.species);
+    const opts = PET_SPECIES.slice();
+    if (petData && petData.species && !opts.includes(species)) opts.push(species);
     row.innerHTML = `
         <div class="pet-entry-header">
             <div class="pet-entry-title">Pet ${idx + 1}</div>
             <button type="button" class="remove-pet-btn" onclick="this.closest('.pet-entry').remove()">Remove</button>
         </div>
         <div class="form-row">
-            <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" class="pet-name" value="${v('name')}"></div>
+            <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" class="pet-name" value="${petData && petData.name ? escapeHtml(petData.name) : ''}"></div>
             <div class="form-group"><label>Species</label>
-                <select class="pet-species">
+                <select class="pet-species" onchange="renderPetFields(this.closest('.pet-entry'), this.value, collectPetRow(this.closest('.pet-entry')))">
                     <option value="">—</option>
-                    <option ${sel('species','Dog')}>Dog</option>
-                    <option ${sel('species','Cat')}>Cat</option>
-                    <option ${sel('species','Bird')}>Bird</option>
-                    <option ${sel('species','Rabbit')}>Rabbit</option>
-                    <option ${sel('species','Other')}>Other</option>
+                    ${opts.map(o => `<option ${o === species ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('')}
                 </select>
             </div>
         </div>
-        <div class="form-row-3">
-            <div class="form-group"><label>Sex</label>
-                <select class="pet-sex">
-                    <option value="">—</option>
-                    <option ${sel('sex','Male')}>Male</option>
-                    <option ${sel('sex','Female')}>Female</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Breed</label><input type="text" class="pet-breed" value="${v('breed')}"></div>
-            <div class="form-group"><label>Age</label><input type="text" class="pet-age" value="${v('age')}" placeholder="e.g. 3 yrs"></div>
-        </div>
-        <div class="form-row">
-            <div class="form-group"><label>Weight</label><input type="text" class="pet-weight" value="${v('weight')}" placeholder="e.g. 25 lbs"></div>
-            <div class="form-group"><label>Color/Markings</label><input type="text" class="pet-color" value="${v('color')}"></div>
-        </div>
-        <div class="form-group"><label>Behavior Notes</label><textarea class="pet-behavior" rows="2" placeholder="Temperament, anxiety triggers, special handling…">${v('behaviorNotes')}</textarea></div>
-        <div class="form-group"><label>Medical / Conditions</label><textarea class="pet-medical" rows="2" placeholder="Medications, allergies, chronic conditions…">${v('medicalNotes')}</textarea></div>
-        <div class="form-group"><label>Feeding Instructions</label><textarea class="pet-feeding" rows="2" placeholder="Food, amounts, meal times…">${v('feedingInstructions')}</textarea></div>
-        <div class="form-group"><label>Care Instructions</label><textarea class="pet-care" rows="2" placeholder="Potty schedule, exercise, daily routine…">${v('careInstructions')}</textarea></div>
+        <div class="pet-fields"></div>
     `;
     container.appendChild(row);
+    renderPetFields(row, species, petData || {});
 }
 
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -2377,21 +2401,9 @@ function saveClient() {
     if (!name) { showToast('Name is required', 'error'); return; }
     const pets = [];
     document.querySelectorAll('#petsContainer .pet-entry').forEach(p => {
-        const petName = p.querySelector('.pet-name').value.trim();
-        if (!petName) return;
-        pets.push({
-            name: petName,
-            species: p.querySelector('.pet-species').value,
-            sex: p.querySelector('.pet-sex').value,
-            breed: p.querySelector('.pet-breed').value.trim(),
-            age: p.querySelector('.pet-age').value.trim(),
-            weight: p.querySelector('.pet-weight').value.trim(),
-            color: p.querySelector('.pet-color').value.trim(),
-            behaviorNotes: p.querySelector('.pet-behavior').value.trim(),
-            medicalNotes: p.querySelector('.pet-medical').value.trim(),
-            feedingInstructions: p.querySelector('.pet-feeding').value.trim(),
-            careInstructions: p.querySelector('.pet-care').value.trim()
-        });
+        const pet = collectPetRow(p);
+        if (!pet.name) return;
+        pets.push(pet);
     });
     const pricing = {};
     const p30 = parseFloat(document.getElementById('cPrice30').value);
@@ -2413,6 +2425,7 @@ function saveClient() {
             return (isNaN(v) || v < 0) ? null : v;
         })(),
         notes: document.getElementById('cNotes').value.trim(),
+        household: collectHouseholdFields(),
         pricing, pets,
         coords: _capturedCoords,
         defaultPaymentMethod: document.getElementById('cDefaultPaymentMethod').value || null,
@@ -2613,7 +2626,6 @@ function viewClient(clientId) {
             ` : ''}
             ${c.phone ? `<div class="detail-row"><div class="detail-label">Phone</div><div class="detail-value">${escapeHtml(formatPhone(c.phone))}</div></div>` : ''}
             ${c.email ? `<div class="detail-row"><div class="detail-label">Email</div><div class="detail-value">${escapeHtml(c.email)}</div></div>` : ''}
-            ${c.preferredContact ? `<div class="detail-row"><div class="detail-label">Preferred</div><div class="detail-value">${escapeHtml(c.preferredContact)}</div></div>` : ''}
             ${addressLine ? `<div class="detail-row"><div class="detail-label">Address</div><div class="detail-value">${renderClickableAddress(addressLine)}</div></div>` : ''}
             ${(() => {
                 const hasOverride = c.milesFromHomeOverride != null && c.milesFromHomeOverride !== '';
@@ -2665,20 +2677,10 @@ function viewClient(clientId) {
     }
     if ((c.pets || []).length > 0) {
         html += `<div class="detail-section"><h3>Pets (${c.pets.length})</h3>`;
-        c.pets.forEach(p => {
-            const meta = [p.species, p.breed, p.sex, p.age, p.weight, p.color].filter(Boolean).join(' · ');
-            html += `
-                <div class="pet-detail-card">
-                    <h4>${escapeHtml(p.name)}</h4>
-                    ${meta ? `<div class="pet-detail-meta">${escapeHtml(meta)}</div>` : ''}
-                    ${p.behaviorNotes ? `<div class="pet-note"><strong>Behavior</strong>${escapeHtml(p.behaviorNotes)}</div>` : ''}
-                    ${p.medicalNotes ? `<div class="pet-note"><strong>Medical</strong>${escapeHtml(p.medicalNotes)}</div>` : ''}
-                    ${p.feedingInstructions ? `<div class="pet-note"><strong>Feeding</strong>${escapeHtml(p.feedingInstructions)}</div>` : ''}
-                    ${p.careInstructions ? `<div class="pet-note"><strong>Care</strong>${escapeHtml(p.careInstructions)}</div>` : ''}
-                </div>`;
-        });
+        c.pets.forEach(p => { html += renderPetDetailCard(p); });
         html += `</div>`;
     }
+    html += renderHouseholdDetail(c.household || {});
     // Tips section
     const tipEntries = Array.isArray(c.tips) ? c.tips.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')) : [];
     const _completedCount = visits.filter(v => v.status === 'completed').length;
@@ -2775,7 +2777,6 @@ function viewClient(clientId) {
         }
         if (vet.clinic || vet.phone) {
             html += `<div class="detail-row"><div class="detail-label">Vet</div><div class="detail-value">${escapeHtml(vet.clinic || '—')}${vet.phone ? ' · ' + escapeHtml(formatPhone(vet.phone)) : ''}</div></div>`;
-            if (vet.address) html += `<div class="detail-row"><div class="detail-label"></div><div class="detail-value">${renderClickableAddress(vet.address)}</div></div>`;
         }
         html += `</div>`;
     }
@@ -2868,6 +2869,494 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 function toggleAccountMenu(ev){ if(ev)ev.stopPropagation(); var m=document.getElementById("indicatorMenu"); if(!m)return; m.style.display=(m.style.display==="block")?"none":"block"; }
+</script>
+
+<script>
+/* =============================================================
+   Client & pet fields that match the intake form
+   (myreliacare.com/intake). Pet fields change with species, and
+   the detail view only shows what's filled in.
+============================================================= */
+const PET_SPECIES = ['Dog', 'Cat', 'Small animal', 'Bird', 'Reptile or amphibian', 'Fish'];
+function normalizeSpecies(s) {
+    if (!s) return '';
+    if (s === 'Rabbit') return 'Small animal';
+    return s;
+}
+const PET_FLAGS = {
+    'Dog': ['Has bitten or snapped at a person (not being playful)', 'Has injured another pet', 'Guards food, toys, or a spot in the house',
+            'Barks or lunges at other dogs, people, or cars on walks', 'Nervous or fearful with people they don’t know',
+            'Has gotten out, or tries to', 'Struggles being alone: barking, pacing, chewing, getting sick', 'Difficult to leash, collar, or handle'],
+    'Cat': ['Has bitten or scratched hard enough to break skin', 'Swats or nips once they’ve had enough petting', 'Doesn’t like being picked up or handled',
+            'Guards food or gets pushy at mealtime', 'Waits by the door, or has gotten out before', 'Sometimes goes outside the litter box',
+            'Has to be kept away from another pet in the house'],
+    'Small animal': ['Nips or bites when handled', 'Gets out of the enclosure'],
+    'Bird': ['Bites or lunges at hands', 'Has flown out of the cage or the house'],
+    'Reptile or amphibian': ['Bites or is defensive when approached']
+};
+const _YNU = ['Yes', 'No', 'Not sure'];
+function petFieldDefs(sp) {
+    const f = [];
+    const add = (k, label, type, opts, wide) => f.push({ k, label, type, opts, wide });
+    const isDC = sp === 'Dog' || sp === 'Cat';
+    const known = PET_SPECIES.includes(sp);
+    if (sp !== 'Fish') add('sex', 'Sex', 'select', isDC ? ['Male', 'Female'] : ['Male', 'Female', 'Not sure']);
+    if (sp !== 'Fish') add('breed', (isDC || !known) ? 'Breed' : 'What kind', 'text');
+    if (sp !== 'Fish') add('age', 'Age', 'text');
+    if (isDC || !known) add('weight', 'Weight', 'text');
+    if (sp !== 'Fish') add('color', 'Color or markings', 'text');
+    if (isDC) { add('fixed', 'Spayed or neutered', 'select', _YNU); add('rabies', 'Rabies current', 'select', _YNU); }
+    if (sp === 'Dog') {
+        add('crate', 'Crated when alone', 'select', ['No', 'Yes', 'Sometimes']);
+        add('role', 'Role', 'select', ['Pet only', 'Service animal', 'Emotional support animal', 'Working or guard dog', 'Breeding or show animal']);
+    }
+    if (sp === 'Cat') {
+        add('indoorOutdoor', 'Indoor or outdoor', 'select', ['Indoor only', 'Indoor with supervised outdoor time', 'Indoor and outdoor']);
+        add('litterBoxes', 'Litter boxes', 'text');
+        add('litterWhere', 'Litter box location', 'text');
+        add('strangers', 'With people they don’t know', 'select', ['Friendly right away', 'Warms up slowly', 'Hides the whole time', 'Depends on the day']);
+    }
+    if (sp === 'Small animal') {
+        add('housing', 'Where they live', 'select', ['In a cage or hutch', 'Free roam in one room', 'Free roam of the house', 'Pen or enclosure']);
+        add('handling', 'Handling', 'select', ['Yes, they are used to it', 'Only if needed', 'No, hands off please']);
+    }
+    if (sp === 'Bird') {
+        add('outOfCage', 'Out of the cage', 'select', ['No, keep them in', 'Yes, supervised', 'Only if they come out on their own']);
+        add('covered', 'Cage covered at night', 'select', ['No', 'Yes']);
+    }
+    if (sp === 'Reptile or amphibian') {
+        add('handling', 'Handling', 'select', ['No, hands off please', 'Only if needed', 'Yes, they are used to it']);
+        add('enclosure', 'Enclosure', 'text');
+        add('tempRange', 'Temperature', 'text');
+        add('humidity', 'Humidity', 'text');
+        add('lighting', 'Lighting & heating schedule', 'textarea', null, true);
+    }
+    if (sp === 'Fish') {
+        add('waterType', 'Fresh or salt', 'select', ['Freshwater', 'Saltwater', 'Brackish']);
+        add('tankSize', 'Tank size', 'text');
+    }
+    if (known && !isDC) add('foodTypes', 'Food', 'text');
+    if (PET_FLAGS[sp]) {
+        add('flags', 'Flagged behaviors', 'flags', PET_FLAGS[sp], true);
+        add('flagNotes', 'About the flagged behaviors', 'textarea', null, true);
+    }
+    add('medicalNotes', sp === 'Fish' ? 'Anything going on with the fish or setup' : 'Health & medications', 'textarea', null, true);
+    add('feedingInstructions', sp === 'Fish' ? 'Feeding amounts & what to check' : sp === 'Reptile or amphibian' ? 'Feeding & daily care' : 'Feeding', 'textarea', null, true);
+    if (sp !== 'Fish' && sp !== 'Reptile or amphibian') add('careInstructions', (sp === 'Small animal' || sp === 'Bird') ? 'Daily care' : 'Care', 'textarea', null, true);
+    add('behaviorNotes', sp === 'Fish' ? 'Anything else about the fish or setup' : 'Anything else about them', 'textarea', null, true);
+    return f;
+}
+/* every pet key we know about, with a readable label (used for pets whose species changed) */
+const PET_LABELS = { sex: 'Sex', breed: 'Breed', age: 'Age', weight: 'Weight', color: 'Color or markings', fixed: 'Spayed or neutered',
+    rabies: 'Rabies current', crate: 'Crated when alone', role: 'Role', indoorOutdoor: 'Indoor or outdoor', litterBoxes: 'Litter boxes',
+    litterWhere: 'Litter box location', strangers: 'With people they don’t know', housing: 'Where they live', handling: 'Handling',
+    outOfCage: 'Out of the cage', covered: 'Cage covered at night', enclosure: 'Enclosure', tempRange: 'Temperature', humidity: 'Humidity',
+    lighting: 'Lighting & heating schedule', waterType: 'Fresh or salt', tankSize: 'Tank size', foodTypes: 'Food', flags: 'Flagged behaviors',
+    flagNotes: 'About the flagged behaviors', medicalNotes: 'Health & medications', feedingInstructions: 'Feeding', careInstructions: 'Care',
+    behaviorNotes: 'Anything else about them' };
+
+function _fieldHtml(d, v, attr) {
+    const val = v == null ? '' : v;
+    if (d.type === 'select') {
+        const opts = (d.opts || []).slice();
+        if (val && !opts.includes(val)) opts.push(val);
+        return `<select ${attr}><option value="">—</option>${opts.map(o => `<option ${o === val ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('')}</select>`;
+    }
+    if (d.type === 'textarea') return `<textarea rows="2" ${attr}>${escapeHtml(val)}</textarea>`;
+    if (d.type === 'date') return `<input type="date" value="${escapeHtml(val)}" ${attr}>`;
+    return `<input type="text" value="${escapeHtml(val)}" ${attr}>`;
+}
+
+function renderPetFields(row, species, data) {
+    data = data || {};
+    const box = row.querySelector('.pet-fields');
+    box.innerHTML = `<div class="pet-grid">` + petFieldDefs(normalizeSpecies(species)).map(d => {
+        if (d.type === 'flags') {
+            const have = Array.isArray(data.flags) ? data.flags : [];
+            const all = d.opts.concat(have.filter(x => !d.opts.includes(x)));
+            return `<div class="form-group wide"><label>${d.label}</label><div class="pet-flag-list">` +
+                all.map(o => `<label class="pet-flag"><input type="checkbox" data-flag value="${escapeHtml(o)}" ${have.includes(o) ? 'checked' : ''}> ${escapeHtml(o)}</label>`).join('') +
+                `</div></div>`;
+        }
+        return `<div class="form-group ${d.wide ? 'wide' : ''}"><label>${d.label}</label>${_fieldHtml(d, data[d.k], `data-k="${d.k}"`)}</div>`;
+    }).join('') + `</div>`;
+}
+
+function collectPetRow(row) {
+    const pet = JSON.parse(JSON.stringify(row._orig || {}));
+    pet.name = row.querySelector('.pet-name').value.trim();
+    pet.species = row.querySelector('.pet-species').value;
+    row.querySelectorAll('.pet-fields [data-k]').forEach(el => { pet[el.dataset.k] = el.value.trim(); });
+    const flagBoxes = row.querySelectorAll('.pet-fields [data-flag]');
+    if (flagBoxes.length) pet.flags = Array.from(flagBoxes).filter(x => x.checked).map(x => x.value);
+    /* don't store empty fields */
+    Object.keys(pet).forEach(k => {
+        if (k === 'name' || k === 'species') return;
+        if (pet[k] === '' || pet[k] == null || (Array.isArray(pet[k]) && !pet[k].length)) delete pet[k];
+    });
+    return pet;
+}
+
+const HH_FIELDS = [
+    { k: 'feeding', label: 'Feeding routine', type: 'textarea', wide: true },
+    { k: 'potty', label: 'Potty & walk routine', type: 'textarea', wide: true },
+    { k: 'dogsTogether', label: 'Dogs together', type: 'select', opts: ['Fine together, no issues', 'Play rough but it never escalates', 'Have had scuffles', 'Have to be kept separate'] },
+    { k: 'dogsTogetherNotes', label: 'Dogs together: details', type: 'textarea', wide: true },
+    { k: 'catsTogether', label: 'Cats together', type: 'select', opts: ['Fine together', 'Occasional hissing or swatting', 'They fight', 'Kept in separate areas'] },
+    { k: 'catsTogetherNotes', label: 'Cats together: details', type: 'textarea', wide: true },
+    { k: 'dogsAndCats', label: 'Dogs & cats together', type: 'select', opts: ['Fine together', 'Tolerate each other', 'Dog chases the cat', 'Kept separate'] },
+    { k: 'dogsAndCatsNotes', label: 'Dogs & cats: details', type: 'textarea', wide: true },
+    { k: 'yardFence', label: 'Yard', type: 'select', opts: ['Fully fenced', 'Partly fenced', 'Invisible or electric fence', 'No fence'] },
+    { k: 'fenceNotes', label: 'Fence & gates', type: 'textarea', wide: true },
+    { k: 'dogHandling', label: 'How dogs go out', type: 'select', opts: ['Loose in the yard', 'On leash', 'Both, depending on the dog'] },
+    { k: 'offLeashNotes', label: 'Off leash with no fence', type: 'textarea', wide: true },
+    { k: 'extras', label: 'Extras while we’re there', type: 'text', wide: true },
+    { k: 'extrasNotes', label: 'Extras: details', type: 'textarea', wide: true },
+    { k: 'insurance', label: 'Pet insurance', type: 'select', opts: ['Yes', 'Some of them', 'No'] },
+    { k: 'insuredPets', label: 'Insured pets', type: 'text' },
+    { k: 'treatment', label: 'Treatment authorization', type: 'select', opts: ['Up to a set amount', 'Whatever is needed to stabilize'] },
+    { k: 'treatmentAmount', label: 'Treatment limit', type: 'text' },
+    { k: 'photos', label: 'Photos & clips on social', type: 'select', opts: ['Yes', 'No'] },
+    { k: 'termsAgreed', label: 'Agreed to terms & cancellation policy', type: 'date' }
+];
+function renderHouseholdFields(h) {
+    h = h || {};
+    const box = document.getElementById('householdFields');
+    if (!box) return;
+    box.innerHTML = `<div class="pet-grid">` + HH_FIELDS.map(d =>
+        `<div class="form-group ${d.wide ? 'wide' : ''}"><label>${d.label}</label>${_fieldHtml(d, h[d.k], `data-hk="${d.k}"`)}</div>`
+    ).join('') + `</div>`;
+}
+function collectHouseholdFields() {
+    const h = {};
+    document.querySelectorAll('#householdFields [data-hk]').forEach(el => { const v = el.value.trim(); if (v) h[el.dataset.hk] = v; });
+    return h;
+}
+function _fmtYmd(v) {
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? new Date(v + 'T00:00:00') : null;
+    return d && !isNaN(d) ? d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : v;
+}
+function renderHouseholdDetail(h) {
+    h = h || {};
+    const rows = HH_FIELDS.filter(d => h[d.k]).map(d => {
+        let v = h[d.k];
+        if (d.k === 'termsAgreed') v = _fmtYmd(v);
+        if (d.k === 'treatment' && v === 'Up to a set amount' && h.treatmentAmount) return '';
+        if (d.k === 'treatmentAmount') v = 'Up to ' + (String(v).trim().startsWith('$') ? v : '$' + v);
+        return `<div class="detail-row"><div class="detail-label">${escapeHtml(d.k === 'treatmentAmount' ? 'Treatment authorization' : d.label)}</div><div class="detail-value" style="white-space: pre-wrap;">${escapeHtml(v)}</div></div>`;
+    }).join('');
+    return rows ? `<div class="detail-section"><h3>Household</h3>${rows}</div>` : '';
+}
+function renderPetDetailCard(p) {
+    const sp = normalizeSpecies(p.species);
+    const defs = petFieldDefs(sp);
+    const inMeta = ['breed', 'sex', 'age', 'weight', 'color'];
+    const meta = [p.species, p.breed, p.sex, p.age, p.weight, p.color].filter(Boolean).join(' · ');
+    const shown = new Set(inMeta);
+    let out = '';
+    const facts = [];
+    defs.forEach(d => {
+        shown.add(d.k);
+        if (inMeta.includes(d.k)) return;
+        const v = p[d.k];
+        if (d.type === 'flags') {
+            if (Array.isArray(v) && v.length) out += `<div class="pet-note"><strong>Flagged</strong>${v.map(escapeHtml).join('<br>')}</div>`;
+            return;
+        }
+        if (!v) return;
+        if (d.type === 'select' || d.type === 'text') facts.push(`${d.label}: ${v}`);
+        else out += `<div class="pet-note"><strong>${escapeHtml(d.label)}</strong>${escapeHtml(v)}</div>`;
+    });
+    /* anything saved under a different species still shows */
+    Object.keys(PET_LABELS).forEach(k => {
+        if (shown.has(k)) return;
+        const v = p[k];
+        if (!v || (Array.isArray(v) && !v.length)) return;
+        out += `<div class="pet-note"><strong>${escapeHtml(PET_LABELS[k])}</strong>${escapeHtml(Array.isArray(v) ? v.join(', ') : v)}</div>`;
+    });
+    return `<div class="pet-detail-card">
+        <h4>${escapeHtml(p.name)}</h4>
+        ${meta ? `<div class="pet-detail-meta">${escapeHtml(meta)}</div>` : ''}
+        ${facts.length ? `<div class="pet-detail-meta" style="margin-top:4px;">${facts.map(escapeHtml).join(' · ')}</div>` : ''}
+        ${out}
+    </div>`;
+}
+</script>
+
+<script>
+/* =============================================================
+   Intake inbox
+   New submissions from myreliacare.com/intake land in the Firestore
+   "intakes" collection (status "new"). Review each one here, then
+   create a new client or apply the changes to an existing one.
+   Applied or dismissed intakes are deleted; the Formspree email
+   stays as the backup copy.
+============================================================= */
+let _intakes = [];
+let _intakeUnsub = null;
+let _intakeView = { id: null, target: null };
+
+function _intakeStart() {
+    if (_intakeUnsub || typeof db === 'undefined') return;
+    _intakeUnsub = db.collection('intakes').where('status', '==', 'new').onSnapshot(snap => {
+        _intakes = snap.docs.map(d => {
+            const raw = d.data() || {};
+            let p = {};
+            try { p = JSON.parse(raw.payload || '{}'); } catch (e) { console.warn('[intake] bad payload', d.id); }
+            return { id: d.id, p };
+        }).sort((a, b) => String(b.p.submittedAt || '').localeCompare(String(a.p.submittedAt || '')));
+        _intakeBadge();
+        const open = document.getElementById('intakeModal').classList.contains('active');
+        if (open && !_intakeView.id) _renderIntakeList();
+    }, err => console.warn('[intake] listener error:', err));
+}
+function _intakeStop() { if (_intakeUnsub) { _intakeUnsub(); _intakeUnsub = null; } _intakes = []; _intakeBadge(); }
+if (typeof auth !== 'undefined') auth.onAuthStateChanged(u => { if (u) _intakeStart(); else _intakeStop(); });
+
+function _intakeBadge() {
+    const el = document.getElementById('intakeCount');
+    if (!el) return;
+    el.textContent = _intakes.length;
+    el.style.display = _intakes.length ? 'inline-block' : 'none';
+}
+
+const _digits = s => String(s || '').replace(/\D/g, '').slice(-10);
+const _low = s => String(s || '').trim().toLowerCase();
+const _same = (a, b) => _low(a).replace(/\s+/g, ' ') === _low(b).replace(/\s+/g, ' ');
+function _intakeDate(iso) {
+    const d = iso ? new Date(iso) : null;
+    return d && !isNaN(d) ? d.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+}
+
+/* existing clients that look like the person who filled out the form */
+function _intakeMatches(p) {
+    const c = p.client || {};
+    const ph = _digits(c.phone), em = _low(c.email), nm = _low(c.name), last = _low(c.lastName);
+    return Store.getClients().map(x => {
+        let score = 0;
+        if (ph && ph.length >= 7 && _digits(x.phone) === ph) score += 3;
+        if (em && _low(x.email) === em) score += 3;
+        if (nm && _low(x.name) === nm) score += 2;
+        else if (last && _low(x.name).split(/\s+/).includes(last)) score += 1;
+        return { c: x, score };
+    }).filter(m => m.score > 1).sort((a, b) => b.score - a.score);
+}
+
+function openIntakeInbox() {
+    _intakeView = { id: null, target: null };
+    _renderIntakeList();
+    openModal('intakeModal');
+}
+
+function _renderIntakeList() {
+    document.getElementById('intakeTitle').textContent = 'Intake Forms';
+    const body = document.getElementById('intakeBody');
+    document.getElementById('intakeFooter').innerHTML = `<button class="btn btn-ghost" onclick="closeModal('intakeModal')">Close</button>`;
+    if (!_intakes.length) {
+        body.innerHTML = `<p class="intake-note" style="margin:0;">No new intake forms. When a client sends one from myreliacare.com/intake, it shows up here.</p>`;
+        return;
+    }
+    body.innerHTML = _intakes.map(it => {
+        const p = it.p, c = p.client || {};
+        const petsStr = (p.pets || []).map(x => x.name + (x.species ? ` (${x.species})` : '')).filter(Boolean).join(', ');
+        const m = _intakeMatches(p)[0];
+        const hint = m ? `Looks like existing client: <strong>${escapeHtml(m.c.name)}</strong>` : 'New client';
+        return `<div class="intake-card">
+            <div class="intake-card-top">
+                <div class="intake-card-name">${escapeHtml(c.name || 'No name given')}</div>
+                <div class="intake-meta">${escapeHtml(_intakeDate(p.submittedAt))}</div>
+            </div>
+            <div class="intake-meta">${escapeHtml([c.phone, c.email].filter(Boolean).join(' · '))}</div>
+            ${petsStr ? `<div>${escapeHtml(petsStr)}</div>` : ''}
+            <div class="intake-meta" style="margin-top:4px;">${hint}</div>
+            <div class="intake-actions">
+                <button class="btn btn-primary btn-sm" onclick="reviewIntake('${it.id}')">Review</button>
+                <button class="btn btn-ghost btn-sm" onclick="dismissIntake('${it.id}')">Dismiss</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function reviewIntake(id) {
+    const it = _intakes.find(x => x.id === id);
+    if (!it) { showToast('That intake is no longer here', 'error'); _renderIntakeList(); return; }
+    const best = _intakeMatches(it.p)[0];
+    _intakeView = { id, target: best ? best.c.id : 'new' };
+    _renderIntakeReview();
+}
+
+const _CLIENT_FIELDS = [
+    ['name', 'Name', p => p.client.name],
+    ['phone', 'Phone', p => p.client.phone],
+    ['email', 'Email', p => p.client.email],
+    ['address', 'Street address', p => p.client.address],
+    ['city', 'City', p => p.client.city],
+    ['zip', 'Zip', p => p.client.zip],
+    ['emergencyContact.name', 'Emergency contact', p => (p.emergencyContact || {}).name],
+    ['emergencyContact.phone', 'Emergency contact phone', p => (p.emergencyContact || {}).phone],
+    ['emergencyContact.relationship', 'Emergency contact relationship', p => (p.emergencyContact || {}).relationship],
+    ['vetInfo.clinic', 'Vet', p => (p.vetInfo || {}).clinic],
+    ['vetInfo.phone', 'Vet phone', p => (p.vetInfo || {}).phone]
+].concat(HH_FIELDS.map(d => ['household.' + d.k, d.label, p => (p.household || {})[d.k], d.type === 'textarea']));
+const _PET_FIELDS = [['species', 'Species']].concat(Object.keys(PET_LABELS).map(k => [k, PET_LABELS[k], ['textarea', 'flags'].includes((petFieldDefs('Dog').concat(petFieldDefs('Fish'), petFieldDefs('Reptile or amphibian')).find(d => d.k === k) || {}).type)]));
+const _asText = v => Array.isArray(v) ? v.join('\n') : (v == null ? '' : String(v));
+const _getPath = (o, path) => path.split('.').reduce((a, k) => (a ? a[k] : undefined), o);
+function _setPath(o, path, v) {
+    const ks = path.split('.'); let cur = o;
+    ks.slice(0, -1).forEach(k => { if (!cur[k] || typeof cur[k] !== 'object') cur[k] = {}; cur = cur[k]; });
+    cur[ks[ks.length - 1]] = v;
+}
+
+function _intakeRow(key, label, oldV, newV, checked) {
+    return `<label class="intake-row">
+        <input type="checkbox" data-key="${escapeHtml(key)}" ${checked ? 'checked' : ''}>
+        <span class="lbl">${escapeHtml(label)}</span>
+        <span class="old">${oldV ? escapeHtml(oldV) : '<em>empty</em>'}</span>
+        <span class="new">${escapeHtml(newV)}</span>
+    </label>`;
+}
+function _kv(label, v) { return v ? `<div class="intake-kv"><div class="intake-meta">${escapeHtml(label)}</div><div class="v">${escapeHtml(v)}</div></div>` : ''; }
+
+function _renderIntakeReview() {
+    const it = _intakes.find(x => x.id === _intakeView.id);
+    if (!it) { _renderIntakeList(); return; }
+    const p = it.p; p.client = p.client || {};
+    document.getElementById('intakeTitle').textContent = 'Review: ' + (p.client.name || 'Intake');
+    const clients = Store.getClients();
+    const matches = _intakeMatches(p);
+    const matchIds = new Set(matches.map(m => m.c.id));
+    const others = clients.filter(c => !matchIds.has(c.id)).sort((a, b) => _low(a.name).localeCompare(_low(b.name)));
+    const opt = (c) => `<option value="${escapeHtml(c.id)}" ${_intakeView.target === c.id ? 'selected' : ''}>${escapeHtml(c.name || 'Unnamed')}</option>`;
+    let html = `<div class="form-group">
+        <label>Save to</label>
+        <select id="intakeTarget" onchange="_intakeView.target=this.value; _renderIntakeReview();">
+            <option value="new" ${_intakeView.target === 'new' ? 'selected' : ''}>New client</option>
+            ${matches.length ? `<optgroup label="Likely matches">${matches.map(m => opt(m.c)).join('')}</optgroup>` : ''}
+            ${others.length ? `<optgroup label="All clients">${others.map(opt).join('')}</optgroup>` : ''}
+        </select>
+    </div>
+    <p class="intake-note">Sent ${escapeHtml(_intakeDate(p.submittedAt))}.</p>`;
+
+    const target = clients.find(c => c.id === _intakeView.target);
+    if (!target) {
+        /* new client: show what will be created */
+        html += `<div class="detail-section"><h3>Client</h3>` +
+            _CLIENT_FIELDS.filter(([k]) => !k.startsWith('household.')).map(([k, label, get]) => _kv(label, get(p))).join('') + `</div>`;
+        if ((p.pets || []).length) html += `<div class="detail-section"><h3>Pets</h3>${p.pets.map(pet => renderPetDetailCard(_intakePet(pet))).join('')}</div>`;
+        html += renderHouseholdDetail(p.household || {});
+    } else {
+        /* existing client: only show what's different */
+        const rows = _CLIENT_FIELDS.map(([k, label, get, long]) => {
+            const nv = get(p), ov = _getPath(target, k);
+            if (!nv || _same(nv, ov)) return '';
+            if (/phone/i.test(k) && _digits(nv) && _digits(nv) === _digits(ov)) return '';
+            const checked = !ov || (k !== 'name' && !long);
+            return _intakeRow('client:' + k, label, ov, nv, checked);
+        }).join('');
+        html += `<div class="detail-section"><h3>Client</h3>` +
+            (rows ? `<div class="intake-colhead"><span></span><span></span><span>In CRM now</span><span>From the form</span></div>${rows}`
+                  : `<p class="intake-note" style="margin:0;">Contact, vet and emergency info already match.</p>`) + `</div>`;
+        (p.pets || []).forEach((pet, i) => {
+            const cur = (target.pets || []).find(x => _same(x.name, pet.name));
+            if (!cur) {
+                html += `<div class="detail-section"><h3>${escapeHtml(pet.name || 'Pet')}</h3>
+                    <label class="intake-row" style="grid-template-columns:28px 1fr;">
+                        <input type="checkbox" data-key="newpet:${i}" checked>
+                        <span>Add ${escapeHtml(pet.name || 'this pet')} as a new pet${pet.species ? ' (' + escapeHtml(pet.species) + ')' : ''}</span>
+                    </label></div>`;
+                return;
+            }
+            const prow = _PET_FIELDS.map(([k, label, long]) => {
+                const nv = _asText(pet[k]), ov = _asText(k === 'species' ? cur[k] : cur[k]);
+                if (!nv || _same(nv, ov) || (k === 'species' && normalizeSpecies(ov) === nv)) return '';
+                return _intakeRow(`pet:${i}:${k}`, label, ov, nv, !ov || !long);
+            }).join('');
+            html += `<div class="detail-section"><h3>${escapeHtml(pet.name)}</h3>` +
+                (prow ? `<div class="intake-colhead"><span></span><span></span><span>In CRM now</span><span>From the form</span></div>${prow}`
+                      : `<p class="intake-note" style="margin:0;">Already matches.</p>`) + `</div>`;
+        });
+    }
+    if (p.notes) {
+        html += `<div class="detail-section"><h3>Anything else they&rsquo;d like us to know</h3>
+            <label class="intake-row" style="grid-template-columns:28px 1fr;">
+                <input type="checkbox" data-key="notes" checked>
+                <span>Add this to the client&rsquo;s notes</span>
+            </label>
+            <div class="v" style="white-space:pre-wrap; color: var(--text-dim); margin-top:6px;">${escapeHtml(p.notes)}</div></div>`;
+    }
+    document.getElementById('intakeBody').innerHTML = html;
+    document.getElementById('intakeFooter').innerHTML = `
+        <button class="btn btn-ghost" onclick="_intakeView.id=null; _renderIntakeList();">Back</button>
+        <button class="btn btn-primary" onclick="applyIntake()">${target ? 'Apply changes' : 'Create client'}</button>`;
+    const b = document.getElementById('intakeBody'); if (b) b.scrollTop = 0;
+}
+
+function _intakePet(pet) {
+    const out = { name: pet.name || 'Pet', species: pet.species || '' };
+    Object.keys(PET_LABELS).forEach(k => { if (pet[k] != null && pet[k] !== '' && !(Array.isArray(pet[k]) && !pet[k].length)) out[k] = pet[k]; });
+    return out;
+}
+function _intakeNotesBlock(p) { return p.notes; }
+
+async function applyIntake() {
+    const it = _intakes.find(x => x.id === _intakeView.id);
+    if (!it) { _renderIntakeList(); return; }
+    const p = it.p; p.client = p.client || {};
+    const picked = new Set(Array.from(document.querySelectorAll('#intakeBody input[type=checkbox]:checked')).map(x => x.dataset.key));
+    const clients = Store.getClients();
+    const idx = clients.findIndex(c => c.id === _intakeView.target);
+    let savedName;
+
+    if (idx < 0) {
+        const newClient = {
+            id: 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            createdDate: new Date().toISOString().split('T')[0],
+            name: p.client.name || 'New client', preferredContact: '',
+            phone: p.client.phone || '', email: p.client.email || '',
+            address: p.client.address || '', city: p.client.city || '', state: 'KY', zip: p.client.zip || '',
+            accessInstructions: '', milesFromHomeOverride: null,
+            notes: picked.has('notes') && p.notes ? _intakeNotesBlock(p) : '',
+            pricing: {}, pets: (p.pets || []).map(_intakePet), coords: null,
+            defaultPaymentMethod: null, timeWindows: [],
+            emergencyContact: { name: (p.emergencyContact || {}).name || '', phone: (p.emergencyContact || {}).phone || '', relationship: (p.emergencyContact || {}).relationship || '' },
+            vetInfo: { clinic: (p.vetInfo || {}).clinic || '', phone: (p.vetInfo || {}).phone || '', address: '' },
+            household: Object.assign({}, p.household || {})
+        };
+        clients.push(newClient);
+        savedName = newClient.name;
+    } else {
+        const c = JSON.parse(JSON.stringify(clients[idx]));
+        c.pets = Array.isArray(c.pets) ? c.pets : [];
+        _CLIENT_FIELDS.forEach(([k, label, get]) => { if (picked.has('client:' + k)) _setPath(c, k, get(p)); });
+        (p.pets || []).forEach((pet, i) => {
+            if (picked.has('newpet:' + i)) { c.pets.push(_intakePet(pet)); return; }
+            const cur = c.pets.find(x => _same(x.name, pet.name));
+            if (!cur) return;
+            _PET_FIELDS.forEach(([k]) => { if (picked.has(`pet:${i}:${k}`)) cur[k] = Array.isArray(pet[k]) ? pet[k].slice() : pet[k]; });
+        });
+        if (picked.has('notes') && p.notes) c.notes = (c.notes ? c.notes.trim() + '\n\n' : '') + _intakeNotesBlock(p);
+        clients[idx] = c;
+        savedName = c.name;
+        if (typeof updateClientNameInVisits === 'function') updateClientNameInVisits(c.id, c.name);
+    }
+    Store.saveClients(clients);
+    try { await db.collection('intakes').doc(it.id).delete(); }
+    catch (e) { console.warn('[intake] could not remove intake', e); showToast('Saved, but the intake could not be cleared from the inbox', 'error'); }
+    showToast(idx < 0 ? `Added ${savedName}` : `Updated ${savedName}`);
+    _intakeView = { id: null, target: null };
+    if (typeof renderClients === 'function') renderClients();
+    if (typeof renderStats === 'function') try { renderStats(); } catch (e) {}
+    _renderIntakeList();
+}
+
+function dismissIntake(id) {
+    showConfirm('Dismiss this intake?', 'It will be removed from the inbox without changing any clients. The emailed copy stays in your inbox.', async () => {
+        try { await db.collection('intakes').doc(id).delete(); showToast('Intake dismissed'); }
+        catch (e) { console.warn('[intake] dismiss failed', e); showToast('Could not dismiss that intake', 'error'); }
+    }, { confirmText: 'Dismiss', danger: true });
+}
+window.openIntakeInbox = openIntakeInbox; window.reviewIntake = reviewIntake;
+window.applyIntake = applyIntake; window.dismissIntake = dismissIntake;
 </script>
 </body>
 </html>
